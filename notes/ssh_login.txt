@@ -1,0 +1,4 @@
+user: laser
+password: pen_pineapple
+
+Same password for root user as well.
