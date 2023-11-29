@@ -11,6 +11,8 @@ public:
 	unsigned maxBytesPerTransmission() override;
 	unsigned maxPointrate() override;
 	void setMaxPointrate(unsigned) override;
+	void getName(char* name) override;
+	bool getHeliosConnected();
 
 	HeliosAdapter();
 	~HeliosAdapter();
@@ -20,5 +22,8 @@ private:
 	int numHeliosDevices;
 	std::uint8_t heliosFlags;
 	unsigned maximumPointRate;
+	int connectionRetries = 50;
+
+	void checkConnection();
 };
 

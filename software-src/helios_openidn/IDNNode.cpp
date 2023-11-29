@@ -14,6 +14,7 @@ IDNNode::IDNNode(std::shared_ptr<HWBridge> hwBridge, std::shared_ptr<BEX> bex) {
   channel->sdm = 0x00;
   channel->serviceId = 0x00;
   channel->serviceMode = 0x00;  
+  channel->descriptors = NULL;
 
   driverPtr = hwBridge;
   this->bex = bex;
@@ -99,110 +100,118 @@ unsigned int IDNNode::buildDictionary(char* buf, unsigned int len, unsigned int 
   int i;
   for (i = 0; i < scwc*4; i += 2) {
     
-    uint16_t tag;
-    offset = read_uint16(buf, len, offset, &tag);
-    
-    uint16_t category = (tag & IDN_TAG_CAT_BMASK) >> IDN_TAG_CAT_OFFSET;
-    uint16_t sub = (tag & IDN_TAG_SUB_BMASK) >> IDN_TAG_SUB_OFFSET;
-    uint16_t id = (tag & IDN_TAG_ID_BMASK) >> IDN_TAG_ID_OFFSET;
-    uint16_t prm = (tag & IDN_TAG_PRM_BMASK);
-    uint16_t wl = (tag & IDN_TAG_WL_BMASK);
-    
-    switch(category) {
-    case 0: // 0
-          offset += prm*2; //skip over prm 16-bit words
-	  i += prm*2;
-        break;
-    case 1: // 1
-      if (sub == 0) { //1.0
-	//BREAK TAG
-      } else if (sub = 1) { //1.1
-	//COORDINATE AND COLOR SPACE MODIFIERS
-      }
-      break;
-    case 4: //4
-      if (sub == 0) { //4.0
-	 if (id == 0) { //4.0.0
-	  //NOP
-	  currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
-	  currentDescTag->type = IDN_DESCRIPTOR_NOP;
-	  //because this tag is not reflected as a data field, subtract it from the count
-	  
-	  //append Tag
-	  if (last != NULL) 
-	    last->next = currentDescTag;
-	  last = currentDescTag;
-	  if (result == NULL) result = last;
-	  //end append
-	 } else if (id == 1) { //4.0.1
-	  //Precision Tag
-	  if (last != NULL)
-	    last->precision++;
-	}
-       } else if (sub == 1) { //4.1
-	currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
-	if (prm == 0) {
-	  currentDescTag->type = IDN_DESCRIPTOR_DRAW_CONTROL_0;
-        } else if (prm == 1) {
-	  currentDescTag->type = IDN_DESCRIPTOR_DRAW_CONTROL_1;
-        }
+	  uint16_t tag;
+	  offset = read_uint16(buf, len, offset, &tag);
 
-	//apppend Tag
-	if (last != NULL) 
-	  last->next = currentDescTag;
-	last = currentDescTag;
-	if (result == NULL) result = last;
-	//end append
-       } else if (sub == 2) { //4.2
-	currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
-	if (id == 0) { //4.2.0
-	  currentDescTag->type = IDN_DESCRIPTOR_X;
-        } else if (id == 1) { //4.2.1
-	  currentDescTag->type = IDN_DESCRIPTOR_Y;
-        } else if (id == 2) { //4.2.2
-	  currentDescTag->type = IDN_DESCRIPTOR_Z;
-        }
+	  uint16_t category = (tag & IDN_TAG_CAT_BMASK) >> IDN_TAG_CAT_OFFSET;
+	  uint16_t sub = (tag & IDN_TAG_SUB_BMASK) >> IDN_TAG_SUB_OFFSET;
+	  uint16_t id = (tag & IDN_TAG_ID_BMASK) >> IDN_TAG_ID_OFFSET;
+	  uint16_t prm = (tag & IDN_TAG_PRM_BMASK);
+	  uint16_t wl = (tag & IDN_TAG_WL_BMASK);
 
-	currentDescTag->scannerId = prm;
-	
-	//append Tag
-	if (last != NULL) 
-	 last->next = currentDescTag;
-	last = currentDescTag;
-	if (result == NULL) result = last;
-	//end append
-	}
-	break;
-    case 5: //5
-      if (sub <= 3) { //5.0 - 5.3  
-	currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
-	currentDescTag->type = IDN_DESCRIPTOR_COLOR;
-	currentDescTag->wavelength = wl;
+	  switch (category) {
+	  case 0: // 0
+		  offset += prm * 2; //skip over prm 16-bit words
+		  i += prm * 2;
+		  break;
+	  case 1: // 1
+		  if (sub == 0) { //1.0
+			  //BREAK TAG
+		  }
+		  else if (sub == 1) { //1.1
+			  //COORDINATE AND COLOR SPACE MODIFIERS
+		  }
+		  break;
+	  case 4: //4
+		  if (sub == 0) { //4.0
+			  if (id == 0) { //4.0.0
+				  //NOP
+				  currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
+				  currentDescTag->type = IDN_DESCRIPTOR_NOP;
+				  //because this tag is not reflected as a data field, subtract it from the count
 
-	//append Tag
-	if (last != NULL) 
-	  last->next = currentDescTag;
-	last = currentDescTag;
-	if (result == NULL) result = last;
-	//end append
-      } else if (sub == 12) { //5.12
-	currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
-	if (id == 0) //5.12.0
-	  currentDescTag->type = IDN_DESCRIPTOR_WAVELENGTH;
-	if (id == 1) //5.12.1
-	  currentDescTag->type = IDN_DESCRIPTOR_INTENSITY;
-	if (id == 2) //5.12.2
-	  currentDescTag->type = IDN_DESCRIPTOR_BEAM_BRUSH;
+				  //append Tag
+				  if (last != NULL)
+					  last->next = currentDescTag;
+				  last = currentDescTag;
+				  if (result == NULL) result = last;
+				  //end append
+			  }
+			  else if (id == 1) { //4.0.1
+				  //Precision Tag
+				  if (last != NULL)
+					  last->precision++;
+			  }
+		  }
+		  else if (sub == 1) { //4.1
+			  currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
+			  if (prm == 0) {
+				  currentDescTag->type = IDN_DESCRIPTOR_DRAW_CONTROL_0;
+			  }
+			  else if (prm == 1) {
+				  currentDescTag->type = IDN_DESCRIPTOR_DRAW_CONTROL_1;
+			  }
 
-	//append Tag
-	if (last != NULL) 
-	  last->next = currentDescTag;
-	last = currentDescTag;
-	if (result == NULL) result = last;
-	//end append
-      }
-      break;
-    }
+			  //apppend Tag
+			  if (last != NULL)
+				  last->next = currentDescTag;
+			  last = currentDescTag;
+			  if (result == NULL) result = last;
+			  //end append
+		  }
+		  else if (sub == 2) { //4.2
+			  currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
+			  if (id == 0) { //4.2.0
+				  currentDescTag->type = IDN_DESCRIPTOR_X;
+			  }
+			  else if (id == 1) { //4.2.1
+				  currentDescTag->type = IDN_DESCRIPTOR_Y;
+			  }
+			  else if (id == 2) { //4.2.2
+				  currentDescTag->type = IDN_DESCRIPTOR_Z;
+			  }
+
+			  currentDescTag->scannerId = prm;
+
+			  //append Tag
+			  if (last != NULL)
+				  last->next = currentDescTag;
+			  last = currentDescTag;
+			  if (result == NULL) result = last;
+			  //end append
+		  }
+		  break;
+	  case 5: //5
+		  if (sub <= 3) { //5.0 - 5.3  
+			  currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
+			  currentDescTag->type = IDN_DESCRIPTOR_COLOR;
+			  currentDescTag->wavelength = wl;
+
+			  //append Tag
+			  if (last != NULL)
+				  last->next = currentDescTag;
+			  last = currentDescTag;
+			  if (result == NULL) result = last;
+			  //end append
+		  }
+		  else if (sub == 12) { //5.12
+			  currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
+			  if (id == 0) //5.12.0
+				  currentDescTag->type = IDN_DESCRIPTOR_WAVELENGTH;
+			  if (id == 1) //5.12.1
+				  currentDescTag->type = IDN_DESCRIPTOR_INTENSITY;
+			  if (id == 2) //5.12.2
+				  currentDescTag->type = IDN_DESCRIPTOR_BEAM_BRUSH;
+
+			  //append Tag
+			  if (last != NULL)
+				  last->next = currentDescTag;
+			  last = currentDescTag;
+			  if (result == NULL) result = last;
+			  //end append
+		  }
+		  break;
+	  }
   }
   last->next = NULL;
   *data = result;
@@ -313,14 +322,17 @@ int IDNNode::processIDNPacket(char* buf, unsigned int len, int sd, struct sockad
     unitID[6] = mac_address[4];
     unitID[7] = mac_address[5];
 
-    uint8_t hostName[20];
-    gethostname((char*) &hostName, 20);
 
     IDNScanResponsePacket resp = {{IDN_HEADER_CC_SCANRESPONSE,0,htons(header->seq)}, {0x28, 0x01, 0x01, 0x00,
 								     {}, {}}};
 
+	char dacName[20] = "";
+	driverPtr->getName(dacName);
+	if (dacName[0] == '\0')
+		strcpy(dacName, "OpenIDN");
+
     memcpy((void*) &resp.data.unitID, unitID, 16);
-    memcpy((void*) &resp.data.hostName, hostName, 20);
+    memcpy((void*) &resp.data.hostName, dacName, 20);
     
     sendto(sd, &resp, sizeof(resp), 0, remote, addr_len);
 
@@ -347,7 +359,7 @@ typedef struct _IDNHDR_SERVICEMAP_ENTRY
 
     uint8_t serviceName[20];        // later: copy dynamic string in serviceName; 
 
-    IDNServicemapResponsePacket resp = {{IDNCMD_SERVICEMAP_RESPONSE,0,htons(header->seq)}, {4, 24, 0, 1}, {1, 0x80, 0, 0, "IDN-Raspi-Laser"} };
+    IDNServicemapResponsePacket resp = {{IDNCMD_SERVICEMAP_RESPONSE,0,htons(header->seq)}, {4, 24, 0, 1}, {1, 0x80, 0, 0, "OpenIDN"} };
 
     sendto(sd, &resp, sizeof(resp), 0, remote, addr_len);
 
@@ -412,8 +424,15 @@ typedef struct _IDNHDR_SERVICEMAP_ENTRY
 
 	    //has dictionary
 	    if (chConfHeader->scwc != 0x00) {
-	      //build dictionary
-       	      offset = buildDictionary(buf, len, offset, chConfHeader->scwc, &(channel->descriptors));
+			//build dictionary (and free previous one)
+			IDNDescriptorTag* previousDescriptor = channel->descriptors;
+			while (previousDescriptor != NULL)
+			{
+				IDNDescriptorTag* nextDescriptor = previousDescriptor->next;
+				free(previousDescriptor);
+				previousDescriptor = nextDescriptor;
+			}
+       		offset = buildDictionary(buf, len, offset, chConfHeader->scwc, &(channel->descriptors));
 	    }
 	  }
 	}
@@ -589,7 +608,7 @@ typedef struct _IDNHDR_SERVICEMAP_ENTRY
   } // end cc message
   free(header);
   return 0;
- } // end prcoess packet
+ } // end process packet
    
  
 

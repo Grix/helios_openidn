@@ -15,6 +15,12 @@ HeliosAdapter::~HeliosAdapter() {
 }
 
 int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
+
+	if (!getHeliosConnected())
+	{
+		this->numHeliosDevices = this->helios.OpenDevices(); // For hot-plugging
+	}
+
 	struct timespec now, then;
 	unsigned long sdif, nsdif, tdif;
 	clock_gettime(CLOCK_MONOTONIC, &then);
@@ -29,22 +35,36 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 	
 	int status;
 
-	while (true)
+	if (getHeliosConnected())
 	{
-		status = helios.GetStatus(numHeliosDevices-1);
-		if (status == 1)
-			break;
-		
+		while (true)
+		{
+			status = helios.GetStatus(numHeliosDevices - 1);
+			if (status == 1)
+				break;
+
+			if (status < 0)
+			{
+				printf("Error checking Helios status: %d\n", status);
+				checkConnection();
+				break;
+			}
+			else
+				connectionRetries = 50;
+		}
+		status = this->helios.WriteFrame(this->numHeliosDevices - 1
+			, framePointRate
+			, this->heliosFlags, (HeliosPoint*)&data.front()
+			, numPoints);
+
 		if (status < 0)
-			printf("Error checking Helios status: %d\n", status);
+		{
+			printf("Error writing Helios frame: %d\n", status);
+			checkConnection();
+		}
+		else
+			connectionRetries = 50;
 	}
-	status = this->helios.WriteFrame(this->numHeliosDevices-1
-		, framePointRate
-		, this->heliosFlags, (HeliosPoint*)&data.front()
-		, numPoints);
-		
-	if (status < 0)
-		printf("Error writing Helios frame: %d\n", status);
 
 	//busy waiting
 	do {
@@ -92,4 +112,32 @@ unsigned HeliosAdapter::maxPointrate() {
 
 void HeliosAdapter::setMaxPointrate(unsigned newRate) {
 	this->maximumPointRate = newRate;
+}
+
+void HeliosAdapter::getName(char* name)
+{
+	if (getHeliosConnected())
+	{
+		char heliosName[32]; 
+		helios.GetName(numHeliosDevices - 1, heliosName);
+		memcpy(name, heliosName, 20);
+		name[19] = '\0'; // In case the name was longer than 20 bytes
+	}
+	else
+		strcpy(name, "[Missing Helios]");
+}
+
+bool HeliosAdapter::getHeliosConnected()
+{
+	return numHeliosDevices >= 1;
+}
+
+void HeliosAdapter::checkConnection()
+{
+	connectionRetries--;
+	if (connectionRetries <= 0)
+	{
+		helios.CloseDevices();
+		numHeliosDevices = 0;
+	}
 }

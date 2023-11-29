@@ -16,6 +16,7 @@ public:
 	unsigned int buildDictionary(char* buf, unsigned int len, unsigned int offset, uint8_t scwc, IDNDescriptorTag** data);
 	void mainNetLoop(int sd);
 	void setChunkLengthUs(double us);
+
 private:
 	void addPointToSlice(ISPDB25Point newPoint, ISPFrameMetadata metadata);
 	void commitChunk();
