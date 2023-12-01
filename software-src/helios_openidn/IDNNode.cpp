@@ -326,13 +326,9 @@ int IDNNode::processIDNPacket(char* buf, unsigned int len, int sd, struct sockad
     IDNScanResponsePacket resp = {{IDN_HEADER_CC_SCANRESPONSE,0,htons(header->seq)}, {0x28, 0x01, 0x01, 0x00,
 								     {}, {}}};
 
-	char dacName[20] = "";
-	driverPtr->getName(dacName);
-	if (dacName[0] == '\0')
-		strcpy(dacName, "OpenIDN");
 
     memcpy((void*) &resp.data.unitID, unitID, 16);
-    memcpy((void*) &resp.data.hostName, dacName, 20);
+    memcpy((void*) &resp.data.hostName, "OpenIDN", 20);
     
     sendto(sd, &resp, sizeof(resp), 0, remote, addr_len);
 
@@ -357,9 +353,13 @@ typedef struct _IDNHDR_SERVICEMAP_ENTRY
 
 ******************** */
 
-    uint8_t serviceName[20];        // later: copy dynamic string in serviceName; 
+	char dacName[20] = "";
+	driverPtr->getName(dacName);
+	if (dacName[0] == '\0')
+		strcpy(dacName, "OpenIDN");
 
-    IDNServicemapResponsePacket resp = {{IDNCMD_SERVICEMAP_RESPONSE,0,htons(header->seq)}, {4, 24, 0, 1}, {1, 0x80, 0, 0, "OpenIDN"} };
+
+    IDNServicemapResponsePacket resp = {{IDNCMD_SERVICEMAP_RESPONSE,0,htons(header->seq)}, {4, 24, 0, 1}, {1, 0x80, 0, 0, dacName} };
 
     sendto(sd, &resp, sizeof(resp), 0, remote, addr_len);
 
