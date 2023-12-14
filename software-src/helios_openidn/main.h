@@ -6,6 +6,7 @@
 #include "./SPIDevAdapter.h"
 #include "./HeliosAdapter.h"
 #include "./DummyAdapter.h"
+#include "./ManagementInterface.h"
 
 #ifdef BUILD_PI
 #include "../pi-specific/BCMAdapter.h"

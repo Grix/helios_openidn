@@ -17,6 +17,10 @@ pthread_t driver_thread = 0;
 std::shared_ptr<HWBridge> driver = nullptr;
 std::shared_ptr<IDNNode> idnNode = nullptr;
 
+// Helios adapter management
+pthread_t management_thread = 0;
+std::shared_ptr<ManagementInterface> management = nullptr;
+
 
 //make the program emit debug information on SIGINT
 void sig_handler(int signum) {
@@ -55,6 +59,11 @@ void* driverThreadFunction(void* args) {
 	sched_setscheduler(0, SCHED_RR, &sp);
 
 	driver->driverLoop();
+	return nullptr;
+}
+
+void* managementThreadFunction(void* args) {
+	management->networkThreadEntry();
 	return nullptr;
 }
 
@@ -217,6 +226,13 @@ int main(int argc, char** argv) {
 	/* Startup Driver Thread */
 	if (pthread_create(&driver_thread, NULL, &driverThreadFunction, NULL) != 0) {
 		printf("ERROR CREATING DRIVER THREAD\n");
+		return -1;
+	}
+
+	// Management specific to Helios OpenIDN product
+	management = std::shared_ptr<ManagementInterface>(new ManagementInterface());
+	if (pthread_create(&management_thread, NULL, &managementThreadFunction, NULL) != 0) {
+		printf("ERROR CREATING MANAGEMENT THREAD\n");
 		return -1;
 	}
 
