@@ -84,6 +84,7 @@
     <ClInclude Include="HeliosDacAPI.h" />
     <ClInclude Include="HWBridge.h" />
     <ClInclude Include="IDNNode.h" />
+    <ClInclude Include="ini.h" />
     <ClInclude Include="libusb.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="ManagementInterface.h" />
@@ -97,7 +98,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
-      <CppLanguageStandard>c++14</CppLanguageStandard>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>
     <Link>
       <LibraryDependencies>usb-1.0;pthread;%(LibraryDependencies)</LibraryDependencies>

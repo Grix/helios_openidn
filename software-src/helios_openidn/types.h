@@ -2,9 +2,6 @@
 #define MYTYPES_H_
 
 #include <stdint.h>
-#include <time.h>
-#include <sys/time.h>
-#include <sys/socket.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +15,6 @@
 #include <pthread.h>    /* POSIX Threads */
 #include <unistd.h>
 #include <fcntl.h>
-#include <unistd.h>
 #include <time.h>
 #include <sys/time.h>
 #include <vector>

@@ -3,7 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:HeliosOpenIdnManager.ViewModels"
-             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="450" 
              x:Class="HeliosOpenIdnManager.Views.MainView"
              x:DataType="vm:MainViewModel">
 	<Design.DataContext>
@@ -12,6 +12,43 @@
 		<vm:MainViewModel />
 	</Design.DataContext>
 
-    
+	<Grid>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition></ColumnDefinition>
+			<ColumnDefinition></ColumnDefinition>
+		</Grid.ColumnDefinitions>
+		
+		<!-- LIST OF SERVERS -->
+
+		<Grid Margin="10">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto"></RowDefinition>
+				<RowDefinition Height="*"></RowDefinition>
+			</Grid.RowDefinitions>
+			
+			<StackPanel Grid.Row="0" Spacing="10">
+				<TextBlock Text="Server List" HorizontalAlignment="Center"/>
+
+				<Button Content="Scan" Command="{Binding ScanForServersCommand}"></Button>
+			</StackPanel>
+
+
+			<ScrollViewer Grid.Row="1" Margin="0, 10, 0, 0">
+				<ListBox>
+					<Rectangle Height="30" Fill="Gray"></Rectangle>
+				</ListBox>
+			</ScrollViewer>
+		</Grid>
+
+		<!-- SELECTED SERVER INFO -->
+
+		<StackPanel Grid.Column="1" Spacing="10" Margin="10">
+			<TextBlock Text="Configuration" HorizontalAlignment="Center"/>
+
+			<TextBlock Text="{Binding SelectedServerName, StringFormat='Server: {0}'}"/>
+			<TextBlock Text="{Binding ServicesListString, StringFormat='Connected DACs: {0}'}"/>
+		</StackPanel>
+		
+	</Grid>
 
 </UserControl>

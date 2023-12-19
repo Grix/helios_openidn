@@ -5,6 +5,7 @@
 #include "./types.h"
 #include "./DACHWInterface.h"
 #include "./BEX.h"
+#include <string>
 
 
 class IDNNode {
@@ -16,6 +17,7 @@ public:
 	unsigned int buildDictionary(char* buf, unsigned int len, unsigned int offset, uint8_t scwc, IDNDescriptorTag** data);
 	void mainNetLoop(int sd);
 	void setChunkLengthUs(double us);
+	std::string hostname = "OpenIDN";
 
 private:
 	void addPointToSlice(ISPDB25Point newPoint, ISPFrameMetadata metadata);

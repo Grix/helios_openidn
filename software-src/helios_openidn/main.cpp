@@ -219,24 +219,33 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 
-	std::atomic<int> atom(1);
-	printf("lockless atomics: ");
-	printf(atom.is_lock_free() ? "true\n" : "false\n");
-
-	/* Startup Driver Thread */
-	if (pthread_create(&driver_thread, NULL, &driverThreadFunction, NULL) != 0) {
-		printf("ERROR CREATING DRIVER THREAD\n");
-		return -1;
-	}
-
 	// Management specific to Helios OpenIDN product
 	management = std::shared_ptr<ManagementInterface>(new ManagementInterface());
+	management->readAndStoreNewSettingsFile();
+	management->readSettingsFile();
 	if (pthread_create(&management_thread, NULL, &managementThreadFunction, NULL) != 0) {
 		printf("ERROR CREATING MANAGEMENT THREAD\n");
 		return -1;
 	}
 
-	networkThreadFunction(NULL);
+	idnNode->hostname = management->settingIdnHostname;
+
+	std::atomic<int> atom(1);
+	printf("lockless atomics: ");
+	printf(atom.is_lock_free() ? "true\n" : "false\n");
+
+	if (management->settingEnableIdnServer)
+	{
+		/* Startup Driver Thread */
+		if (pthread_create(&driver_thread, NULL, &driverThreadFunction, NULL) != 0) {
+			printf("ERROR CREATING DRIVER THREAD\n");
+			return -1;
+		}
+
+		networkThreadFunction(NULL);
+	}
+	else
+		while (1);
 
 	return(0);
 }

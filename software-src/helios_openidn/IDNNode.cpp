@@ -328,7 +328,10 @@ int IDNNode::processIDNPacket(char* buf, unsigned int len, int sd, struct sockad
 
 
     memcpy((void*) &resp.data.unitID, unitID, 16);
-    memcpy((void*) &resp.data.hostName, "OpenIDN\0\0\0\0\0\0\0\0\0\0\0\0", 20);
+
+	char hostnameField[20] = { 0 };
+	memcpy(hostnameField, hostname.c_str(), hostname.length() >= 20 ? 20 : hostname.length());
+    memcpy((void*) &resp.data.hostName, hostnameField, 20);
     
     sendto(sd, &resp, sizeof(resp), 0, remote, addr_len);
 
@@ -355,10 +358,10 @@ typedef struct _IDNHDR_SERVICEMAP_ENTRY
 
     IDNServicemapResponsePacket resp = {{IDNCMD_SERVICEMAP_RESPONSE,0,htons(header->seq)}, {4, 24, 0, 1}, {1, 0x80, 0, 0, ""}};
 	
-	char dacName[20] = "";
+	char dacName[20] = { 0 };
 	driverPtr->getName(dacName);
 	if (dacName[0] == '\0')
-		strcpy(dacName, "Unknown DAC\0\0\0\0\0\0\0\0");
+		memcpy(dacName, "Unknown DAC", 11);
 	memcpy(resp.map_entry.name, dacName, 20);
 
     sendto(sd, &resp, sizeof(resp), 0, remote, addr_len);

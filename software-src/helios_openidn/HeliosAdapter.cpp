@@ -116,15 +116,16 @@ void HeliosAdapter::setMaxPointrate(unsigned newRate) {
 
 void HeliosAdapter::getName(char* name)
 {
+	char heliosName[32];
 	if (getHeliosConnected())
 	{
-		char heliosName[32]; 
 		helios.GetName(numHeliosDevices - 1, heliosName);
-		memcpy(name, heliosName, 20);
-		name[19] = '\0'; // In case the name was longer than 20 bytes
 	}
 	else
-		strcpy(name, "[Missing Helios]");
+		strcpy(heliosName, "[Missing Helios]");
+
+	size_t nameLength = strlen(heliosName);
+	memcpy(name, heliosName, nameLength > 20 ? 20 : nameLength);
 }
 
 bool HeliosAdapter::getHeliosConnected()
