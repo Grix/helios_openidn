@@ -74,85 +74,91 @@ void ManagementInterface::readSettingsFile()
 
 	printf("Main settings file found as expected. Applying...\n");
 
-	// Ethernet network config
-	const char* ethernetConnectionId = "\"Wired connection 1\"";
-	std::string& eth0_ip_addresses = ini["network"]["ethernet_ip_addresses"];
-	if (!eth0_ip_addresses.empty())
+	std::string& ignore_network_settings = ini["network"]["already_applied"];
+
+	if (ignore_network_settings != "true")
 	{
-		sleep(5); // To make sure nmcli has started before we try to use it
-
-		eth0_ip_addresses.erase(std::remove(eth0_ip_addresses.begin(), eth0_ip_addresses.end(), '\"'), eth0_ip_addresses.end()); // Remove quote marks
-
-		sprintf(command, "nmcli connection down %s", ethernetConnectionId);
-		system(command);
-		if (eth0_ip_addresses == "auto" || eth0_ip_addresses == "dhcp" || eth0_ip_addresses == "default")
+		// Ethernet network config
+		const char* ethernetConnectionId = "\"Wired connection 1\"";
+		std::string& eth0_ip_addresses = ini["network"]["ethernet_ip_addresses"];
+		if (!eth0_ip_addresses.empty())
 		{
-			printf("eth0 DHCP\n");
-			sprintf(command, "nmcli connection modify %s ipv4.method auto", ethernetConnectionId);
+			sleep(5); // To make sure nmcli has started before we try to use it
+
+			eth0_ip_addresses.erase(std::remove(eth0_ip_addresses.begin(), eth0_ip_addresses.end(), '\"'), eth0_ip_addresses.end()); // Remove quote marks
+
+			sprintf(command, "nmcli connection down %s", ethernetConnectionId);
 			system(command);
-			sprintf(command, "nmcli connection modify %s ipv4.addresses \"\"", ethernetConnectionId);
+			if (eth0_ip_addresses == "auto" || eth0_ip_addresses == "dhcp" || eth0_ip_addresses == "default")
+			{
+				printf("eth0 DHCP\n");
+				sprintf(command, "nmcli connection modify %s ipv4.method auto", ethernetConnectionId);
+				system(command);
+				sprintf(command, "nmcli connection modify %s ipv4.addresses \"\"", ethernetConnectionId);
+				system(command);
+			}
+			else
+			{
+				if (eth0_ip_addresses.find('/') == std::string::npos)
+					eth0_ip_addresses = eth0_ip_addresses.append("/24"); // 255.255.255.0 as default netmask
+
+				printf("eth0 %s\n", eth0_ip_addresses.c_str());
+				sprintf(command, "nmcli connection modify %s ipv4.method manual", ethernetConnectionId);
+				system(command);
+				sprintf(command, "nmcli connection modify %s ipv4.addresses \"%s\"", ethernetConnectionId, eth0_ip_addresses.c_str());
+				system(command);
+			}
+			sprintf(command, "nmcli connection up %s", ethernetConnectionId);
 			system(command);
+
+			ini["network"].remove("ethernet_ip_addresses"); // To prevent needless re-applying of network settings every boot
+			shouldRewrite = true;
 		}
-		else
+
+		// Wifi network config
+		std::string& wlan0_ssid = ini["network"]["wifi_ssid"];
+		std::string& wlan0_ip_addresses = ini["network"]["wifi_ip_addresses"];
+		if (!wlan0_ssid.empty() && !wlan0_ip_addresses.empty())
 		{
-			if (eth0_ip_addresses.find('/') == std::string::npos)
-				eth0_ip_addresses = eth0_ip_addresses.append("/24"); // 255.255.255.0 as default netmask
+			sleep(15); // To make sure nmcli has started before we try to use it. Extra long delay needed for wifi.
 
-			printf("eth0 %s\n", eth0_ip_addresses.c_str());
-			sprintf(command, "nmcli connection modify %s ipv4.method manual", ethernetConnectionId);
+			std::string& wlan0_password = ini["network"]["wifi_password"];
+
+			wlan0_ip_addresses.erase(std::remove(wlan0_ip_addresses.begin(), wlan0_ip_addresses.end(), '\"'), wlan0_ip_addresses.end()); // Remove quote marks
+
+			if (wlan0_password.empty())
+				sprintf(command, "nmcli device wifi connect \"%s\" name \"%s\"", wlan0_ssid.c_str(), wlan0_ssid.c_str());
+			else
+				sprintf(command, "nmcli device wifi connect \"%s\" password \"%s\" name \"%s\"", wlan0_ssid.c_str(), wlan0_password.c_str(), wlan0_ssid.c_str());
 			system(command);
-			sprintf(command, "nmcli connection modify %s ipv4.addresses \"%s\"", ethernetConnectionId, eth0_ip_addresses.c_str());
+
+			if (wlan0_ip_addresses == "auto" || wlan0_ip_addresses == "dhcp" || wlan0_ip_addresses == "default")
+			{
+				printf("wlan0 DHCP, %s\n", wlan0_ssid.c_str());
+				sprintf(command, "nmcli connection modify \"%s\" ipv4.method auto", wlan0_ssid.c_str());
+				system(command);
+				sprintf(command, "nmcli connection modify \"%s\" ipv4.addresses \"\"", wlan0_ssid.c_str());
+				system(command);
+			}
+			else
+			{
+				if (wlan0_ip_addresses.find('/') == std::string::npos)
+					wlan0_ip_addresses = wlan0_ip_addresses.append("/24"); // 255.255.255.0 as default netmask
+
+				printf("wlan0 %s, %s\n", wlan0_ip_addresses.c_str(), wlan0_ssid.c_str());
+				sprintf(command, "nmcli connection modify \"%s\" ipv4.method manual", wlan0_ssid.c_str());
+				system(command);
+				sprintf(command, "nmcli connection modify \"%s\" ipv4.addresses \"%s\"", wlan0_ssid.c_str(), wlan0_ip_addresses.c_str());
+				system(command);
+			}
+			sprintf(command, "nmcli connection down \"%s\"", wlan0_ssid.c_str());
 			system(command);
+			sprintf(command, "nmcli connection up \"%s\"", wlan0_ssid.c_str());
+			system(command);
+
+			ini["network"]["already_applied"] = "true";
+			shouldRewrite = true;
 		}
-		sprintf(command, "nmcli connection up %s", ethernetConnectionId);
-		system(command);
-
-		ini["network"].remove("ethernet_ip_addresses"); // To prevent needless re-applying of network settings every boot
-		shouldRewrite = true;
-	}
-
-	// Wifi network config
-	std::string& wlan0_ssid = ini["network"]["wifi_ssid"];
-	std::string& wlan0_ip_addresses = ini["network"]["wifi_ip_addresses"];
-	if (!wlan0_ssid.empty() && !wlan0_ip_addresses.empty())
-	{
-		sleep(15); // To make sure nmcli has started before we try to use it
-
-		std::string& wlan0_password = ini["network"]["wifi_password"];
-
-		wlan0_ip_addresses.erase(std::remove(wlan0_ip_addresses.begin(), wlan0_ip_addresses.end(), '\"'), wlan0_ip_addresses.end()); // Remove quote marks
-
-		sprintf(command, "nmcli device wifi connect \"%s\" password \"%s\" name \"%s\"", wlan0_ssid.c_str(), wlan0_password.c_str(), wlan0_ssid.c_str());
-		system(command);
-
-		if (wlan0_ip_addresses == "auto" || wlan0_ip_addresses == "dhcp" || wlan0_ip_addresses == "default")
-		{
-			printf("wlan0 DHCP, %s\n", wlan0_ssid.c_str());
-			sprintf(command, "nmcli connection modify \"%s\" ipv4.method auto", wlan0_ssid.c_str());
-			system(command);
-			sprintf(command, "nmcli connection modify \"%s\" ipv4.addresses \"\"", wlan0_ssid.c_str());
-			system(command);
-		}
-		else
-		{
-			if (wlan0_ip_addresses.find('/') == std::string::npos)
-				wlan0_ip_addresses = wlan0_ip_addresses.append("/24"); // 255.255.255.0 as default netmask
-
-			printf("wlan0 %s, %s\n", wlan0_ip_addresses.c_str(), wlan0_ssid.c_str());
-			sprintf(command, "nmcli connection modify \"%s\" ipv4.method manual", wlan0_ssid.c_str());
-			system(command);
-			sprintf(command, "nmcli connection modify \"%s\" ipv4.addresses \"%s\"", wlan0_ssid.c_str(), wlan0_ip_addresses.c_str());
-			system(command);
-		}
-		sprintf(command, "nmcli connection down \"%s\"", wlan0_ssid.c_str());
-		system(command);
-		sprintf(command, "nmcli connection up \"%s\"", wlan0_ssid.c_str());
-		system(command);
-
-		ini["network"].remove("wifi_ip_addresses"); // To prevent needless re-applying of network settings every boot
-		ini["network"].remove("wifi_password"); 
-		ini["network"].remove("wifi_ssid");
-		shouldRewrite = true;
 	}
 
 	std::string& idn_hostname = ini["idn_server"]["name"];

@@ -4,8 +4,8 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:views="clr-namespace:HeliosOpenIdnManager.Views"
-        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="450"
-		Width="600" Height="450"
+        mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="550"
+		Width="1000" Height="550" MinWidth="1000" MinHeight="500"
         x:Class="HeliosOpenIdnManager.Views.MainWindow"
         Icon="/Assets/avalonia-logo.ico"
         Title="HeliosOpenIdnManager">

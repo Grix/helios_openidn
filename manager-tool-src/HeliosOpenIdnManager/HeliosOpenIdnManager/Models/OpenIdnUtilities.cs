@@ -23,9 +23,10 @@ public class OpenIdnUtilities
     public const byte IDNCMD_SERVICEMAP_REQUEST = 0x12;
 
     static ushort scanSequenceNumber = 100;
-    const string sshUser = "laser";
-    const string sshPassword = "pen_pineapple";
-    const string sshSudoPassword = "pen_pineapple";
+    // Todo: support custom passwords
+    static string sshUser = "laser";
+    static string sshPassword = "pen_pineapple";
+    static string sshSudoPassword = "pen_pineapple";
 
     /// <summary>
     /// Finds IP addresses of OpenIDN servers on the network.
@@ -92,15 +93,53 @@ public class OpenIdnUtilities
     /// Gets the names of services that an IDN server provides
     /// </summary>
     /// <param name="server">IP Address of an IDN server</param>
-    /// <returns>Enumerable list of service names</returns>
+    /// <returns>Enumerable list of service names, or null if error occured such as server not being reachable</returns>
+    static public IdnServerInfo? GetServerInfo(IPAddress server)
+    {
+        scanSequenceNumber++;
+        using (var udpClient = new UdpClient())
+        {
+            var data = new byte[] { IDNCMD_SCAN_REQUEST, 0, (byte)(scanSequenceNumber & 0xFF), (byte)((scanSequenceNumber >> 8) & 0xFF) };
+            udpClient.Client.ReceiveTimeout = 500;
+            udpClient.Client.SendTimeout = 500;
+
+            var sendAddress = new IPEndPoint(server, IDN_HELLO_PORT);
+            udpClient.Send(data, data.Length, sendAddress);
+
+            var receiveAddress = new IPEndPoint(IPAddress.Any, sendAddress.Port);
+            var receivedData = udpClient.Receive(ref receiveAddress);
+
+            if (receivedData is not null && receivedData.Length >= 8 && receivedData[0] == IDNCMD_SCAN_REQUEST + 1 && (receivedData[2] | (receivedData[3] << 8)) == scanSequenceNumber)
+            {
+                var structSize = receivedData[4];
+                var protocolVersion = receivedData[5];
+                var status = receivedData[6];
+                var reserved = receivedData[7];
+
+                byte[] unitId = receivedData[8..(8 + 16)];
+                string name = System.Text.Encoding.UTF8.GetString(receivedData[(8+16)..(8+16+20)]).Replace("\0", "");
+
+                var services = GetServiceNamesOfServer(server).ToArray();
+
+                return new IdnServerInfo() { Name = name, UnitId = unitId, Services = services, IpAddress = server };
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Gets the names of services that an IDN server provides
+    /// </summary>
+    /// <param name="server">IP Address of an IDN server</param>
+    /// <returns>Enumerable list of service names. Empty if error occurs such as server not being reachable</returns>
     static public IEnumerable<string> GetServiceNamesOfServer(IPAddress server)
     {
         scanSequenceNumber++;
         using (var udpClient = new UdpClient())
         {
             var data = new byte[] { IDNCMD_SERVICEMAP_REQUEST, 0, (byte)(scanSequenceNumber & 0xFF), (byte)((scanSequenceNumber >> 8) & 0xFF) };
-            udpClient.Client.ReceiveTimeout = 300;
-            udpClient.Client.SendTimeout = 300;
+            udpClient.Client.ReceiveTimeout = 500;
+            udpClient.Client.SendTimeout = 500;
 
             var sendAddress = new IPEndPoint(server, IDN_HELLO_PORT);
             udpClient.Send(data, data.Length, sendAddress);
@@ -137,6 +176,8 @@ public class OpenIdnUtilities
     /// <returns>SSH Client (disposable), not yet connected.</returns>
     public static SshClient GetSshConnection(IPAddress hostname) => new SshClient(new ConnectionInfo(hostname.ToString(), sshUser, new PasswordAuthenticationMethod(sshUser, sshPassword)));
 
+    public static ScpClient GetScpConnection(IPAddress hostname) => new ScpClient(new ConnectionInfo(hostname.ToString(), sshUser, new PasswordAuthenticationMethod(sshUser, sshPassword)));
+
     /// <summary>
     /// Transforms a raw SSH command into a command that applies sudo with the OpenIDN device's superuser password.
     /// </summary>
@@ -144,4 +185,12 @@ public class OpenIdnUtilities
     /// <returns>SSH command that will run as sudo</returns>
     public static string GetSudoSshCommand(string command) => "echo \"" + sshSudoPassword + "\" | sudo -S " + command;
 
+}
+
+public struct IdnServerInfo
+{
+    public IPAddress IpAddress;
+    public string Name;
+    public byte[] UnitId;
+    public string[] Services;
 }
