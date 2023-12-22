@@ -110,9 +110,6 @@ void ManagementInterface::readSettingsFile()
 			}
 			sprintf(command, "nmcli connection up %s", ethernetConnectionId);
 			system(command);
-
-			ini["network"].remove("ethernet_ip_addresses"); // To prevent needless re-applying of network settings every boot
-			shouldRewrite = true;
 		}
 
 		// Wifi network config
@@ -156,9 +153,10 @@ void ManagementInterface::readSettingsFile()
 			sprintf(command, "nmcli connection up \"%s\"", wlan0_ssid.c_str());
 			system(command);
 
-			ini["network"]["already_applied"] = "true";
-			shouldRewrite = true;
 		}
+
+		ini["network"]["already_applied"] = std::string("true");
+		shouldRewrite = true;
 	}
 
 	std::string& idn_hostname = ini["idn_server"]["name"];

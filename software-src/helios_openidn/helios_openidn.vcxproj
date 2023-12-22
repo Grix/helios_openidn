@@ -106,7 +106,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
-      <CppLanguageStandard>c++14</CppLanguageStandard>
+      <CppLanguageStandard>c++17</CppLanguageStandard>
     </ClCompile>
     <Link>
       <LibraryDependencies>usb-1.0;pthread;%(LibraryDependencies)</LibraryDependencies>

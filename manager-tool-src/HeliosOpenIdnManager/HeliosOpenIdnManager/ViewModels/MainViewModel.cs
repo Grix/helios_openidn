@@ -2,76 +2,92 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IniParser;
+using IniParser.Model;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
-using System.Threading.Tasks;
 
 namespace HeliosOpenIdnManager.ViewModels
 {
     public partial class MainViewModel : ViewModelBase
     {
         [ObservableProperty]
-        private string selectedServerTitle = "";
+        private string _selectedServerTitle = "";
 
         [ObservableProperty]
-        private string servicesListString = "";
+        private string _servicesListString = "";
 
         [ObservableProperty]
-        private string newServerName = "";
+        private string _newServerName = "";
 
         [ObservableProperty]
-        private string ethernetIpAddress = "";
+        private string _ethernetIpAddress = "";
 
         [ObservableProperty]
-        private bool ethernetIsDhcp = true;
+        private bool _ethernetIsDhcp = true;
 
         [ObservableProperty]
-        private bool wifiIsEnabled = true;
+        private bool _wifiIsEnabled = true;
 
         [ObservableProperty]
-        private string wifiIpAddress = "";
+        private string _wifiIpAddress = "";
 
         [ObservableProperty]
-        private bool wifiIsDhcp = true;
+        private bool _wifiIsDhcp = true;
 
         [ObservableProperty]
-        private string wifiSsid = "";
+        private string _wifiSsid = "";
 
         [ObservableProperty]
-        private string wifiPassword = "";
+        private string _wifiPassword = "";
+
+        [ObservableProperty]
+        private bool _ethernetIpAddressHasWarning = false;
+
+        [ObservableProperty]
+        private bool _wifiIpAddressHasWarning = false;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(HasSelectedServer))]
-        private int selectedServerIndex = -1;
+        private int _selectedServerIndex = -1;
 
         public bool HasSelectedServer => SelectedServerIndex >= 0 || Design.IsDesignMode;
 
         [ObservableProperty]
-        private ObservableCollection<IdnServerViewModel> servers = new();
+        private ObservableCollection<IdnServerViewModel> _servers = new();
 
         [ObservableProperty]
-        private ObservableCollection<string> wifiNetworks = new();
+        private ObservableCollection<string> _wifiNetworks = new();
 
         [ObservableProperty]
-        private int selectedWifiNetworkIndex = -1;
+        private int _selectedWifiNetworkIndex = -1;
 
-        public MainViewModel()
-        {
+        [ObservableProperty]
+        private string? _errorMessage;
 
-        }
+        private IniData? rawSettings;
+
 
         [RelayCommand]
         public void ScanForServers()
         {
-            foreach (var ipAddress in OpenIdnUtilities.ScanForServers())
-            {
-                if (OpenIdnUtilities.GetServerInfo(ipAddress) is not IdnServerInfo serverInfo)
-                    continue;
+            Servers.Clear();
 
-                Servers.Add(new IdnServerViewModel(serverInfo));
+            try
+            {
+                foreach (var ipAddress in OpenIdnUtilities.ScanForServers())
+                {
+                    if (OpenIdnUtilities.GetServerInfo(ipAddress) is not IdnServerInfo serverInfo)
+                        continue;
+
+                    Servers.Add(new IdnServerViewModel(serverInfo));
+                }
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Couldn't scan for OpenIDN servers: " + ex.Message;
             }
 
             if (Servers.Count > 0)
@@ -85,45 +101,48 @@ namespace HeliosOpenIdnManager.ViewModels
         {
             var server = Servers[SelectedServerIndex];
 
-            using var scpClient = OpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
-            scpClient.Connect();
+            try
+            {
+                using var scpClient = OpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
+                scpClient.Connect();
 
-            var directory = Path.Combine(Path.GetTempPath(), "HeliosOpenIdnManager");
-            if (!Path.Exists(directory))
-                Directory.CreateDirectory(directory);
+                using var settingsStream = new MemoryStream();
+                scpClient.Download("/home/laser/openidn/settings.ini", settingsStream);
+                settingsStream.Position = 0;
+                using var reader = new StreamReader(settingsStream);
+                rawSettings = new StreamIniDataParser().ReadData(reader);
 
-            using var settingsStream = new MemoryStream();
-            scpClient.Download("/home/laser/openidn/settings.ini", settingsStream);
-            settingsStream.Position = 0;
-            // Todo: maybe keep the full file, not just extracted settings. This would allow for backwards/forwards-compatibility, custom fields, etc.
-            using var reader = new StreamReader(settingsStream);
-            var iniData = new StreamIniDataParser().ReadData(reader);
-
-            var ethernetIpAddr = iniData["network"]["ethernet_ip_addresses"] ?? "";
-            if (ethernetIpAddr == "auto")
-            {
-                EthernetIsDhcp = true;
-                EthernetIpAddress = "";
+                var ethernetIpAddr = rawSettings["network"]["ethernet_ip_addresses"] ?? "";
+                if (ethernetIpAddr == "auto")
+                {
+                    EthernetIsDhcp = true;
+                    EthernetIpAddress = "";
+                }
+                else if (ethernetIpAddr != "")
+                {
+                    EthernetIsDhcp = false;
+                    EthernetIpAddress = ethernetIpAddr;
+                }
+                var wifiIpAddr = rawSettings["network"]["wifi_ip_addresses"] ?? "";
+                if (wifiIpAddr == "auto")
+                {
+                    WifiIsDhcp = true;
+                    WifiIpAddress = "";
+                }
+                else if (wifiIpAddr != "")
+                {
+                    WifiIsDhcp = false;
+                    WifiIpAddress = wifiIpAddr;
+                }
+                WifiSsid = rawSettings["network"]["wifi_ssid"] ?? "";
+                WifiPassword = rawSettings["network"]["wifi_password"] ?? "";
+                var name = rawSettings["idn_server"]["name"];
+                NewServerName = !string.IsNullOrEmpty(name) ? name : server.ServerInfo.Name;
             }
-            else if (ethernetIpAddr != "")
+            catch (Exception ex)
             {
-                EthernetIsDhcp = false;
-                EthernetIpAddress = ethernetIpAddr;
+                ErrorMessage = "Couldn't load current settings: " + ex.Message;
             }
-            var wifiIpAddr = iniData["network"]["wifi_ip_addresses"] ?? "";
-            if (wifiIpAddr == "auto")
-            {
-                WifiIsDhcp = true;
-                WifiIpAddress = "";
-            }
-            else if (wifiIpAddr != "")
-            {
-                WifiIsDhcp = false;
-                WifiIpAddress = wifiIpAddr;
-            }
-            WifiSsid = iniData["network"]["wifi_ssid"] ?? "";
-            WifiPassword = iniData["network"]["wifi_password"] ?? "";
-            NewServerName = iniData["idn_server"]["name"] ?? server.ServerInfo.Name;
         }
 
         [RelayCommand]
@@ -141,7 +160,41 @@ namespace HeliosOpenIdnManager.ViewModels
         [RelayCommand]
         public void SaveAndApplyConfig()
         {
+            UpdateRawSettingsData();
 
+            try
+            {
+                var server = Servers[SelectedServerIndex];
+
+                using var scpClient = OpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
+                scpClient.Connect();
+
+                using var settingsStream = new MemoryStream();
+                using var writer = new StreamWriter(settingsStream);
+                new StreamIniDataParser().WriteData(writer, rawSettings);
+                writer.Flush();
+                settingsStream.Position = 0;
+                scpClient.Upload(settingsStream, "/home/laser/openidn/settings.ini");
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Couldn't apply settings: " + ex.Message;
+            }
+        }
+
+        [RelayCommand]
+        public void ExportConfig(string filePath)
+        {
+            UpdateRawSettingsData();
+
+            try
+            { 
+                new FileIniDataParser().WriteFile(filePath, rawSettings);
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Couldn't export file: " + ex.Message;
+            }
         }
 
         [RelayCommand]
@@ -149,19 +202,50 @@ namespace HeliosOpenIdnManager.ViewModels
         {
             WifiNetworks.Clear();
 
-            var server = Servers[SelectedServerIndex];
-
-            using var sshClient = OpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
-            sshClient.Connect();
-            var command = sshClient.RunCommand("nmcli -t device wifi list");
-            foreach (string line in command.Result.Split('\n'))
+            try
             {
-                if (string.IsNullOrEmpty(line))
-                    continue;
+                var server = Servers[SelectedServerIndex];
 
-                var fields = line.Split(':');
-                WifiNetworks.Add(fields[7]);
+                using var sshClient = OpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
+                sshClient.Connect();
+                var command = sshClient.RunCommand("nmcli -t device wifi list");
+                foreach (string line in command.Result.Split('\n'))
+                {
+                    if (string.IsNullOrEmpty(line))
+                        continue;
+
+                    var fields = line.Split(':');
+                    WifiNetworks.Add(fields[7]);
+                }
             }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Couldn't scan WiFi networks: " + ex.Message;
+            }
+        }
+
+        void UpdateRawSettingsData()
+        {
+            rawSettings ??= new();
+
+            if (EthernetIsDhcp)
+                rawSettings["network"]["ethernet_ip_addresses"] = "auto";
+            else
+                rawSettings["network"]["ethernet_ip_addresses"] = EthernetIpAddress;
+
+            if (WifiIsDhcp)
+                rawSettings["network"]["wifi_ip_addresses"] = "auto";
+            else
+                rawSettings["network"]["wifi_ip_addresses"] = WifiIpAddress;
+
+            rawSettings["network"]["wifi_ssid"] = WifiSsid;
+            rawSettings["network"]["wifi_password"] = WifiPassword;
+            rawSettings["idn_server"]["name"] = NewServerName;
+
+            if (rawSettings["network"].ContainsKey("already_applied"))
+                rawSettings["network"].RemoveKey("already_applied"); // Otherwise it skips network settings
+
+            rawSettings.Configuration = new() { NewLineStr = "\n" }; // Since host computer is linux
         }
 
         partial void OnSelectedServerIndexChanged(int value)
@@ -182,6 +266,38 @@ namespace HeliosOpenIdnManager.ViewModels
                 }
                 ServicesListString = servicesString;
             }
+        }
+
+        partial void OnEthernetIpAddressChanged(string value)
+        {
+            //TODO
+
+            //if (IPNetwork.TryParse(value, out _))
+            //    EthernetIpAddressHasWarning = false;
+            //else
+            //  EthernetIpAddressHasWarning = true;
+        }
+
+        partial void OnWifiIpAddressChanged(string value)
+        {
+            //TODO
+
+            //if (IPNetwork.TryParse(value, out _))
+            //    WifiIpAddressHasWarning = false;
+            //else
+            //  WifiIpAddressHasWarning = true;
+        }
+
+        partial void OnEthernetIsDhcpChanged(bool value)
+        {
+            if (true)
+                EthernetIpAddressHasWarning = false;
+        }
+
+        partial void OnWifiIsDhcpChanged(bool value)
+        {
+            if (true)
+                WifiIpAddressHasWarning = false;
         }
 
         partial void OnWifiSsidChanged(string value)

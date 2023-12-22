@@ -11,7 +11,7 @@ namespace HeliosOpenIdnManager.ViewModels
     public partial class IdnServerViewModel : ViewModelBase
     {
         [ObservableProperty]
-        private string title;
+        private string _title;
 
         public IdnServerInfo ServerInfo { get; }
 

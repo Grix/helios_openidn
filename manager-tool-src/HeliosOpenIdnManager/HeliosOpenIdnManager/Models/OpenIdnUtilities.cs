@@ -53,7 +53,6 @@ public class OpenIdnUtilities
                                 udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.Broadcast, 1);
                                 udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.DontRoute, 1);
 
-                                //var data = new byte[] { IDNCMD_SCAN_REQUEST, 0, (byte)(scanSequenceNumber & 0xFF), (byte)((scanSequenceNumber >> 8) & 0xFF) };
                                 var data = new byte[] { 0xE5, 0x1 };
                                 var target = new IPEndPoint(IPAddress.Broadcast, MANAGEMENT_PORT);
 
