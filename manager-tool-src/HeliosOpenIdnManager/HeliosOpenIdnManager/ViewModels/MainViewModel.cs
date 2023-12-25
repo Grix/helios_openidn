@@ -3,11 +3,13 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IniParser;
 using IniParser.Model;
+using Renci.SshNet;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Net;
 
 namespace HeliosOpenIdnManager.ViewModels
 {
@@ -224,6 +226,30 @@ namespace HeliosOpenIdnManager.ViewModels
             }
         }
 
+        [RelayCommand]
+        public void RestartServer()
+        {
+            var server = Servers[SelectedServerIndex];
+            using var sshClient = OpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
+
+            try
+            {
+                sshClient.Connect(); 
+                SelectedServerIndex = -1;
+                Servers.Remove(server);
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Couldn't restart server: " + ex.Message;
+            }
+            try
+            {
+                // This will fail anyway, so put it in its own try-catch block without error handling.
+                var command = sshClient.RunCommand(OpenIdnUtilities.GetSudoSshCommand("reboot"));
+            }
+            catch { }
+        }
+
         void UpdateRawSettingsData()
         {
             rawSettings ??= new();
@@ -270,22 +296,12 @@ namespace HeliosOpenIdnManager.ViewModels
 
         partial void OnEthernetIpAddressChanged(string value)
         {
-            //TODO
-
-            //if (IPNetwork.TryParse(value, out _))
-            //    EthernetIpAddressHasWarning = false;
-            //else
-            //  EthernetIpAddressHasWarning = true;
+            EthernetIpAddressHasWarning = !IsIpAddressStringValid(value);
         }
 
         partial void OnWifiIpAddressChanged(string value)
         {
-            //TODO
-
-            //if (IPNetwork.TryParse(value, out _))
-            //    WifiIpAddressHasWarning = false;
-            //else
-            //  WifiIpAddressHasWarning = true;
+            WifiIpAddressHasWarning = !IsIpAddressStringValid(value);
         }
 
         partial void OnEthernetIsDhcpChanged(bool value)
@@ -311,6 +327,42 @@ namespace HeliosOpenIdnManager.ViewModels
                 return;
 
             WifiSsid = WifiNetworks[SelectedWifiNetworkIndex];
+        }
+
+
+        bool IsIpAddressStringValid(string value)
+        {
+            if (value == "")
+                return true;
+
+            var entries = value.Split(' ');
+
+            foreach (var entry in entries)
+            {
+                if (!entry.Contains("/"))
+                {
+                    if (entries.Length > 1)
+                        return false;
+                    if (entry.Split('.').Length != 4)
+                        return false;
+                    if (!IPAddress.TryParse(entry, out _))
+                        return false;
+                }
+                else
+                {
+                    var parts = entry.Split('/');
+                    if (parts.Length != 2)
+                        return false;
+                    else if (parts[0].Split('.').Length != 4)
+                        return false;
+                    else if (!IPAddress.TryParse(parts[0], out _))
+                        return false;
+                    else if (!int.TryParse(parts[1], out int mask) || mask < 0 || mask > 32)
+                        return false;
+                }
+            }
+
+            return true;
         }
     }
 }
