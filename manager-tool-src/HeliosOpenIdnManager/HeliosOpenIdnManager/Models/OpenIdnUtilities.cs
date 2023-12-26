@@ -54,27 +54,29 @@ public class OpenIdnUtilities
                                 udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.DontRoute, 1);
 
                                 var data = new byte[] { 0xE5, 0x1 };
-                                var target = new IPEndPoint(IPAddress.Broadcast, MANAGEMENT_PORT);
+                                var broadcastAddress = unicastIpAddress.Address.GetAddressBytes();
+                                broadcastAddress[3] = 255; // Broadcast only on this interface. Cannot use IPAddress.Broadcast because it throws an error on macOS.
+                                var target = new IPEndPoint(new IPAddress(broadcastAddress), MANAGEMENT_PORT);
 
                                 udpClient.Client.ReceiveTimeout = 300;
                                 udpClient.Client.SendTimeout = 300;
 
-                                udpClient.Send(data, data.Length, target);
+                                try
+                                {
+                                    udpClient.Send(data, data.Length, target);
+                                }
+                                catch (Exception ex)
+                                {
+                                    throw new Exception($"Failed sending UDP message to {target} on interface {unicastIpAddress.Address}", ex);
+                                }
 
                                 var receiveAddress = new IPEndPoint(IPAddress.Any, MANAGEMENT_PORT);
                                 bool receivedOk = false;
-                                try
-                                {
-                                    var receivedData = udpClient.Receive(ref receiveAddress);
+                                var receivedData = udpClient.Receive(ref receiveAddress);
 
-                                    if (receivedData is not null && receivedData.Length >= 2 && receivedData[0] == 0xE6)
-                                    {
-                                        receivedOk = true;
-                                    }
-                                }
-                                catch (Exception ex) 
+                                if (receivedData is not null && receivedData.Length >= 2 && receivedData[0] == 0xE6)
                                 {
-                                    Debug.WriteLine(ex);
+                                    receivedOk = true;
                                 }
 
                                 if (receivedOk)

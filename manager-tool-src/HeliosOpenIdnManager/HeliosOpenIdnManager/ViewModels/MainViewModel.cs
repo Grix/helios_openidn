@@ -81,10 +81,17 @@ namespace HeliosOpenIdnManager.ViewModels
             {
                 foreach (var ipAddress in OpenIdnUtilities.ScanForServers())
                 {
-                    if (OpenIdnUtilities.GetServerInfo(ipAddress) is not IdnServerInfo serverInfo)
-                        continue;
+                    try
+                    {
+                        if (OpenIdnUtilities.GetServerInfo(ipAddress) is not IdnServerInfo serverInfo)
+                            continue;
 
-                    Servers.Add(new IdnServerViewModel(serverInfo));
+                        Servers.Add(new IdnServerViewModel(serverInfo));
+                    }
+                    catch (Exception ex)
+                    {
+                        ErrorMessage = $"Couldn't get info of server {ipAddress} when scanning for OpenIDN servers: " + ex.Message;
+                    }
                 }
             }
             catch (Exception ex)
