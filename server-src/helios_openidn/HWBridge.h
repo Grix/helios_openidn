@@ -29,15 +29,16 @@
 
 class HWBridge {
 public:
-	HWBridge(std::shared_ptr<DACHWInterface> hwDeviceInterface, std::shared_ptr<BEX> bex);
+	HWBridge(std::shared_ptr<DACHWInterface> hwDeviceInterface);
 	void driverLoop();
 	void setDebugging(int debug);
 	int getDebugging();
 	void setBufferTargetMs(double targetMs);
 	std::shared_ptr<DACHWInterface> getDevice();
 	void printStats();
-	void outputEmptyPoint();
-	void getName(char* name);
+	void outputEmptyPoint(unsigned int deviceNumber = 0);
+	unsigned int refreshAndGetNumberOfDevices();
+	std::unique_ptr<BEX> getBEX(unsigned int deviceNumber = 0);
 
 private:
 	void waveIteration();
@@ -46,7 +47,7 @@ private:
 	void resetInternals();
 
 	std::shared_ptr<DACHWInterface> device;
-	std::shared_ptr<BEX> bex;
+	std::vector<std::shared_ptr<BEX>> bexes;
 	double bufferTargetMs = 40;
 	double speedFactor = 1.0;
 	double accumOC = 0.0;
@@ -61,5 +62,7 @@ private:
 
 	void trimBuffer(std::shared_ptr<SliceBuf> buf, unsigned n);
 };
+
+struct
 
 #endif

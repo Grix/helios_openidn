@@ -10,7 +10,7 @@
 
 class IDNNode {
 public:
-	IDNNode(std::shared_ptr<HWBridge> driver, std::shared_ptr<BEX> bufferExchange);
+	IDNNode(std::shared_ptr<HWBridge> driver);
 	~IDNNode();
 	int processIDNPacket(char* buf, unsigned int len, int sd, struct sockaddr *remote, unsigned int addr_len);
 	void* networkThreadStart();
@@ -21,10 +21,9 @@ public:
 
 private:
 	void addPointToSlice(ISPDB25Point newPoint, ISPFrameMetadata metadata);
-	void commitChunk();
+	void commitChunk(unsigned int deviceNumber = 0);
 	void resetChunkBuffer();
 	std::shared_ptr<HWBridge> driverPtr = nullptr;
-	std::shared_ptr<BEX> bex = nullptr;
 	IDNChannel* channel;
 	unsigned char mac_address[6];
 	double usPerSlice = 5000;

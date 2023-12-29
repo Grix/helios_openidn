@@ -6,7 +6,7 @@
 class DACHWInterface {
 public:
 	//writes byte data to a hardware interface
-	virtual int writeFrame(const TimeSlice& slice, double duration) = 0;
+	virtual int writeFrame(const TimeSlice& slice, double duration, unsigned int deviceNumber = 0) = 0;
 
 	//converts ISPDB25 Points to bytes in a way that the hardware expects
 	//points the outputBuf pointer to a vector and returns the total
@@ -28,7 +28,7 @@ public:
 	//Human-facing identifier for the dac. 
 	//Buffer must be at least 20 bytes long (like the IDN hostname)
 	//If no name is implemented, an empty string is returned.
-	virtual void getName(char* name)
+	virtual void getName(char* name, unsigned int deviceNumber = 0)
 	{
 		strcpy(name, "");
 	}

@@ -1,7 +1,7 @@
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 
- Copyright (c) 2019 + 2022-2023, University of Bonn, Institute of Computer Science 4.
- All rights reserved.
+ Copyright (c) 2019 + 2022-2023, University of Bonn, Institute of Computer Science 4.  
+ All rights reserved.  
 
  Redistribution and use in source and binary forms, with or without
  modification, are permitted provided that the following conditions are met:
@@ -29,8 +29,8 @@
  are those of the authors and should not be interpreted as representing
  official policies, either expressed or implied, of the University of Bonn.
 
- Contacts:    Dr. Matthias Frank (matthew@cs.uni-bonn.de)
-              Leander Schickhaus (laser-light-lab@uni-bonn.de)
-              Christian Windeck  (laser-light-lab@uni-bonn.de)
+ Contacts:    Dr. Matthias Frank (matthew@cs.uni-bonn.de)  
+              Leander Schickhaus (laser-light-lab@uni-bonn.de)  
+              Christian Windeck  (laser-light-lab@uni-bonn.de)  
 
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
