@@ -48,7 +48,14 @@
 			<Button Command="{Binding LoadCurrentConfigCommand}" IsVisible="{Binding HasSelectedServer}" Background="MediumSeaGreen" Content=" Load current config " ToolTip.Tip="Fills out the fields above with the existing configuration of the selected server."></Button>
 			<Button Command="{Binding LoadDefaultConfigCommand}" Content=" Load default config " ToolTip.Tip="Fills out the fields above with the default configuration."></Button>
 
-			<TextBlock Text="🛈 Help" Background="Transparent" FontSize="25" Margin="0, 20, 0, 0" ToolTip.ShowDelay="0" ToolTip.Tip="To modify the server configuration:
+			<StackPanel IsVisible="{Binding HasSelectedServer}">
+				<TextBlock Text="Update server software"/>
+				<TextBlock Text="{Binding ShortServerSoftwareUpdatePath}"/>
+				<Button Content="Download latest software"/>
+				<Button Content="Manually select software"/>
+			</StackPanel>
+
+			<TextBlock Text="🛈 Help" Background="Transparent" FontSize="22" Margin="0, 20, 0, 0" ToolTip.ShowDelay="0" ToolTip.Tip="To modify the server configuration:
 					&#x0a;
 					&#x0a;- OFFLINE METHOD
 					&#x0a;1. Optionally load the default config with the button above, to use as a starting point.

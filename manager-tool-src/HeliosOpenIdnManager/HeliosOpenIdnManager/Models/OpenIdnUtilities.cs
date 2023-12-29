@@ -70,13 +70,21 @@ public class OpenIdnUtilities
                                     throw new Exception($"Failed sending UDP message to {target} on interface {unicastIpAddress.Address}", ex);
                                 }
 
-                                var receiveAddress = new IPEndPoint(IPAddress.Any, MANAGEMENT_PORT);
                                 bool receivedOk = false;
-                                var receivedData = udpClient.Receive(ref receiveAddress);
+                                var receiveAddress = new IPEndPoint(IPAddress.Any, MANAGEMENT_PORT);
 
-                                if (receivedData is not null && receivedData.Length >= 2 && receivedData[0] == 0xE6)
+                                try
                                 {
-                                    receivedOk = true;
+                                    var receivedData = udpClient.Receive(ref receiveAddress);
+
+                                    if (receivedData is not null && receivedData.Length >= 2 && receivedData[0] == 0xE6)
+                                    {
+                                        receivedOk = true;
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    // Normal to time out if sending to non-openidn server
                                 }
 
                                 if (receivedOk)

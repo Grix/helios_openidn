@@ -10,6 +10,9 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
+using System.Net.Http;
+using System.Reflection;
+using System.Threading.Tasks;
 
 namespace HeliosOpenIdnManager.ViewModels
 {
@@ -68,6 +71,18 @@ namespace HeliosOpenIdnManager.ViewModels
 
         [ObservableProperty]
         private string? _errorMessage;
+
+        [ObservableProperty]
+        private string? _newManagerVersion;
+
+        [ObservableProperty]
+        private string? _newServerVersion;
+
+        [ObservableProperty]
+        [NotifyPropertyChangedFor(nameof(ShortServerSoftwareUpdatePath))]
+        private string? _serverSoftwareUpdatePath;
+
+        public string? ShortServerSoftwareUpdatePath => Path.GetFileName(ServerSoftwareUpdatePath);
 
         private IniData? rawSettings;
 
@@ -203,6 +218,71 @@ namespace HeliosOpenIdnManager.ViewModels
             catch (Exception ex)
             {
                 ErrorMessage = "Couldn't export file: " + ex.Message;
+            }
+        }
+
+        [RelayCommand]
+        public async Task CheckForManagerUpdates()
+        {
+            try
+            {
+                using var client = new HttpClient();
+                var newVersion = await client.GetStringAsync("https://raw.githubusercontent.com/Grix/helios_openidn/main/manager-tool-version");
+                var currentVersion = Assembly.GetExecutingAssembly().GetName().Version!.ToString().Split('-')[0][0..^2];
+                if (newVersion != null && newVersion.Length < 20 && newVersion != currentVersion)
+                    NewManagerVersion = newVersion;
+                else
+                    NewManagerVersion = null;
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Couldn't check for manager tool update: " + ex.Message;
+            }
+        }
+
+        [RelayCommand]
+        public async Task CheckForServerUpdates()
+        {
+            try
+            {
+                using var client = new HttpClient();
+                var newVersion = await client.GetStringAsync("https://raw.githubusercontent.com/Grix/helios_openidn/main/server-version");
+                var currentVersion = "0.9.0"; // todo get from server
+                if (newVersion != null && newVersion.Length < 20 && newVersion != currentVersion)
+                    NewServerVersion = newVersion;
+                else
+                    NewServerVersion = null;
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Couldn't check for server software update: " + ex.Message;
+            }
+        }
+
+        [RelayCommand]
+        public void UpdateServerSoftware()
+        {
+            try
+            {
+                if (ServerSoftwareUpdatePath == null || File.Exists(ServerSoftwareUpdatePath) || !ServerSoftwareUpdatePath.Contains("openidn"))
+                    throw new Exception("Invalid software file");
+
+                var server = Servers[SelectedServerIndex];
+
+                using var sshClient = OpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
+                sshClient.Connect();
+                sshClient.RunCommand("pkill helios_openidn");
+                sshClient.RunCommand("mv /home/laser/openidn/helios_openidn /home/laser/openidn/helios_openidn_backup");
+
+                using var scpClient = OpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
+                scpClient.Connect();
+                scpClient.Upload(new FileInfo(ServerSoftwareUpdatePath), "/home/laser/openidn/helios_openidn");
+
+                RestartServer();
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Couldn't update server software: " + ex.Message;
             }
         }
 
