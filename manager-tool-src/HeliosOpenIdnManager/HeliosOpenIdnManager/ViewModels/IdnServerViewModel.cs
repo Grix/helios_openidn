@@ -14,11 +14,14 @@ namespace HeliosOpenIdnManager.ViewModels
         private string _title;
 
         public IdnServerInfo ServerInfo { get; }
+        public string SoftwareVersion { get; }
 
         public IdnServerViewModel(IdnServerInfo serverInfo)
         {
             ServerInfo = serverInfo;
             Title = $"{serverInfo.Name} ({serverInfo.IpAddress})";
+
+            SoftwareVersion = OpenIdnUtilities.GetSoftwareVersion(serverInfo.IpAddress);
         }
     }
 }

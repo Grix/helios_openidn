@@ -197,6 +197,15 @@ void ManagementInterface::networkLoop(int sd) {
 					char responseBuffer[2] = { 0xE6, 0x1 };
 					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
 				}
+				else if (buffer_in[1] == 0x2)
+				{
+					// Got software version query, respond:
+					char responseBuffer[20] = { 0 };
+					responseBuffer[0] = 0xE6;
+					responseBuffer[1] = 0x2;
+					strcpy(responseBuffer + 2, softwareVersion);
+					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
+				}
 			}
 		}
 	}

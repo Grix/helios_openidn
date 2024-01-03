@@ -79,6 +79,12 @@ namespace HeliosOpenIdnManager.ViewModels
         private string? _newServerVersion;
 
         [ObservableProperty]
+        private string? _currentManagerVersion;
+
+        [ObservableProperty]
+        private string? _currentServerVersion;
+
+        [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ShortServerSoftwareUpdatePath))]
         private string? _serverSoftwareUpdatePath;
 
@@ -86,6 +92,13 @@ namespace HeliosOpenIdnManager.ViewModels
 
         private IniData? rawSettings;
 
+
+        public MainViewModel()
+        {
+            CurrentManagerVersion = Assembly.GetExecutingAssembly().GetName().Version!.ToString().Split('-')[0][0..^2];
+            CheckForManagerUpdates();
+            CheckForServerUpdates();
+        }
 
         [RelayCommand]
         public void ScanForServers()
@@ -228,7 +241,7 @@ namespace HeliosOpenIdnManager.ViewModels
             {
                 using var client = new HttpClient();
                 var newVersion = await client.GetStringAsync("https://raw.githubusercontent.com/Grix/helios_openidn/main/manager-tool-version");
-                var currentVersion = Assembly.GetExecutingAssembly().GetName().Version!.ToString().Split('-')[0][0..^2];
+                var currentVersion = CurrentManagerVersion;
                 if (newVersion != null && newVersion.Length < 20 && newVersion != currentVersion)
                     NewManagerVersion = newVersion;
                 else
@@ -264,7 +277,9 @@ namespace HeliosOpenIdnManager.ViewModels
         {
             try
             {
-                if (ServerSoftwareUpdatePath == null || File.Exists(ServerSoftwareUpdatePath) || !ServerSoftwareUpdatePath.Contains("openidn"))
+                if (ServerSoftwareUpdatePath == null)
+                    throw new Exception("No software file chosen.");
+                if (!File.Exists(ServerSoftwareUpdatePath) || !ShortServerSoftwareUpdatePath!.Contains("openidn"))
                     throw new Exception("Invalid software file");
 
                 var server = Servers[SelectedServerIndex];
@@ -277,6 +292,7 @@ namespace HeliosOpenIdnManager.ViewModels
                 using var scpClient = OpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
                 scpClient.Connect();
                 scpClient.Upload(new FileInfo(ServerSoftwareUpdatePath), "/home/laser/openidn/helios_openidn");
+                sshClient.RunCommand("chmod +x /home/laser/openidn/helios_openidn");
 
                 RestartServer();
             }
@@ -284,6 +300,41 @@ namespace HeliosOpenIdnManager.ViewModels
             {
                 ErrorMessage = "Couldn't update server software: " + ex.Message;
             }
+        }
+
+        [RelayCommand]
+        public async Task DownloadAndSelectNewestServerSoftware()
+        {
+            ServerSoftwareUpdatePath = null;
+            if (NewServerVersion == null)
+            {
+                ErrorMessage = "Couldn't download new server software: Newest version unknown";
+                return;
+            }
+
+            try
+            {
+                using var client = new HttpClient();
+                var response = await client.GetAsync($"https://github.com/Grix/helios_openidn/releases/download/v{NewServerVersion}/helios_openidn_v{NewServerVersion}.bin");
+                var path = Path.Combine(Path.GetTempPath(), $"helios_openidn_v{NewServerVersion}.bin");
+                using (var fileStream = new FileStream(path, FileMode.Create))
+                await response.Content.CopyToAsync(fileStream);
+                ServerSoftwareUpdatePath = path;
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Couldn't download new server software: " + ex.Message;
+            }
+        }
+
+        [RelayCommand]
+        public void OpenManagerDownloadPage()
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://bitlasers.com/openidn-network-adapter-for-the-helios-dac/#manager-tool",
+                UseShellExecute = true
+            });
         }
 
         [RelayCommand]
@@ -367,6 +418,7 @@ namespace HeliosOpenIdnManager.ViewModels
             {
                 SelectedServerTitle = "";
                 ServicesListString = "";
+                CurrentServerVersion = "";
             }
             else
             {
@@ -378,6 +430,7 @@ namespace HeliosOpenIdnManager.ViewModels
                     servicesString += "\n - " + service;
                 }
                 ServicesListString = servicesString;
+                CurrentServerVersion = server.SoftwareVersion;
             }
         }
 

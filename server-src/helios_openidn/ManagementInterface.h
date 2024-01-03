@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <filesystem>
+#include <string.h>
 #include "ini.h"
 
 /// <summary>
@@ -23,6 +24,7 @@ public:
 	std::string settingIdnHostname = "OpenIDN";
 	bool settingEnableIdnServer = true;
 	bool settingEnableIdtfPlayer = false;
+	const char softwareVersion[10] = "0.9.0";
 
 private:
 	void networkLoop(int socketFd);

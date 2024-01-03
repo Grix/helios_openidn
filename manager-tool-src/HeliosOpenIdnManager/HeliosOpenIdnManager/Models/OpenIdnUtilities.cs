@@ -55,7 +55,11 @@ public class OpenIdnUtilities
 
                                 var data = new byte[] { 0xE5, 0x1 };
                                 var broadcastAddress = unicastIpAddress.Address.GetAddressBytes();
-                                broadcastAddress[3] = 255; // Broadcast only on this interface. Cannot use IPAddress.Broadcast because it throws an error on macOS.
+                                var mask = unicastIpAddress.IPv4Mask.GetAddressBytes();
+                                for (int i = 0; i < 4; i++)
+                                {
+                                    broadcastAddress[i] |= (byte)~mask[i]; // Broadcast only on this interface. Cannot use IPAddress.Broadcast because it throws an error on macOS.
+                                }
                                 var target = new IPEndPoint(new IPAddress(broadcastAddress), MANAGEMENT_PORT);
 
                                 udpClient.Client.ReceiveTimeout = 300;
@@ -67,7 +71,7 @@ public class OpenIdnUtilities
                                 }
                                 catch (Exception ex)
                                 {
-                                    throw new Exception($"Failed sending UDP message to {target} on interface {unicastIpAddress.Address}", ex);
+                                    //throw new Exception($"Failed sending UDP message to {target} on interface {unicastIpAddress.Address}", ex);
                                 }
 
                                 bool receivedOk = false;
@@ -176,6 +180,29 @@ public class OpenIdnUtilities
                 }
             }
         }
+    }
+
+    static public string GetSoftwareVersion(IPAddress server)
+    {
+        using (var udpClient = new UdpClient())
+        {
+            var data = new byte[] { 0xE5, 0x2 };
+            udpClient.Client.ReceiveTimeout = 500;
+            udpClient.Client.SendTimeout = 500;
+
+            var sendAddress = new IPEndPoint(server, MANAGEMENT_PORT);
+            udpClient.Send(data, data.Length, sendAddress);
+
+            var receiveAddress = new IPEndPoint(IPAddress.Any, sendAddress.Port);
+            var receivedData = udpClient.Receive(ref receiveAddress);
+
+            if (receivedData is not null && receivedData.Length >= 10 && receivedData[0] == 0xE6 && receivedData[1] == 0x2)
+            {
+                return System.Text.Encoding.UTF8.GetString(receivedData[2..^0]).Replace("\0", "");
+            }
+        }
+
+        return "";
     }
 
     /// <summary>

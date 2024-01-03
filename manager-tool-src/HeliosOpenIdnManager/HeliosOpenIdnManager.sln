@@ -3,15 +3,17 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34316.72
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeliosOpenIdnManager", "HeliosOpenIdnManager\HeliosOpenIdnManager.csproj", "{77862085-4C3D-410F-89E4-605FDD0D01F7}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HeliosOpenIdnManager", "HeliosOpenIdnManager\HeliosOpenIdnManager.csproj", "{77862085-4C3D-410F-89E4-605FDD0D01F7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeliosOpenIdnManager.Android", "HeliosOpenIdnManager.Android\HeliosOpenIdnManager.Android.csproj", "{CF8E7A6B-9DAA-450C-960D-76796172FD29}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HeliosOpenIdnManager.Android", "HeliosOpenIdnManager.Android\HeliosOpenIdnManager.Android.csproj", "{CF8E7A6B-9DAA-450C-960D-76796172FD29}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeliosOpenIdnManager.Desktop", "HeliosOpenIdnManager.Desktop\HeliosOpenIdnManager.Desktop.csproj", "{58431A9A-E1E9-4CE3-95E9-774745703051}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HeliosOpenIdnManager.Desktop", "HeliosOpenIdnManager.Desktop\HeliosOpenIdnManager.Desktop.csproj", "{58431A9A-E1E9-4CE3-95E9-774745703051}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeliosOpenIdnManager.iOS", "HeliosOpenIdnManager.iOS\HeliosOpenIdnManager.iOS.csproj", "{C9CD53B9-24BF-49F6-879B-D2D13CB301F4}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HeliosOpenIdnManager.iOS", "HeliosOpenIdnManager.iOS\HeliosOpenIdnManager.iOS.csproj", "{C9CD53B9-24BF-49F6-879B-D2D13CB301F4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HeliosOpenIdnManager.Browser", "HeliosOpenIdnManager.Browser\HeliosOpenIdnManager.Browser.csproj", "{4D9C259A-BDCD-4F03-808A-B811EB1D4E7C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HeliosOpenIdnManager.Browser", "HeliosOpenIdnManager.Browser\HeliosOpenIdnManager.Browser.csproj", "{4D9C259A-BDCD-4F03-808A-B811EB1D4E7C}"
+EndProject
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "WindowsSetup", "WindowsSetup\WindowsSetup.vdproj", "{B451B73E-BCC0-4D32-8E9D-3E1BDF26270F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -26,7 +28,6 @@ Global
 		{CF8E7A6B-9DAA-450C-960D-76796172FD29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{CF8E7A6B-9DAA-450C-960D-76796172FD29}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{CF8E7A6B-9DAA-450C-960D-76796172FD29}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{CF8E7A6B-9DAA-450C-960D-76796172FD29}.Release|Any CPU.Build.0 = Release|Any CPU
 		{58431A9A-E1E9-4CE3-95E9-774745703051}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{58431A9A-E1E9-4CE3-95E9-774745703051}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{58431A9A-E1E9-4CE3-95E9-774745703051}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -34,11 +35,11 @@ Global
 		{C9CD53B9-24BF-49F6-879B-D2D13CB301F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C9CD53B9-24BF-49F6-879B-D2D13CB301F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C9CD53B9-24BF-49F6-879B-D2D13CB301F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{C9CD53B9-24BF-49F6-879B-D2D13CB301F4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4D9C259A-BDCD-4F03-808A-B811EB1D4E7C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4D9C259A-BDCD-4F03-808A-B811EB1D4E7C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4D9C259A-BDCD-4F03-808A-B811EB1D4E7C}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{4D9C259A-BDCD-4F03-808A-B811EB1D4E7C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B451B73E-BCC0-4D32-8E9D-3E1BDF26270F}.Debug|Any CPU.ActiveCfg = Debug
+		{B451B73E-BCC0-4D32-8E9D-3E1BDF26270F}.Release|Any CPU.ActiveCfg = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -12,7 +12,7 @@
 		<vm:MainViewModel />
 	</Design.DataContext>
 
-	<Grid ColumnDefinitions="*,*,*" RowDefinitions="*, 50">
+	<Grid ColumnDefinitions="*,*,1.5*">
 		
 		<!-- LIST OF SERVERS -->
 
@@ -36,24 +36,17 @@
 			</ScrollViewer>
 		</Grid>
 
-		<!-- SELECTED SERVER INFO/CONFIG -->
-
-		<TextBlock Grid.ColumnSpan="2" Grid.Column="1" Text="Configuration" Margin="0,15,0,10" HorizontalAlignment="Center"/>
+		<!-- SELECTED SERVER INFO -->
 
 		<StackPanel Grid.Column="1" Spacing="12" Margin="15,50,15,15">
 
-			<TextBlock Margin="5,0,0,0" Text="{Binding SelectedServerTitle, StringFormat='Selected server: {0}'}" IsVisible="{Binding HasSelectedServer}" />
-			<TextBlock Margin="5,0,0,0" Text="{Binding ServicesListString, StringFormat='Connected DACs: {0}'}" MinHeight="90"  IsVisible="{Binding HasSelectedServer}"/>
+			<TextBlock Margin="5,0,0,0" Text="{Binding SelectedServerTitle, StringFormat='Selected server:&#x0a; {0}'}"  />
+			<TextBlock Margin="5,0,0,0" Text="{Binding ServicesListString, StringFormat='Connected DACs: {0}'}" MinHeight="90"/>
 
-			<Button Command="{Binding LoadCurrentConfigCommand}" IsVisible="{Binding HasSelectedServer}" Background="MediumSeaGreen" Content=" Load current config " ToolTip.Tip="Fills out the fields above with the existing configuration of the selected server."></Button>
-			<Button Command="{Binding LoadDefaultConfigCommand}" Content=" Load default config " ToolTip.Tip="Fills out the fields above with the default configuration."></Button>
 
-			<StackPanel IsVisible="{Binding HasSelectedServer}">
-				<TextBlock Text="Update server software"/>
-				<TextBlock Text="{Binding ShortServerSoftwareUpdatePath}"/>
-				<Button Content="Download latest software"/>
-				<Button Content="Manually select software"/>
-			</StackPanel>
+			<Button Command="{Binding RestartServerCommand}" IsEnabled="{Binding HasSelectedServer}" Background="LightBlue"  Content=" Restart server " ToolTip.Tip="Reboots the server. This will apply the new configuration or software update if one was uploaded. "></Button>
+
+
 
 			<TextBlock Text="🛈 Help" Background="Transparent" FontSize="22" Margin="0, 20, 0, 0" ToolTip.ShowDelay="0" ToolTip.Tip="To modify the server configuration:
 					&#x0a;
@@ -74,71 +67,111 @@
 			
 			<TextBlock Margin="0, 20, 0, 0" Foreground="Red" TextWrapping="Wrap" IsVisible="{Binding !!ErrorMessage}" Text="{Binding ErrorMessage, StringFormat='Error occured: &#x0a;{0}'}"/>
 			
+
 		</StackPanel>
 
-		<Border Padding="15" Grid.Column="2">
+		<!-- SELECTED SERVER CONFIG/CONTROL -->
 
-			<Grid Margin="0,30,0,5" RowDefinitions="Auto, *">
-				<StackPanel Spacing="10">
+		<TabControl Grid.Column="2">
+			
+			<TabItem Header="Configuration">
+				<Border Padding="5,5,10,10">
 
-					<DockPanel Margin="0, 20, 0, 0" Background="#EEEEEE" ToolTip.Tip="Here you can replace the default IDN hostname ('OpenIDN') of the selected server.">
-						<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="New server name:" MinWidth="120"/>
-						<TextBox Text="{Binding NewServerName}" Watermark="Unchanged" Margin="10,0,0,0" MinWidth="170"></TextBox>
-					</DockPanel>
-					<DockPanel>
-						<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="Ethernet IP Address:" MinWidth="140"/>
-						<StackPanel>
-							<CheckBox Margin="20,0" Content="Auto (DHCP)" IsChecked="{Binding EthernetIsDhcp}"/>
-							<TextBox IsVisible="{Binding !EthernetIsDhcp}" Text="{Binding EthernetIpAddress}" Watermark="Unchanged" Margin="10,0,0,0" MinWidth="150" ToolTip.Tip="Here you can enter a static IP Address for the Ethernet port on the selected server. You can use CIDR notation to specify subnet, and you can configure multiple addresses by separating them with a space."></TextBox>
-						</StackPanel>
-					</DockPanel>
-					<TextBlock IsVisible="{Binding EthernetIpAddressHasWarning}" Text="⚠ This IP Address does not appear to be valid" Foreground="Red"/>
-					<!--<StackPanel Orientation="Horizontal">
+					<Grid Margin="0,0,0,5" RowDefinitions="Auto, *, Auto">
+						<StackPanel Spacing="10">
+
+							<StackPanel Margin="0, 15, 0, 0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
+								<Button Command="{Binding LoadCurrentConfigCommand}" IsEnabled="{Binding HasSelectedServer}" Background="MediumSeaGreen" Content=" Load current config " ToolTip.Tip="Fills out the fields below with the existing configuration of the selected server."></Button>
+								<Button Command="{Binding LoadDefaultConfigCommand}" Content=" Load default config " ToolTip.Tip="Fills out the fields below with the default configuration."></Button>
+							</StackPanel>
+
+							<DockPanel Margin="0, 10, 0, 0" Background="#EEEEEE" ToolTip.Tip="Here you can replace the default IDN hostname ('OpenIDN') of the selected server.">
+								<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="New server name:" MinWidth="120"/>
+								<TextBox Text="{Binding NewServerName}" Watermark="Unchanged" Margin="10,0,0,0" MinWidth="170"></TextBox>
+							</DockPanel>
+							<DockPanel>
+								<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="Ethernet IP Address:" MinWidth="140"/>
+								<StackPanel>
+									<CheckBox Margin="20,0" Content="Auto (DHCP)" IsChecked="{Binding EthernetIsDhcp}"/>
+									<TextBox IsVisible="{Binding !EthernetIsDhcp}" Text="{Binding EthernetIpAddress}" Watermark="Unchanged" Margin="10,0,0,0" MinWidth="150" ToolTip.Tip="Here you can enter a static IP Address for the Ethernet port on the selected server. You can use CIDR notation to specify subnet, and you can configure multiple addresses by separating them with a space."></TextBox>
+								</StackPanel>
+							</DockPanel>
+							<TextBlock IsVisible="{Binding EthernetIpAddressHasWarning}" Text="⚠ This IP Address does not appear to be valid" Foreground="Red"/>
+							<!--<StackPanel Orientation="Horizontal">
 						<TextBlock VerticalAlignment="Center" Text="Enable WiFi:"/>
 						<CheckBox IsChecked="{Binding WifiIsEnabled}" Margin="10,0,0,0" MinWidth="115"></CheckBox>
 					</StackPanel>-->
-					<StackPanel Spacing="12" IsVisible="{Binding WifiIsEnabled}">
-						<Grid Background="#EEEEEE">
-							<DockPanel>
-								<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="WiFi IP Address:" MinWidth="140"/>
-								<StackPanel>
-									<CheckBox Margin="20,0" Content="Auto (DHCP)" IsChecked="{Binding WifiIsDhcp}"/>
-									<TextBox IsVisible="{Binding !WifiIsDhcp}" Text="{Binding WifiIpAddress}" Watermark="WiFi unchanged" Margin="10,0,0,0" MinWidth="150" ToolTip.Tip="Here you can enter a static IP Address for the WiFi interface on the selected server. You can use CIDR notation to specify subnet, and you can configure multiple addresses by separating them with a space."></TextBox>
-								</StackPanel>
-							</DockPanel>
-						</Grid>
-						<TextBlock Margin="0,-12,0,0" Background="#EEEEEE" IsVisible="{Binding WifiIpAddressHasWarning}" Text="⚠ This IP Address does not appear to be valid" Foreground="Red"/>
-						<DockPanel>
-							<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="WiFi Password:" MinWidth="120"/>
-							<TextBox Text="{Binding WifiPassword}" Watermark="No password" PasswordChar="*" Margin="10,0,0,0" MinWidth="170" ToolTip.Tip="The password for the WiFi network. Leave blank if the network is open and there is no password."></TextBox>
-						</DockPanel>
-						<DockPanel Background="#EEEEEE">
-							<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="WiFi SSID:" MinWidth="120"/>
-							<TextBox Text="{Binding WifiSsid}" Margin="10,0,0,0" Watermark="WiFi unchanged" MinWidth="170" ToolTip.Tip="Here you can enter the name of the wireless network to connect to. You can also click the 'Scan nearby WiFi networks' button below to see what networks are available at the moment, and click one of them to fill this field in."></TextBox>
-						</DockPanel>
-						<Button Content="Scan nearby WiFi networks" IsVisible="{Binding HasSelectedServer}" Command="{Binding ScanWifiNetworksCommand}"/>
+							<StackPanel Spacing="12" IsVisible="{Binding WifiIsEnabled}">
+								<Grid Background="#EEEEEE">
+									<DockPanel>
+										<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="WiFi IP Address:" MinWidth="140"/>
+										<StackPanel>
+											<CheckBox Margin="20,0" Content="Auto (DHCP)" IsChecked="{Binding WifiIsDhcp}"/>
+											<TextBox IsVisible="{Binding !WifiIsDhcp}" Text="{Binding WifiIpAddress}" Watermark="WiFi unchanged" Margin="10,0,0,0" MinWidth="150" ToolTip.Tip="Here you can enter a static IP Address for the WiFi interface on the selected server. You can use CIDR notation to specify subnet, and you can configure multiple addresses by separating them with a space."></TextBox>
+										</StackPanel>
+									</DockPanel>
+								</Grid>
+								<TextBlock Margin="0,-12,0,0" Background="#EEEEEE" IsVisible="{Binding WifiIpAddressHasWarning}" Text="⚠ This IP Address does not appear to be valid" Foreground="Red"/>
+								<DockPanel ToolTip.Tip="The password for the WiFi network. Leave blank if the network is open and there is no password.">
+									<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="WiFi Password:" MinWidth="120"/>
+									<TextBox Text="{Binding WifiPassword}" Watermark="No password" PasswordChar="*" Margin="10,0,0,0" MinWidth="170" ></TextBox>
+								</DockPanel>
+								<DockPanel Background="#EEEEEE"  ToolTip.Tip="Here you can enter the name of the wireless network to connect to. You can also click the 'Scan nearby WiFi networks' button below to see what networks are available at the moment, and click one of them to fill this field in.">
+									<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="WiFi name (SSID):" MinWidth="120"/>
+									<TextBox Text="{Binding WifiSsid}" Margin="10,0,0,0" Watermark="WiFi unchanged" MinWidth="170"></TextBox>
+								</DockPanel>
+								<Button Content="Scan nearby WiFi networks" IsEnabled="{Binding HasSelectedServer}" Command="{Binding ScanWifiNetworksCommand}"/>
+							</StackPanel>
+						</StackPanel>
+						<ScrollViewer Grid.Row="1" MinHeight="80" Margin="0,10,0,0" >
+							<ListBox ItemsSource="{Binding WifiNetworks}" SelectionMode="Single" SelectedIndex="{Binding SelectedWifiNetworkIndex}">
+								<ListBox.ItemTemplate>
+									<DataTemplate>
+										<TextBlock Text="{Binding}" Margin="0,0,0,0"></TextBlock>
+									</DataTemplate>
+								</ListBox.ItemTemplate>
+							</ListBox>
+						</ScrollViewer>
+
+						<StackPanel Grid.Row="2" Margin="0,10,0,0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
+
+							<Button Click="ExportConfigButton_Click" Background="Tan" Content=" Export config to file " ToolTip.Tip="Exports the configuration above to a settings.ini file. This file can be used to apply settings to an offline Helios OpenIDN device. To do this: Place the file settings.ini on a USB drive. Plug the USB drive into the device. Plug the power cable out and back in to reboot the device. The device should power up with the new settings. NB: The startup process could take up to a full minute."></Button>
+							<Button Command="{Binding SaveAndApplyConfigCommand}"  IsEnabled="{Binding HasSelectedServer}" Background="Orange" Content=" Save/upload config " ToolTip.Tip="Sends the configuration above to the selected server over the network. Once this is complete, you need to restart the device for the settings to take effect."></Button>
+							
+						</StackPanel>
+					</Grid>
+				</Border>
+				
+
+			</TabItem>
+
+
+			<TabItem Header="Software update">
+
+				<StackPanel Margin="0,30,0,0" Spacing="10">
+					<TextBlock Text="Server software" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+					<TextBlock Text="{Binding CurrentServerVersion, StringFormat='Current server version: {0}'}"/>
+					<TextBlock Text="{Binding NewServerVersion, StringFormat='Newest server version: {0}'}"/>
+					<StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Center">
+						<Button Content="Download latest software" Background="MediumSeaGreen" Command="{Binding DownloadAndSelectNewestServerSoftwareCommand}"/>
+						<Button Content="Manually select software" Click="SelectServerSoftwareButton_Click"/>
+					</StackPanel>
+					<TextBlock Text="{Binding ShortServerSoftwareUpdatePath, StringFormat='File to install: {0}'}"/>
+					<Button Content="Update Server Software" Command="{Binding UpdateServerSoftwareCommand}" Background="Orange"  HorizontalAlignment="Center" IsEnabled="{Binding HasSelectedServer}"/>
+
+					<TextBlock Text="Manager Tool" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,50,0,0"/>
+					<TextBlock Text="{Binding CurrentManagerVersion, StringFormat='Current manager tool version: {0}'}"/>
+					<TextBlock Text="{Binding NewManagerVersion, StringFormat='Newest manager tool version: {0}'}"/>
+					<StackPanel Orientation="Horizontal" Spacing="20" HorizontalAlignment="Center">
+						<Button Content="Go to download site" Background="MediumSeaGreen" Command="{Binding OpenManagerDownloadPageCommand}"/>
 					</StackPanel>
 				</StackPanel>
-				<ScrollViewer Grid.Row="1" MinHeight="80" Margin="0,10,0,0" IsVisible="{Binding HasSelectedServer}">
-					<ListBox ItemsSource="{Binding WifiNetworks}" SelectionMode="Single" SelectedIndex="{Binding SelectedWifiNetworkIndex}">
-						<ListBox.ItemTemplate>
-							<DataTemplate>
-								<TextBlock Text="{Binding}" Margin="0,0,0,0"></TextBlock>
-							</DataTemplate>
-						</ListBox.ItemTemplate>
-					</ListBox>
-				</ScrollViewer>
-			</Grid>
-		</Border>
-
-		<Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2">
-			<StackPanel Orientation="Horizontal" VerticalAlignment="Top" HorizontalAlignment="Center" Spacing="20">
 				
-				<Button Click="ExportConfigButton_Click" Background="Tan" Content=" Export config to file " ToolTip.Tip="Exports the configuration above to a settings.ini file. This file can be used to apply settings to an offline Helios OpenIDN device. To do this: Place the file settings.ini on a USB drive. Plug the USB drive into the device. Plug the power cable out and back in to reboot the device. The device should power up with the new settings. NB: The startup process could take up to a full minute."></Button>
-				<Button Command="{Binding SaveAndApplyConfigCommand}"  IsVisible="{Binding HasSelectedServer}" Background="Orange" FontWeight="SemiBold" Content=" Save/upload config " ToolTip.Tip="Sends the configuration above to the selected server over the network. Once this is complete, you need to restart the device for the settings to take effect."></Button>
-				<Button Command="{Binding RestartServerCommand}" IsVisible="{Binding HasSelectedServer}" Background="LightBlue"  Content=" Restart server " ToolTip.Tip="Reboots the server. This will apply the new configuration if one was uploaded. "></Button>
+			</TabItem>
+		</TabControl>
+		
+		<Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2">
 			
-			</StackPanel>
 		</Grid>
 		
 	</Grid>
