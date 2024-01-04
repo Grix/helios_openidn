@@ -242,10 +242,13 @@ namespace HeliosOpenIdnManager.ViewModels
                 using var client = new HttpClient();
                 var newVersion = await client.GetStringAsync("https://raw.githubusercontent.com/Grix/helios_openidn/main/manager-tool-version");
                 var currentVersion = CurrentManagerVersion;
-                if (newVersion != null && newVersion.Length < 20 && newVersion != currentVersion)
+                if (newVersion != null && newVersion.Length < 20)
                     NewManagerVersion = newVersion;
                 else
+                {
                     NewManagerVersion = null;
+                    throw new Exception("Unexpected version value");
+                }
             }
             catch (Exception ex)
             {
@@ -260,11 +263,13 @@ namespace HeliosOpenIdnManager.ViewModels
             {
                 using var client = new HttpClient();
                 var newVersion = await client.GetStringAsync("https://raw.githubusercontent.com/Grix/helios_openidn/main/server-version");
-                var currentVersion = "0.9.0"; // todo get from server
-                if (newVersion != null && newVersion.Length < 20 && newVersion != currentVersion)
+                if (newVersion != null && newVersion.Length < 20)
                     NewServerVersion = newVersion;
                 else
+                {
                     NewServerVersion = null;
+                    throw new Exception("Unexpected version value");
+                }
             }
             catch (Exception ex)
             {
@@ -332,7 +337,17 @@ namespace HeliosOpenIdnManager.ViewModels
         {
             Process.Start(new ProcessStartInfo
             {
-                FileName = "https://bitlasers.com/openidn-network-adapter-for-the-helios-dac/#manager-tool",
+                FileName = "https://bitlasers.com/openidn-network-adapter-for-the-helios-dac#manager-tool",
+                UseShellExecute = true
+            });
+        }
+
+        [RelayCommand]
+        public void OpenManagerHelpPage()
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://bitlasers.com/openidn-network-adapter-for-the-helios-dac#manager-tool",
                 UseShellExecute = true
             });
         }

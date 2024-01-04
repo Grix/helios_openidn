@@ -46,24 +46,7 @@
 
 			<Button Command="{Binding RestartServerCommand}" IsEnabled="{Binding HasSelectedServer}" Background="LightBlue"  Content=" Restart server " ToolTip.Tip="Reboots the server. This will apply the new configuration or software update if one was uploaded. "></Button>
 
-
-
-			<TextBlock Text="🛈 Help" Background="Transparent" FontSize="22" Margin="0, 20, 0, 0" ToolTip.ShowDelay="0" ToolTip.Tip="To modify the server configuration:
-					&#x0a;
-					&#x0a;- OFFLINE METHOD
-					&#x0a;1. Optionally load the default config with the button above, to use as a starting point.
-					&#x0a;2. Change any desired settings to the right.
-					&#x0a;3. Using the button at the bottom, export to a file named settings.ini.
-					&#x0a;4. Place that file on a USB drive.
-					&#x0a;5. Plug the USB drive into the device, and turn power off and back on.
-					&#x0a;6. Wait at least a minute for the server to restart.
-					&#x0a;
-					&#x0a;- ONLINE METHOD
-					&#x0a;1. Press 'Scan' in the corner and select a server.
-					&#x0a;2. Optionally load a config with the buttons above, to use as a starting point.
-					&#x0a;3. Change any desired settings to the right.
-					&#x0a;4. Using the buttons below, first save/upload the config, then restart the server.
-					&#x0a;6. Wait at least a minute for the server to restart."></TextBlock>
+			<Button Content="🛈 Help" Command="{Binding OpenManagerHelpPageCommand}" Background="Transparent" FontSize="22" Margin="0, 20, 0, 0" ToolTip.ShowDelay="0" ToolTip.Tip="Open help page."></Button>
 			
 			<TextBlock Margin="0, 20, 0, 0" Foreground="Red" TextWrapping="Wrap" IsVisible="{Binding !!ErrorMessage}" Text="{Binding ErrorMessage, StringFormat='Error occured: &#x0a;{0}'}"/>
 			
