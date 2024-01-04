@@ -315,7 +315,7 @@ namespace HeliosOpenIdnManager.ViewModels
             try
             {
                 using var client = new HttpClient();
-                var response = await client.GetAsync($"https://github.com/Grix/helios_openidn/releases/download/v{NewServerVersion}/helios_openidn_v{NewServerVersion}.bin");
+                var response = await client.GetAsync($"https://github.com/Grix/helios_openidn/releases/download/server-v{NewServerVersion}/helios_openidn_v{NewServerVersion}.bin");
                 var path = Path.Combine(Path.GetTempPath(), $"helios_openidn_v{NewServerVersion}.bin");
                 using (var fileStream = new FileStream(path, FileMode.Create))
                 await response.Content.CopyToAsync(fileStream);
