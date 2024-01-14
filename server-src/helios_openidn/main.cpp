@@ -205,6 +205,10 @@ int parseArguments(int argc, char** argv) {
 
 int main(int argc, char** argv) {
 	signal(SIGINT, sig_handler);
+
+	system("echo 'none' > /sys/class/leds/rockpis:blue:user/trigger"); // manual blue LED control, stops heartbeat blinking
+	system("echo 0 > /sys/class/leds/rockpis:blue:user/brightness"); // turn LED off
+
 	int parsingRet = parseArguments(argc, argv);
 	if (parsingRet != 0) {
 		printf("Argument error: ");
@@ -241,6 +245,8 @@ int main(int argc, char** argv) {
 			printf("ERROR CREATING DRIVER THREAD\n");
 			return -1;
 		}
+
+		system("echo 1 > /sys/class/leds/rockpis:blue:user/brightness"); // turn LED on continuously
 
 		networkThreadFunction(NULL);
 	}

@@ -217,7 +217,7 @@ void ManagementInterface::mountUsbDrive()
 	const char* rootPassword = "pen_pineapple"; // Todo support custom password for user, for systems that need to be secure.
 	sprintf(command, "echo \"%s\" | sudo -S mount /dev/sda1 /media/usbdrive -o uid=1000,gid=1000", rootPassword);
 	system(command);
-	sleep(1);
+	usleep(500000);
 }
 
 void ManagementInterface::unmountUsbDrive()
@@ -235,7 +235,7 @@ void ManagementInterface::unmountUsbDrive()
 void* ManagementInterface::networkThreadEntry() {
 	printf("Starting network thread in management class\n");
 
-	sleep(1);
+	usleep(500000);
 
 	// Setup socket
 	int ld;

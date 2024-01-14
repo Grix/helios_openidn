@@ -656,7 +656,7 @@ void IDNNode::mainNetLoop(int sd) {
 void* IDNNode::networkThreadStart() {
   printf("Starting Network Thread\n");
   
-  sleep(1);
+  usleep(500000);
   
   //Setup socket
   int ld;
