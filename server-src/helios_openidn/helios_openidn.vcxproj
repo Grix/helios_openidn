@@ -81,7 +81,6 @@
     <ClInclude Include="DummyAdapter.h" />
     <ClInclude Include="HeliosAdapter.h" />
     <ClInclude Include="HeliosDac.h" />
-    <ClInclude Include="HeliosDacAPI.h" />
     <ClInclude Include="HWBridge.h" />
     <ClInclude Include="IDNNode.h" />
     <ClInclude Include="ini.h" />
