@@ -21,7 +21,7 @@ namespace HeliosOpenIdnManager.Views
 
             if (file is not null)
             {
-                var path = file.Path.AbsolutePath;
+                var path = file.Path.LocalPath;
                 if (!Path.HasExtension(path))
                     path = Path.ChangeExtension(path, ".ini");
 
@@ -35,7 +35,7 @@ namespace HeliosOpenIdnManager.Views
 
             if (files is not null && files.Count == 1)
             {
-                var path = files[0].Path.AbsolutePath;
+                var path = files[0].Path.LocalPath;
                 if (!path.Contains("openidn"))
                     (DataContext as MainViewModel)!.ErrorMessage = "Server software filename should contain 'openidn', are you sure this is a valid software update file?";
                 else
