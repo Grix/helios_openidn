@@ -24,13 +24,11 @@ public:
 	//in pps
 	virtual unsigned maxPointrate() = 0;
 	virtual void setMaxPointrate(unsigned) = 0;
-
-	//Human-facing identifier for the dac. 
-	//Buffer must be at least 20 bytes long (like the IDN hostname)
-	//If no name is implemented, an empty string is returned.
-	virtual void getName(char* name)
+	
+	// name of connected DAC
+	virtual void getName(char *nameBufferPtr, unsigned nameBufferSize)
 	{
-		strcpy(name, "");
+		snprintf(nameBufferPtr, nameBufferSize, "");
 	}
 
 };

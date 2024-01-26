@@ -88,3 +88,7 @@ unsigned DummyAdapter::maxPointrate() {
 void DummyAdapter::setMaxPointrate(unsigned newRate) {
 	this->maximumPointRate = newRate;
 }
+
+void DummyAdapter::getName(char *nameBufferPtr, unsigned nameBufferSize) {
+	snprintf(nameBufferPtr, nameBufferSize, "Dummy");
+}

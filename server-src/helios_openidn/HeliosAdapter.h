@@ -11,7 +11,7 @@ public:
 	unsigned maxBytesPerTransmission() override;
 	unsigned maxPointrate() override;
 	void setMaxPointrate(unsigned) override;
-	void getName(char* name) override;
+	void getName(char *nameBufferPtr, unsigned nameBufferSize) override;
 	bool getHeliosConnected();
 
 	HeliosAdapter();

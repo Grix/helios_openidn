@@ -174,11 +174,6 @@ int HWBridge::getDebugging() {
 	return this->debug;
 }
 
-void HWBridge::getName(char* name)
-{
-	device->getName(name);
-}
-
 void HWBridge::printStats() {
 	fprintf(stderr, "writeTimingMeasurements ");
 	for(const auto& elem : writeTimingMeasurements)

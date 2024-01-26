@@ -1,4 +1,4 @@
-#include "./DACHWInterface.h"
+#include "DACHWInterface.h"
 
 #include <stdint.h>
 #include <unistd.h>
@@ -13,6 +13,7 @@ public:
 	unsigned maxBytesPerTransmission() override;
 	unsigned maxPointrate() override;
 	void setMaxPointrate(unsigned) override;
+	void getName(char *nameBufferPtr, unsigned nameBufferSize) override;
 
 	DummyAdapter();
 	~DummyAdapter();

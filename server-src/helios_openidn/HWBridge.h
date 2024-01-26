@@ -37,7 +37,6 @@ public:
 	std::shared_ptr<DACHWInterface> getDevice();
 	void printStats();
 	void outputEmptyPoint();
-	void getName(char* name);
 
 private:
 	void waveIteration();

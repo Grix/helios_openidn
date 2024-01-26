@@ -114,7 +114,7 @@ void HeliosAdapter::setMaxPointrate(unsigned newRate) {
 	this->maximumPointRate = newRate;
 }
 
-void HeliosAdapter::getName(char* name)
+void HeliosAdapter::getName(char *nameBufferPtr, unsigned nameBufferSize)
 {
 	char heliosName[32];
 	if (getHeliosConnected())
@@ -125,7 +125,7 @@ void HeliosAdapter::getName(char* name)
 		strcpy(heliosName, "[Missing Helios]");
 
 	size_t nameLength = strlen(heliosName);
-	memcpy(name, heliosName, nameLength > 20 ? 20 : nameLength);
+	memcpy(nameBufferPtr, heliosName, nameLength > nameBufferSize ? nameBufferSize : nameLength);
 }
 
 bool HeliosAdapter::getHeliosConnected()

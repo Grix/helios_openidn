@@ -1,8 +1,4 @@
 #include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>     /* defines STDIN_FILENO, system calls,etc */
-#include <sys/types.h>  /* system data type definitions */
-#include <sys/socket.h> /* socket specific definitions */
 #include <netinet/in.h> /* INET constants and stuff */
 #include <arpa/inet.h>  /* IP address conversion stuff */
 #include <netdb.h>      /* gethostbyname */
@@ -10,12 +6,22 @@
 #include <string>
 #include <signal.h>
 
-#include "main.h"
+// Project headers
+#include "DACHWInterface.h"
+#include "HWBridge.h"
+#include "SPIDevAdapter.h"
+#include "HeliosAdapter.h"
+#include "DummyAdapter.h"
+#include "Service.hpp"
+#include "IDNServer.hpp"
 
-pthread_t network_thread = 0;
+#include "ManagementInterface.h"
+
 pthread_t driver_thread = 0;
 std::shared_ptr<HWBridge> driver = nullptr;
-std::shared_ptr<IDNNode> idnNode = nullptr;
+std::shared_ptr<LaproService> laproService = nullptr;
+std::shared_ptr<IDNServer> idnServer = nullptr;
+
 
 // Helios adapter management
 pthread_t management_thread = 0;
@@ -47,7 +53,7 @@ void* networkThreadFunction(void* args) {
 	sp.sched_priority = sched_get_priority_max(SCHED_RR);
 	sched_setscheduler(0, SCHED_RR, &sp);
 
-	idnNode->networkThreadStart();
+	idnServer->networkThreadFunc();
 	return nullptr;
 }
 
@@ -194,11 +200,11 @@ int parseArguments(int argc, char** argv) {
 		driver = std::shared_ptr<HWBridge>(new HWBridge(std::shared_ptr<DummyAdapter>(new DummyAdapter), bex));
 	}
 
+	laproService = std::shared_ptr<LaproService>(new LaproService(driver, bex));
+	if (chunkUs != -1) laproService->setChunkLengthUs(chunkUs);
 
-	idnNode = std::shared_ptr<IDNNode>(new IDNNode(driver, bex));
-	if (chunkUs != -1) {
-		idnNode->setChunkLengthUs(chunkUs);
-	}
+	idnServer = std::shared_ptr<IDNServer>(new IDNServer(laproService));
+
 
 	return 0;
 }
@@ -232,7 +238,7 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 
-	idnNode->hostname = management->settingIdnHostname;
+	memcpy(idnServer->hostName, management->settingIdnHostname.c_str(), management->settingIdnHostname.size() < HOST_NAME_SIZE ? management->settingIdnHostname.size() : HOST_NAME_SIZE);
 
 	std::atomic<int> atom(1);
 	printf("lockless atomics: ");

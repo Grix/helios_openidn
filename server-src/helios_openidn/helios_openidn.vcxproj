@@ -70,9 +70,12 @@
     <ClCompile Include="HeliosAdapter.cpp" />
     <ClCompile Include="HeliosDac.cpp" />
     <ClCompile Include="HWBridge.cpp" />
-    <ClCompile Include="IDNNode.cpp" />
+    <ClCompile Include="IDNServer.cpp" />
+    <ClCompile Include="IDNSession.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ManagementInterface.cpp" />
+    <ClCompile Include="OpenIDN.cpp" />
+    <ClCompile Include="Service.cpp" />
     <ClCompile Include="SPIDevAdapter.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -82,11 +85,17 @@
     <ClInclude Include="HeliosAdapter.h" />
     <ClInclude Include="HeliosDac.h" />
     <ClInclude Include="HWBridge.h" />
-    <ClInclude Include="IDNNode.h" />
+    <ClInclude Include="idn-hello.h" />
+    <ClInclude Include="idn-stream.h" />
+    <ClInclude Include="idn.h" />
+    <ClInclude Include="IDNServer.hpp" />
+    <ClInclude Include="IDNSession.hpp" />
     <ClInclude Include="ini.h" />
     <ClInclude Include="libusb.h" />
-    <ClInclude Include="main.h" />
+    <ClInclude Include="LLNode.hpp" />
     <ClInclude Include="ManagementInterface.h" />
+    <ClInclude Include="OpenIDN.hpp" />
+    <ClInclude Include="Service.hpp" />
     <ClInclude Include="SPIDevAdapter.h" />
     <ClInclude Include="types.h" />
   </ItemGroup>

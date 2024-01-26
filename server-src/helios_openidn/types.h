@@ -2,6 +2,9 @@
 #define MYTYPES_H_
 
 #include <stdint.h>
+#include <time.h>
+#include <sys/time.h>
+#include <sys/socket.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,6 +18,7 @@
 #include <pthread.h>    /* POSIX Threads */
 #include <unistd.h>
 #include <fcntl.h>
+#include <unistd.h>
 #include <time.h>
 #include <sys/time.h>
 #include <vector>
@@ -75,7 +79,7 @@ End of Laser configuration
 #define IDN_DESCRIPTOR_INTENSITY 0x08
 #define IDN_DESCRIPTOR_BEAM_BRUSH 0x09
 
-
+/*
 #define IDN_HEADER_CC_MESSAGE 0x40
 #define IDN_HEADER_CC_PINGREQUEST 0x08
 #define IDN_HEADER_CC_PINGRESPONSE 0x9
@@ -83,7 +87,7 @@ End of Laser configuration
 #define IDN_HEADER_CC_SCANRESPONSE 0x11
 #define IDNCMD_SERVICEMAP_REQUEST           0x12    // Request for unit services
 #define IDNCMD_SERVICEMAP_RESPONSE          0x13    // Map of supported services
-
+*/
 
 #define IDN_CH_MSG_HEADER_CHUNK_TYPE_VOID 0x00
 #define IDN_CH_MSG_HEADER_CHUNK_TYPE_LASER_WAVE 0x01
@@ -127,7 +131,6 @@ struct IDNDescriptorTag {
 struct IDNChannel {
   uint8_t chId;
   int valid;
-  struct sockaddr remote;
   int closed;
   uint8_t sdm;
   uint8_t serviceId;
@@ -213,56 +216,5 @@ struct IDNFrameSampleHeader {
   uint32_t dur;
 };
 
-
-struct IDNPingResponsePacket {
-  IDNHeader head;
-};
-
-struct IDNScanResponse
-{
-    uint8_t structSize;                         // Size of this struct.
-    uint8_t protocolVersion;                    // Upper 4 bits: Major; Lower 4 bits: Minor
-    uint8_t status;                             // Unit and link status flags
-    uint8_t reserved;
-    uint8_t unitID[16];                         // [0]: Len, [1]: Cat, [2..Len]: ID, padded with '\0'
-    uint8_t hostName[20];                       // Not terminated, padded with '\0'
-
-};
-
-struct IDNScanResponsePacket {
-  IDNHeader head;
-  IDNScanResponse data;
-};
-  
-
-struct IDNHDR_SERVICEMAP_RESPONSE
-{
-    uint8_t structSize;                         // Size of this struct.
-    uint8_t entrySize;                          // Size of an entry - sizeof(IDNHDR_SERVICEMAP_ENTRY)
-    uint8_t relayEntryCount;                    // Number of relay entries
-    uint8_t serviceEntryCount;                  // Number of service entries
-
-    // Followed by the relay table (of relayEntryCount entries)
-    // Followed by the service table (of serviceEntryCount entries)
-
-};
-
-
-struct IDNHDR_SERVICEMAP_ENTRY
-{
-    uint8_t serviceID;                          // Service: The ID (!=0); Relay: Must be 0
-    uint8_t serviceType;                        // The type of the service; Relay: Must be 0
-    uint8_t flags;                              // Status flags and options
-    uint8_t relayNumber;                        // Service: Root(0)/Relay(>0); Relay: Number (!=0)
-    uint8_t name[20];                           // Not terminated, padded with '\0'
-
-};
-
-
-struct IDNServicemapResponsePacket {
-  IDNHeader head;
-  IDNHDR_SERVICEMAP_RESPONSE map_response;
-  IDNHDR_SERVICEMAP_ENTRY map_entry;
-};
  
 #endif

@@ -34,7 +34,7 @@ int HeliosDac::OpenDevices()
 	if (result < 0)
 		return result;
 
-	libusb_set_debug(NULL, LIBUSB_LOG_LEVEL);
+    libusb_set_option(NULL, LIBUSB_OPTION_LOG_LEVEL, LIBUSB_LOG_LEVEL);
 
 	libusb_device** devs;
 	ssize_t cnt = libusb_get_device_list(NULL, &devs);
@@ -100,7 +100,7 @@ int HeliosDac::SetLibusbDebugLogLevel(int logLevel)
 	if (!inited)
 		return HELIOS_ERROR_NOT_INITIALIZED;
 	
-	libusb_set_debug(NULL, logLevel);
+    libusb_set_option(NULL, LIBUSB_OPTION_LOG_LEVEL, logLevel);
 
 	return HELIOS_SUCCESS;
 }
@@ -487,7 +487,7 @@ int HeliosDac::HeliosDacDevice::GetStatus()
 	if (SendControl(ctrlBuffer, 2) == HELIOS_SUCCESS)
 	{
 		std::uint8_t ctrlBuffer2[32];
-		int transferResult = libusb_interrupt_transfer(usbHandle, EP_INT_IN, ctrlBuffer2, 32, &actualLength, 16);
+		int transferResult = libusb_interrupt_transfer(usbHandle, EP_INT_IN, ctrlBuffer2, 32, &actualLength, 32);
 		if (transferResult == LIBUSB_SUCCESS)
 		{
 			if (ctrlBuffer2[0] == 0x83) //STATUS ID
