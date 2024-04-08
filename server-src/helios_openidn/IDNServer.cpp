@@ -1387,6 +1387,11 @@ void IDNServer::mainNetLoop(ODF_ENV *env, int sd)
         receiveUDP(env, sd);
 
         laproService->checkTimeout();
+
+        struct timespec delay, dummy; // Prevents hogging 100% CPU use
+        delay.tv_sec = 0;
+        delay.tv_nsec = 500;
+        nanosleep(&delay, &dummy);
     }
 }
 
@@ -1401,6 +1406,8 @@ IDNServer::IDNServer(std::shared_ptr<LaproService> laproService)
 
     firstConnection = (LLNode<ConnectionNode> *)0;
     firstSession = (LLNode<SessionNode> *)0;
+
+    memset(hostName, 0, HOST_NAME_SIZE);
 }
 
 

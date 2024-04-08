@@ -66,6 +66,11 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 			connectionRetries = 50;
 	}
 
+	
+	struct timespec delay, dummy; // Waits with CPU idle for half the time, to free up cycles
+	delay.tv_sec = 0;
+	delay.tv_nsec = duration / 2 * 1000;
+	nanosleep(&delay, &dummy);
 	//busy waiting
 	do {
 		clock_gettime(CLOCK_MONOTONIC, &now);

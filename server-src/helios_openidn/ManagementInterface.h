@@ -24,7 +24,7 @@ public:
 	std::string settingIdnHostname = "OpenIDN";
 	bool settingEnableIdnServer = true;
 	bool settingEnableIdtfPlayer = false;
-	const char softwareVersion[10] = "0.9.0";
+	const char softwareVersion[10] = "0.9.1";
 
 private:
 	void networkLoop(int socketFd);

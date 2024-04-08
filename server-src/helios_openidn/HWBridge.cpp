@@ -95,6 +95,12 @@ void HWBridge::driverLoop() {
 			//write an empty point if there is a buffer underrun in wave mode or
 			//the driver is set to inactive
 			outputEmptyPoint();
+
+			struct timespec delay, dummy; // Prevents hogging 100% CPU use
+			delay.tv_sec = 0;
+			delay.tv_nsec = 1000;
+			nanosleep(&delay, &dummy);
+
 			continue;
 		}
 		
@@ -137,6 +143,11 @@ void HWBridge::driverLoop() {
 				}
 			}
 		}
+
+		struct timespec delay, dummy; // Prevents hogging 100% CPU use
+		delay.tv_sec = 0;
+		delay.tv_nsec = 1000;
+		nanosleep(&delay, &dummy);
 	}
 }
 

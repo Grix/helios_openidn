@@ -83,7 +83,7 @@ void ManagementInterface::readSettingsFile()
 		std::string& eth0_ip_addresses = ini["network"]["ethernet_ip_addresses"];
 		if (!eth0_ip_addresses.empty())
 		{
-			sleep(5); // To make sure nmcli has started before we try to use it
+			sleep(10); // To make sure nmcli has started before we try to use it
 
 			eth0_ip_addresses.erase(std::remove(eth0_ip_addresses.begin(), eth0_ip_addresses.end(), '\"'), eth0_ip_addresses.end()); // Remove quote marks
 
@@ -117,7 +117,7 @@ void ManagementInterface::readSettingsFile()
 		std::string& wlan0_ip_addresses = ini["network"]["wifi_ip_addresses"];
 		if (!wlan0_ssid.empty() && !wlan0_ip_addresses.empty())
 		{
-			sleep(15); // To make sure nmcli has started before we try to use it. Extra long delay needed for wifi.
+			sleep(20); // To make sure nmcli has started before we try to use it. Extra long delay needed for wifi.
 
 			std::string& wlan0_password = ini["network"]["wifi_password"];
 
@@ -208,6 +208,11 @@ void ManagementInterface::networkLoop(int sd) {
 				}
 			}
 		}
+
+		struct timespec delay, dummy; // Prevents hogging 100% CPU use
+		delay.tv_sec = 0;
+		delay.tv_nsec = 500;
+		nanosleep(&delay, &dummy);
 	}
 }
 
