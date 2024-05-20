@@ -21,7 +21,7 @@ namespace HeliosOpenIdnManager.ViewModels
             ServerInfo = serverInfo;
             Title = $"{serverInfo.Name} ({serverInfo.IpAddress})";
 
-            SoftwareVersion = OpenIdnUtilities.GetSoftwareVersion(serverInfo.IpAddress);
+            SoftwareVersion = HeliosOpenIdnUtilities.GetSoftwareVersion(serverInfo.IpAddress);
         }
     }
 }

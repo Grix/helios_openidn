@@ -107,11 +107,11 @@ namespace HeliosOpenIdnManager.ViewModels
 
             try
             {
-                foreach (var ipAddress in OpenIdnUtilities.ScanForServers())
+                foreach (var ipAddress in HeliosOpenIdnUtilities.ScanForServers())
                 {
                     try
                     {
-                        if (OpenIdnUtilities.GetServerInfo(ipAddress) is not IdnServerInfo serverInfo)
+                        if (HeliosOpenIdnUtilities.GetServerInfo(ipAddress) is not IdnServerInfo serverInfo)
                             continue;
 
                         Servers.Add(new IdnServerViewModel(serverInfo));
@@ -140,7 +140,7 @@ namespace HeliosOpenIdnManager.ViewModels
 
             try
             {
-                using var scpClient = OpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
+                using var scpClient = HeliosOpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
                 scpClient.Connect();
 
                 using var settingsStream = new MemoryStream();
@@ -203,7 +203,7 @@ namespace HeliosOpenIdnManager.ViewModels
             {
                 var server = Servers[SelectedServerIndex];
 
-                using var scpClient = OpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
+                using var scpClient = HeliosOpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
                 scpClient.Connect();
 
                 using var settingsStream = new MemoryStream();
@@ -289,15 +289,36 @@ namespace HeliosOpenIdnManager.ViewModels
 
                 var server = Servers[SelectedServerIndex];
 
-                using var sshClient = OpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
+                using var sshClient = HeliosOpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
                 sshClient.Connect();
                 sshClient.RunCommand("pkill helios_openidn");
                 sshClient.RunCommand("mv /home/laser/openidn/helios_openidn /home/laser/openidn/helios_openidn_backup");
 
-                using var scpClient = OpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
+                using var scpClient = HeliosOpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
                 scpClient.Connect();
                 scpClient.Upload(new FileInfo(ServerSoftwareUpdatePath), "/home/laser/openidn/helios_openidn");
                 sshClient.RunCommand("chmod +x /home/laser/openidn/helios_openidn");
+
+                RestartServer();
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Couldn't update server software: " + ex.Message;
+            }
+        }
+
+        [RelayCommand]
+        public void RandomizeMacAddress()
+        {
+            try
+            {
+                var server = Servers[SelectedServerIndex];
+
+                using var sshClient = HeliosOpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
+                sshClient.Connect();
+                sshClient.RunCommand($"nmcli connection modify \"Wired connection 1\" 802-3-ethernet.cloned-mac-address 72:E8:9E:{Random.Shared.Next() & 0xfe:X2}:{Random.Shared.Next() & 0xfe:X2}:{Random.Shared.Next() & 0xfe:X2}");
+                if (!string.IsNullOrEmpty(WifiSsid))
+                    sshClient.RunCommand($"nmcli connection modify \"{WifiSsid}\" 802-11-wireless.cloned-mac-address 0:10:17::{Random.Shared.Next() & 0xfe:X2}:{Random.Shared.Next() & 0xfe:X2}:{Random.Shared.Next() & 0xfe:X2}");
 
                 RestartServer();
             }
@@ -361,7 +382,7 @@ namespace HeliosOpenIdnManager.ViewModels
             {
                 var server = Servers[SelectedServerIndex];
 
-                using var sshClient = OpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
+                using var sshClient = HeliosOpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
                 sshClient.Connect();
                 var command = sshClient.RunCommand("nmcli -t device wifi list");
                 foreach (string line in command.Result.Split('\n'))
@@ -383,7 +404,7 @@ namespace HeliosOpenIdnManager.ViewModels
         public void RestartServer()
         {
             var server = Servers[SelectedServerIndex];
-            using var sshClient = OpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
+            using var sshClient = HeliosOpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
 
             try
             {
@@ -398,7 +419,7 @@ namespace HeliosOpenIdnManager.ViewModels
             try
             {
                 // This will fail anyway, so put it in its own try-catch block without error handling.
-                var command = sshClient.RunCommand(OpenIdnUtilities.GetSudoSshCommand("reboot"));
+                var command = sshClient.RunCommand(HeliosOpenIdnUtilities.GetSudoSshCommand("reboot"));
             }
             catch { }
         }

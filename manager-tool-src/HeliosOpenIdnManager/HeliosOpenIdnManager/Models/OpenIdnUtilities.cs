@@ -15,7 +15,7 @@ using System.Threading.Tasks;
 namespace HeliosOpenIdnManager;
 
 
-public class OpenIdnUtilities
+public class HeliosOpenIdnUtilities
 {
     public const int IDN_HELLO_PORT = 7255;
     public const int MANAGEMENT_PORT = 7355;
@@ -29,9 +29,9 @@ public class OpenIdnUtilities
     static string sshSudoPassword = "pen_pineapple";
 
     /// <summary>
-    /// Finds IP addresses of OpenIDN servers on the network.
+    /// Finds IP addresses of Helios-OpenIDN servers on the network. NB: Doesn't use official IDN Hello protocol, only special protocol for Helios, so it cannot find generic IDN servers.
     /// </summary>
-    /// <returns>List of IPAddresses of OpenIDN devices.</returns>
+    /// <returns>List of IPAddresses of Helios-OpenIDN devices.</returns>
     static public IEnumerable<IPAddress> ScanForServers()
     {
         foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
@@ -77,22 +77,28 @@ public class OpenIdnUtilities
                                 bool receivedOk = false;
                                 var receiveAddress = new IPEndPoint(IPAddress.Any, MANAGEMENT_PORT);
 
-                                try
+                                var startTime = DateTime.Now;
+                                while (startTime.AddSeconds(1) > DateTime.Now)
                                 {
-                                    var receivedData = udpClient.Receive(ref receiveAddress);
-
-                                    if (receivedData is not null && receivedData.Length >= 2 && receivedData[0] == 0xE6)
+                                    try
                                     {
-                                        receivedOk = true;
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    // Normal to time out if sending to non-openidn server
-                                }
+                                        receivedOk = false;
 
-                                if (receivedOk)
-                                    yield return receiveAddress.Address;
+                                        var receivedData = udpClient.Receive(ref receiveAddress);
+
+                                        if (receivedData is not null && receivedData.Length >= 2 && receivedData[0] == 0xE6)
+                                        {
+                                            receivedOk = true;
+                                        }
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        // Normal to time out if sending to non-openidn server
+                                    }
+
+                                    if (receivedOk)
+                                        yield return receiveAddress.Address;
+                                }
                             }
 
                         }
@@ -182,6 +188,11 @@ public class OpenIdnUtilities
         }
     }
 
+    /// <summary>
+    /// Gets the software version of a Helios-OpenIDN server. Specific to Helios-OpenIDN, not part of the IDN protocol.
+    /// </summary>
+    /// <param name="server"></param>
+    /// <returns></returns>
     static public string GetSoftwareVersion(IPAddress server)
     {
         using (var udpClient = new UdpClient())

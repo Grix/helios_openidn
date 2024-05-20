@@ -57,7 +57,7 @@
 
 		<TabControl Grid.Column="2">
 			
-			<TabItem Header="Configuration">
+			<TabItem Header="Configuration" FontSize="20">
 				<Border Padding="5,5,10,10">
 
 					<Grid Margin="0,0,0,5" RowDefinitions="Auto, *, Auto">
@@ -129,7 +129,7 @@
 			</TabItem>
 
 
-			<TabItem Header="Software update">
+			<TabItem Header="Software update" FontSize="20">
 
 				<StackPanel Margin="0,30,0,0" Spacing="10">
 					<TextBlock Text="Server software" FontWeight="SemiBold" HorizontalAlignment="Center"/>
@@ -151,6 +151,24 @@
 				</StackPanel>
 				
 			</TabItem>
+
+			<TabItem Header="Advanced" FontSize="20">
+				<Border Padding="5,5,10,10">
+
+					<Grid Margin="0,0,0,5" RowDefinitions="Auto, *, Auto">
+						<StackPanel Spacing="10">
+
+							<StackPanel Margin="0, 15, 0, 0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
+								<Button Command="{Binding RandomizeMacAddressCommand}" IsEnabled="{Binding HasSelectedServer}" Content=" Randomize MAC address " ToolTip.Tip="This randomizes the network MAC addresses of the device. It is used, for example, after installing a clean image that has a default, duplicate MAC address. The device will then reboot."></Button>
+							</StackPanel>
+							
+						</StackPanel>
+					</Grid>
+				</Border>
+
+
+			</TabItem>
+
 		</TabControl>
 		
 		<Grid Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2">
