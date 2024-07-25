@@ -307,7 +307,7 @@ namespace HeliosOpenIdnManager.ViewModels
             }
         }
 
-        [RelayCommand]
+        /*[RelayCommand]
         public void RandomizeMacAddress()
         {
             try
@@ -326,7 +326,7 @@ namespace HeliosOpenIdnManager.ViewModels
             {
                 ErrorMessage = "Couldn't update server software: " + ex.Message;
             }
-        }
+        }*/
 
         [RelayCommand]
         public async Task DownloadAndSelectNewestServerSoftware()

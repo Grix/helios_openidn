@@ -158,9 +158,10 @@
 					<Grid Margin="0,0,0,5" RowDefinitions="Auto, *, Auto">
 						<StackPanel Spacing="10">
 
+							<!--
 							<StackPanel Margin="0, 15, 0, 0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
 								<Button Command="{Binding RandomizeMacAddressCommand}" IsEnabled="{Binding HasSelectedServer}" Content=" Randomize MAC address " ToolTip.Tip="This randomizes the network MAC addresses of the device. It is used, for example, after installing a clean image that has a default, duplicate MAC address. The device will then reboot."></Button>
-							</StackPanel>
+							</StackPanel>-->
 							
 						</StackPanel>
 					</Grid>

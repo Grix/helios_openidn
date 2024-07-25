@@ -1,0 +1,4 @@
+./compile.sh build BOARD=rockpi-s BRANCH=current BUILD_MINIMAL=yes KERNEL_CONFIGURE=no RELEASE=bookworm 
+
+
+./compile.sh build BOARD=rockpi-s BRANCH=current BUILD_MINIMAL=yes KERNEL_CONFIGURE=no RELEASE=bookworm NETWORKING_STACK=network-manager ROOTFS_TYPE=btrfs

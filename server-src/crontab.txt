@@ -1,1 +1,0 @@
-@reboot /home/laser/openidn --helios

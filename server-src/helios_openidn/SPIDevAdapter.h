@@ -6,6 +6,7 @@
 #include <linux/spi/spidev.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <errno.h>
 
 #include "./types.h"
 

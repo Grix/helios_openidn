@@ -1,7 +1,10 @@
 #include "SPIDevAdapter.h"
 
 SPIDevAdapter::SPIDevAdapter() {
-	this->spidevFd = open("/dev/spidev0.0", O_WRONLY | O_NONBLOCK);
+	this->spidevFd = open("/dev/spidev1.0", O_WRONLY | O_NONBLOCK);
+	if (!this->spidevFd) {
+		printf("couldn't open spidev1.0: %s", strerror(errno));
+	}
 	this->maximumPointrate = 85000;
 }
 
