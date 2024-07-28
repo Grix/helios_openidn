@@ -6,6 +6,8 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+	 <Version>0.9.3</Version>
+	  <RuntimeIdentifiers>win-x64;osx-x64;linux-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -26,28 +28,29 @@
     <Content Include="Icon.ico" />
   </ItemGroup>
   
-  <PropertyGroup>
-	<RuntimeIdentifiers>win-x64;osx-x64;linux-x64</RuntimeIdentifiers>
-	</PropertyGroup>
-
-
   <ItemGroup>
     <PackageReference Include="Avalonia.Desktop" Version="11.1.0" />
     <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
-    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.0.6" />
+    <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="11.1.0" />
     <PackageReference Include="Dotnet.Bundle" Version="0.9.13" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\HeliosOpenIdnManager\HeliosOpenIdnManager.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Icon.icns">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
   
 	<PropertyGroup>
-		<CFBundleName>HeliosOpenIdnManager</CFBundleName> <!-- Also defines .app file name -->
+		<CFBundleName>HeliosManager</CFBundleName>
 		<CFBundleDisplayName>Helios OpenIDN Manager</CFBundleDisplayName>
-		<CFBundleIdentifier>com.example</CFBundleIdentifier>
-		<CFBundleVersion>1.0.0</CFBundleVersion>
-		<CFBundleShortVersionString>1.0.0</CFBundleShortVersionString>
+		<CFBundleIdentifier>com.bitlasers.heliosidnmanager</CFBundleIdentifier>
+		<CFBundleVersion>0.9.3</CFBundleVersion>
+		<CFBundleShortVersionString>0.9.3</CFBundleShortVersionString>
 		<CFBundlePackageType>APPL</CFBundlePackageType>
 		<CFBundleSignature>????</CFBundleSignature>
 		<CFBundleExecutable>HeliosOpenIdnManager.Desktop</CFBundleExecutable>
