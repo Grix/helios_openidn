@@ -88,6 +88,9 @@ void HWBridge::driverLoop() {
 			//only trim and adjust speed in wave mode
 			if(bex->getMode() == DRIVER_WAVEMODE) {
 				speedFactor = calculateSpeedfactor(speedFactor, currentBuf);
+				if (debug == DEBUGSIMPLE) {
+					printf("New buffer: %.2f Speed factor \n", speedFactor);
+				}
 			} else if (bex->getMode() == DRIVER_FRAMEMODE) {
 				speedFactor = 1.0;
 			}
@@ -98,7 +101,7 @@ void HWBridge::driverLoop() {
 
 			struct timespec delay, dummy; // Prevents hogging 100% CPU use
 			delay.tv_sec = 0;
-			delay.tv_nsec = 1000;
+			delay.tv_nsec = 2000;
 			nanosleep(&delay, &dummy);
 
 			continue;
@@ -160,8 +163,11 @@ double HWBridge::calculateSpeedfactor(double currentSpeed, std::shared_ptr<Slice
 		double offCenter = (center - bufUsageMs) / center;
 		this->accumOC += offCenter;
 
-		double newSpeed = (1.0 + offCenter + 0.05*accumOC);
+		double newSpeed = (1.0 + offCenter + 0.005*accumOC);
 		newSpeed = (newSpeed + ((sm-1)*currentSpeed))/sm;
+
+		if (debug == DEBUGSIMPLE)
+			printf("Calculating speed factor: center %.2f, bufUsageMs %.2f, buffer->size() %.2f, buffer->front()->durationUs %.2f, accumOC %.2f, newSpeed %.2f \n", center, bufUsageMs, (double)buffer->size(), (double)buffer->front()->durationUs, this->accumOC, newSpeed);
 
 		return std::min(10.0, std::max(0.01, newSpeed));
 	} else {

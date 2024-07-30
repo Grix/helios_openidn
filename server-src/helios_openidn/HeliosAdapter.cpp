@@ -32,45 +32,50 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 	if(duration > 0) {
 		framePointRate = (unsigned)((1000000.0*(double)data.size()) / (duration*(double)sizeof(HeliosPoint)));
 	}
-	
-	int status;
 
-	if (getHeliosConnected())
+	if (framePointRate <= HELIOS_MAX_RATE)
 	{
-		while (true)
+		int status;
+
+		if (getHeliosConnected())
 		{
-			status = helios.GetStatus(numHeliosDevices - 1);
-			if (status == 1)
-				break;
+			while (true)
+			{
+				status = helios.GetStatus(numHeliosDevices - 1);
+				if (status == 1)
+					break;
+
+				if (status < 0)
+				{
+					printf("Error checking Helios status: %d\n", status);
+					checkConnection();
+					break;
+				}
+				else
+					connectionRetries = 50;
+			}
+			status = this->helios.WriteFrame(this->numHeliosDevices - 1
+				, framePointRate
+				, this->heliosFlags, (HeliosPoint*)&data.front()
+				, numPoints);
 
 			if (status < 0)
 			{
-				printf("Error checking Helios status: %d\n", status);
+				printf("Error writing Helios frame: %d\n", status);
 				checkConnection();
-				break;
 			}
 			else
 				connectionRetries = 50;
 		}
-		status = this->helios.WriteFrame(this->numHeliosDevices - 1
-			, framePointRate
-			, this->heliosFlags, (HeliosPoint*)&data.front()
-			, numPoints);
-
-		if (status < 0)
-		{
-			printf("Error writing Helios frame: %d\n", status);
-			checkConnection();
-		}
-		else
-			connectionRetries = 50;
 	}
+	else
+		printf("Too high helios rate, bypassing write: %d\n", framePointRate);
 
 	
-	struct timespec delay, dummy; // Waits with CPU idle for half the time, to free up cycles
+	/*struct timespec delay, dummy; // Waits with CPU idle for half the time, to free up cycles
 	delay.tv_sec = 0;
 	delay.tv_nsec = duration / 2 * 1000;
-	nanosleep(&delay, &dummy);
+	nanosleep(&delay, &dummy);*/
 	//busy waiting
 	do {
 		clock_gettime(CLOCK_MONOTONIC, &now);

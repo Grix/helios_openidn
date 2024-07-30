@@ -34,6 +34,8 @@ void sig_handler(int signum) {
 	pthread_cancel(driver_thread);
 	pthread_join(driver_thread, NULL);
 
+	system("echo 'heartbeat' > /sys/class/leds/rockpis:blue:user/trigger");
+
 	//output dark point so the laser doesn't linger
 	driver->outputEmptyPoint();
 
@@ -150,6 +152,11 @@ int parseArguments(int argc, char** argv) {
 			continue;
 		}
 
+		if (driver == nullptr) {
+			printf("Using the helios driver (by default)\n");
+			driver = std::shared_ptr<HWBridge>(new HWBridge(std::shared_ptr<HeliosAdapter>(new HeliosAdapter), bex));
+		}
+
 		if (strcmp(argv[i], "--setMaxPointRate") == 0) {
 			unsigned rate = std::stoi(argv[i + 1]);
 			printf("Changed MaxPointRate to %d pps\n", rate);
@@ -194,7 +201,13 @@ int parseArguments(int argc, char** argv) {
 		exit(-1);
 	}
 
-	//default
+	// For development
+#ifndef NDEBUG
+	driver->setDebugging(DEBUGSIMPLE);
+	printf("Activated driver DEBUGSIMPLE\n");
+#endif
+
+	//default (won't execute in this build, helios is set as default earlier in this file)
 	if (driver == nullptr) {
 		printf("Using the DUMMY driver!!!!!!!!!\n");
 		driver = std::shared_ptr<HWBridge>(new HWBridge(std::shared_ptr<DummyAdapter>(new DummyAdapter), bex));

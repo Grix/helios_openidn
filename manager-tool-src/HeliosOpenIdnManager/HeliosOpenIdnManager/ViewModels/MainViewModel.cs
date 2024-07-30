@@ -12,6 +12,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace HeliosOpenIdnManager.ViewModels
@@ -292,11 +293,14 @@ namespace HeliosOpenIdnManager.ViewModels
                 using var sshClient = HeliosOpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
                 sshClient.Connect();
                 sshClient.RunCommand("pkill helios_openidn");
+                Thread.Sleep(100);
                 sshClient.RunCommand("mv /home/laser/openidn/helios_openidn /home/laser/openidn/helios_openidn_backup");
+                Thread.Sleep(100);
 
                 using var scpClient = HeliosOpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
                 scpClient.Connect();
                 scpClient.Upload(new FileInfo(ServerSoftwareUpdatePath), "/home/laser/openidn/helios_openidn");
+                Thread.Sleep(100);
                 sshClient.RunCommand("chmod +x /home/laser/openidn/helios_openidn");
 
                 RestartServer();
