@@ -101,7 +101,7 @@ void HWBridge::driverLoop() {
 
 			struct timespec delay, dummy; // Prevents hogging 100% CPU use
 			delay.tv_sec = 0;
-			delay.tv_nsec = 2000;
+			delay.tv_nsec = 1000;
 			nanosleep(&delay, &dummy);
 
 			continue;

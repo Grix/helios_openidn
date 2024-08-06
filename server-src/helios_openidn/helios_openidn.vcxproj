@@ -69,6 +69,7 @@
     <ClCompile Include="DummyAdapter.cpp" />
     <ClCompile Include="HeliosAdapter.cpp" />
     <ClCompile Include="HeliosDac.cpp" />
+    <ClCompile Include="HeliosProAdapter.cpp" />
     <ClCompile Include="HWBridge.cpp" />
     <ClCompile Include="IDNServer.cpp" />
     <ClCompile Include="IDNSession.cpp" />
@@ -84,6 +85,7 @@
     <ClInclude Include="DummyAdapter.h" />
     <ClInclude Include="HeliosAdapter.h" />
     <ClInclude Include="HeliosDac.h" />
+    <ClInclude Include="HeliosProAdapter.h" />
     <ClInclude Include="HWBridge.h" />
     <ClInclude Include="idn-hello.h" />
     <ClInclude Include="idn-stream.h" />
