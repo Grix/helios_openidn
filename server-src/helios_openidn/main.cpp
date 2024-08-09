@@ -11,6 +11,7 @@
 #include "HWBridge.h"
 #include "SPIDevAdapter.h"
 #include "HeliosAdapter.h"
+#include "HeliosProAdapter.h"
 #include "DummyAdapter.h"
 #include "Service.hpp"
 #include "IDNServer.hpp"
@@ -139,6 +140,19 @@ int parseArguments(int argc, char** argv) {
 			continue;
 		}
 
+		if (strcmp(argv[i], "--heliospro") == 0) {
+			if (driver == nullptr) {
+				printf("Using the heliosPRO driver\n");
+				driver = std::shared_ptr<HWBridge>(new HWBridge(std::shared_ptr<HeliosProAdapter>(new HeliosProAdapter), bex));
+			}
+			else {
+				driver = nullptr;
+				return -1;
+			}
+
+			continue;
+		}
+
 		if (strcmp(argv[i], "--dummy") == 0) {
 			if (driver == nullptr) {
 				printf("Using the DUMMY driver!!!!!!!!!\n");
@@ -150,11 +164,6 @@ int parseArguments(int argc, char** argv) {
 			}
 
 			continue;
-		}
-
-		if (driver == nullptr) {
-			printf("Using the helios driver (by default)\n");
-			driver = std::shared_ptr<HWBridge>(new HWBridge(std::shared_ptr<HeliosAdapter>(new HeliosAdapter), bex));
 		}
 
 		if (strcmp(argv[i], "--setMaxPointRate") == 0) {
@@ -207,7 +216,10 @@ int parseArguments(int argc, char** argv) {
 	printf("Activated driver DEBUGSIMPLE\n");
 #endif
 
-	//default (won't execute in this build, helios is set as default earlier in this file)
+	// TESTING
+	//HeliosProAdapter heliosProAdapter;
+
+	//default
 	if (driver == nullptr) {
 		printf("Using the DUMMY driver!!!!!!!!!\n");
 		driver = std::shared_ptr<HWBridge>(new HWBridge(std::shared_ptr<DummyAdapter>(new DummyAdapter), bex));

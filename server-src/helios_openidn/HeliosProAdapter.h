@@ -7,10 +7,18 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <errno.h>
+#include <sys/mman.h>
 
 #include "./types.h"
 
-#define HELIOSPRO_CHUNKSIZE
+#define HELIOSPRO_CHUNKSIZE 0xF00
+
+#define GPIO_DIR_IN(g)		*(gpio + (0x04 / 4)) &= ~(1 << (g & 0xFF))
+#define GPIO_DIR_OUT(g)		*(gpio + (0x04 / 4)) |= (1 << (g & 0xFF))
+#define GPIO_SET(g)		*(gpio + (0x00 / 4)) |= (1 << (g & 0xFF))
+#define GPIO_CLR(g)		*(gpio + (0x00 / 4)) &= ~(1 << (g & 0xFF))
+#define GPIO_LEV(g)		((*(gpio + (0x50 / 4)) >> (g & 0xFF)) & 1)
+#define GPIOPIN_STATUS    6    // A6 
 
 class HeliosProAdapter : public DACHWInterface {
 public:
@@ -22,12 +30,19 @@ public:
 	void setMaxPointrate(unsigned) override;
 
 	HeliosProAdapter();
-	HeliosProAdapter(unsigned);
 	~HeliosProAdapter();
 
 private:
 	int spidevFd;
 	unsigned maximumPointrate;
+
+	int	mem_fd;
+	void* spi2_ctrl_mem_map;
+	volatile uint32_t* spi2_ctrl;
+	void* spi2_tx_mem_map;
+	volatile uint32_t* spi2_tx;
+	void* gpio_mem_map;
+	volatile uint32_t* gpio;
 
 	uint8_t writeBuffer[HELIOSPRO_CHUNKSIZE + 16];
 };
