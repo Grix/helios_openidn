@@ -76,47 +76,77 @@ HeliosProAdapter::~HeliosProAdapter()
 
 int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs) 
 {
+	if (durationUs <= 0)
+		return 0;
+
 	//get time
 	struct timespec now, then;
 	unsigned long sdif, nsdif, tdif;
 	clock_gettime(CLOCK_MONOTONIC, &then);
 
 	const SliceType& data = slice.dataChunk;
+	size_t dataSizeBytes = data.size();
 
-	unsigned int numPoints = data.size() / bytesPerPoint();
-	uint32_t pps = (uint32_t)(numPoints / (durationUs / 1000000));
+	unsigned int numPoints = dataSizeBytes / bytesPerPoint();
+	uint32_t pps = numPoints * 1000000l / durationUs;
+	printf("%d - %d - %f\n", pps, numPoints, durationUs);
+	//pps = 29013;
 
 	writeBuffer[0] = 'H';
 	writeBuffer[1] = 'P';
 	writeBuffer[2] = 'D'; // data
 	writeBuffer[3] = 0; // reserved
-	writeBuffer[4] = numPoints & 0xFF;
-	writeBuffer[5] = (numPoints >> 8) & 0xFF;
+	writeBuffer[4] = ((dataSizeBytes + 16) >> 0) & 0xFF;
+	writeBuffer[5] = ((dataSizeBytes + 16) >> 8) & 0xFF;
 	writeBuffer[6] = 0; // reserved
 	writeBuffer[7] = 0; // reserved
-	writeBuffer[8] = 0; // pps goes here later
-	writeBuffer[9] = 0; // pps goes here later
-	writeBuffer[10] = 0; // pps goes here later
-	writeBuffer[11] = 0; // pps goes here later
+	//int _pps = pps;
+	memcpy(&writeBuffer[8], &pps, 4);
+	/*writeBuffer[8] = (pps >> 0) & 0xFF;
+	writeBuffer[9] = (pps >> 8) & 0xFF;
+	writeBuffer[10] = (pps >> 16) & 0xFF;
+	writeBuffer[11] = (pps >> 24) & 0xFF;*/
 	writeBuffer[12] = 0; // reserved
 	writeBuffer[13] = 0; // reserved
 	writeBuffer[14] = 0; // reserved
 	writeBuffer[15] = 0; // reserved
 
-	memcpy(&writeBuffer[16], &data.front(), data.size());
+	memcpy(&writeBuffer[16], &data.front(), dataSizeBytes);
+
+	writeBuffer[16 + dataSizeBytes + 0] = 'G';
+	writeBuffer[16 + dataSizeBytes + 1] = 'R';
+	writeBuffer[16 + dataSizeBytes + 2] = 'I';
+	writeBuffer[16 + dataSizeBytes + 3] = 'X';
 
 	//printf("busy status: %d\n", GPIO_LEV(GPIOPIN_STATUS));
 
-	//while (GPIO_LEV(GPIOPIN_STATUS)); // Wait for free space in buffer chip
+	while (!GPIO_LEV(GPIOPIN_STATUS)) // Wait for free space in buffer chip
+	{
+		clock_gettime(CLOCK_MONOTONIC, &now);
+		sdif = now.tv_sec - then.tv_sec;
+		nsdif = now.tv_nsec - then.tv_nsec;
+		tdif = sdif * 1000000000 + nsdif;
+		if (tdif > ((unsigned long)durationUs * 1000 * 3))
+		{
+			printf("WARNING: Timeout waiting for Helios buffer chip\n");
+			return 0;
+		}
+	};
 
 	//printf("got ready\n");
 
 	//write the whole block all at once
-	int writeErr = write(this->spidevFd, writeBuffer, data.size() + 16);
+	int writeErr = write(this->spidevFd, writeBuffer, dataSizeBytes + 16 + 4);
+	uint32_t test[128];
+	for (int i = 0; i < 128; i++)
+	{
+		test[i] = 0xE5000000 + i;
+	}
+	//int writeErr = write(this->spidevFd, test, 128 * 4);
 	if (writeErr == -1) 
 	{
 		perror("spi write error");
-		printf("msg size = %u\n", data.size());
+		printf("msg size = %u\n", dataSizeBytes + 16 + 4);
 	}
 
 	//busy waiting to adjust for timing inaccuracy
@@ -138,7 +168,7 @@ SliceType HeliosProAdapter::convertPoints(const std::vector<ISPDB25Point>& point
 
 	SliceType result;
 
-	size_t numPoints = points.size();
+	/*size_t numPoints = points.size();
 	result.push_back('H');
 	result.push_back('P');
 	result.push_back('D'); // data
@@ -154,11 +184,10 @@ SliceType HeliosProAdapter::convertPoints(const std::vector<ISPDB25Point>& point
 	result.push_back(0); // reserved
 	result.push_back(0); // reserved
 	result.push_back(0); // reserved
-	result.push_back(0); // reserved
+	result.push_back(0); // reserved*/
 
 	for (const auto& point : points) 
 	{
-
 		result.push_back(point.x & 0xFF);
 		result.push_back((point.x >> 8) & 0xFF);
 		result.push_back(point.y & 0xFF);

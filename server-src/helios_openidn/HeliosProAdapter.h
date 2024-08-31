@@ -11,7 +11,7 @@
 
 #include "./types.h"
 
-#define HELIOSPRO_CHUNKSIZE 0xF00
+#define HELIOSPRO_CHUNKSIZE 0xB00
 
 #define GPIO_DIR_IN(g)		*(gpio + (0x04 / 4)) &= ~(1 << (g & 0xFF))
 #define GPIO_DIR_OUT(g)		*(gpio + (0x04 / 4)) |= (1 << (g & 0xFF))
@@ -44,6 +44,6 @@ private:
 	void* gpio_mem_map;
 	volatile uint32_t* gpio;
 
-	uint8_t writeBuffer[HELIOSPRO_CHUNKSIZE + 16];
+	uint8_t writeBuffer[HELIOSPRO_CHUNKSIZE + 16 + 4];
 };
 
