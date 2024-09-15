@@ -8,10 +8,10 @@
 #include <vector>
 
 // Project headers
-#include "HWBridge.h"
+#include "HWBridge.hpp"
 #include "types.h"
-#include "DACHWInterface.h"
-#include "BEX.h"
+#include "./DACHWInterfaces/DACHWInterface.hpp"
+#include "BEX.hpp"
 #include "idn-hello.h"
 
 

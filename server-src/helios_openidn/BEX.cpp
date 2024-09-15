@@ -1,4 +1,4 @@
-#include "./BEX.h"
+#include "./BEX.hpp"
 
 BEX::BEX() {
 	hotBuf = new SliceBuf;

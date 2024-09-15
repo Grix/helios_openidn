@@ -84,7 +84,7 @@ IDNSession::IDNSession(char *logIdent)
     // Copy session name
     if((logIdent != (char *)0) && (*logIdent != '\0'))
     {
-        snprintf(this->logIdent, sizeof(this->logIdent), logIdent);
+        snprintf(this->logIdent, sizeof(this->logIdent), "%s", logIdent);
     }
     else
     {

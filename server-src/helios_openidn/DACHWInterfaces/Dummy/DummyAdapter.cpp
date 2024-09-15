@@ -1,4 +1,4 @@
-#include "DummyAdapter.h"
+#include "DummyAdapter.hpp"
 
 DummyAdapter::DummyAdapter() {
 	this->maximumPointRate = -1;

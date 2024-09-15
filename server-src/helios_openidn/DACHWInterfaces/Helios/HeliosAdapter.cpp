@@ -1,4 +1,4 @@
-#include "HeliosAdapter.h"
+#include "HeliosAdapter.hpp"
 
 HeliosAdapter::HeliosAdapter() {
 	this->numHeliosDevices = this->helios.OpenDevices();
@@ -32,7 +32,7 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 	if(duration > 0) {
 		framePointRate = (unsigned)((1000000.0*(double)data.size()) / (duration*(double)sizeof(HeliosPoint)));
 	}
-
+	
 	if (framePointRate <= HELIOS_MAX_RATE)
 	{
 		int status;
@@ -63,6 +63,7 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 			{
 				printf("Error writing Helios frame: %d\n", status);
 				checkConnection();
+
 			}
 			else
 				connectionRetries = 50;
@@ -71,18 +72,13 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 	else
 		printf("Too high helios rate, bypassing write: %d\n", framePointRate);
 
-	
-	/*struct timespec delay, dummy; // Waits with CPU idle for half the time, to free up cycles
-	delay.tv_sec = 0;
-	delay.tv_nsec = duration / 2 * 1000;
-	nanosleep(&delay, &dummy);*/
 	//busy waiting
 	do {
 		clock_gettime(CLOCK_MONOTONIC, &now);
 		sdif = now.tv_sec - then.tv_sec;
 		nsdif = now.tv_nsec - then.tv_nsec;
 		tdif = sdif*1000000000 + nsdif ;
-	} while (tdif < ((unsigned long)duration * 0.5 * 1000) );
+	} while (tdif < ((unsigned long)duration * 1000 * 0.5) );
 
 
 	return 0;

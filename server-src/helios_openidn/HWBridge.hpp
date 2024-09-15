@@ -19,8 +19,8 @@
 #include <signal.h>
 
 #include "./types.h"
-#include "./DACHWInterface.h"
-#include "./BEX.h"
+#include "./DACHWInterfaces/DACHWInterface.hpp"
+#include "./BEX.hpp"
 
 #define NODEBUG 0
 #define DEBUG 1
@@ -46,7 +46,7 @@ private:
 
 	std::shared_ptr<DACHWInterface> device;
 	std::shared_ptr<BEX> bex;
-	double bufferTargetMs = 50;
+	double bufferTargetMs = 40;
 	double speedFactor = 1.0;
 	double accumOC = 0.0;
 	std::shared_ptr<SliceBuf> ringBuffer;

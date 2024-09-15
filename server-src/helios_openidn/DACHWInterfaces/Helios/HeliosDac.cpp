@@ -13,7 +13,7 @@ See header HeliosDac.h for function and usage documentation
 */
 
 
-#include "HeliosDac.h"
+#include "HeliosDac.hpp"
 
 HeliosDac::HeliosDac()
 {
@@ -487,7 +487,7 @@ int HeliosDac::HeliosDacDevice::GetStatus()
 	if (SendControl(ctrlBuffer, 2) == HELIOS_SUCCESS)
 	{
 		std::uint8_t ctrlBuffer2[32];
-		int transferResult = libusb_interrupt_transfer(usbHandle, EP_INT_IN, ctrlBuffer2, 32, &actualLength, 32);
+		int transferResult = libusb_interrupt_transfer(usbHandle, EP_INT_IN, ctrlBuffer2, 32, &actualLength, 16);
 		if (transferResult == LIBUSB_SUCCESS)
 		{
 			if (ctrlBuffer2[0] == 0x83) //STATUS ID

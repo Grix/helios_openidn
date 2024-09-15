@@ -1,7 +1,7 @@
 #ifndef DACADAPTER_H_
 #define DACADAPTER_H_
 
-#include "./types.h"
+#include "../types.h"
 
 class DACHWInterface {
 public:

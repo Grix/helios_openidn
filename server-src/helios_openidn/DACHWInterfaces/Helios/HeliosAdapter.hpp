@@ -1,11 +1,9 @@
-#include "DACHWInterface.h"
+#include "../DACHWInterface.hpp"
 
-#include <stdint.h>
-#include <unistd.h>
+#include "./HeliosDac.hpp"
+#include "../../types.h"
 
-#include "./types.h"
-
-class DummyAdapter : public DACHWInterface {
+class HeliosAdapter : public DACHWInterface {
 public:
 	int writeFrame(const TimeSlice& slice, double duration) override;
 	SliceType convertPoints(const std::vector<ISPDB25Point>& points) override;
@@ -14,12 +12,18 @@ public:
 	unsigned maxPointrate() override;
 	void setMaxPointrate(unsigned) override;
 	void getName(char *nameBufferPtr, unsigned nameBufferSize) override;
+	bool getHeliosConnected();
 
-	DummyAdapter();
-	~DummyAdapter();
+	HeliosAdapter();
+	~HeliosAdapter();
 
 private:
-	void writeDACPoint(const unsigned char* point);
+	HeliosDac helios;
+	int numHeliosDevices;
+	std::uint8_t heliosFlags;
 	unsigned maximumPointRate;
+	int connectionRetries = 50;
+
+	void checkConnection();
 };
 

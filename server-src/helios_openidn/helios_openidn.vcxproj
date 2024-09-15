@@ -66,10 +66,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="BEX.cpp" />
-    <ClCompile Include="DummyAdapter.cpp" />
-    <ClCompile Include="HeliosAdapter.cpp" />
-    <ClCompile Include="HeliosDac.cpp" />
-    <ClCompile Include="HeliosProAdapter.cpp" />
+    <ClCompile Include="DACHWInterfaces\Dummy\DummyAdapter.cpp" />
+    <ClCompile Include="DACHWInterfaces\HeliosPro\HeliosProAdapter.cpp" />
+    <ClCompile Include="DACHWInterfaces\Helios\HeliosAdapter.cpp" />
+    <ClCompile Include="DACHWInterfaces\Helios\HeliosDac.cpp" />
     <ClCompile Include="HWBridge.cpp" />
     <ClCompile Include="IDNServer.cpp" />
     <ClCompile Include="IDNSession.cpp" />
@@ -77,28 +77,26 @@
     <ClCompile Include="ManagementInterface.cpp" />
     <ClCompile Include="OpenIDN.cpp" />
     <ClCompile Include="Service.cpp" />
-    <ClCompile Include="SPIDevAdapter.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="BEX.h" />
-    <ClInclude Include="DACHWInterface.h" />
-    <ClInclude Include="DummyAdapter.h" />
-    <ClInclude Include="HeliosAdapter.h" />
-    <ClInclude Include="HeliosDac.h" />
-    <ClInclude Include="HeliosProAdapter.h" />
-    <ClInclude Include="HWBridge.h" />
+    <ClInclude Include="BEX.hpp" />
+    <ClInclude Include="DACHWInterfaces\DACHWInterface.hpp" />
+    <ClInclude Include="DACHWInterfaces\Dummy\DummyAdapter.hpp" />
+    <ClInclude Include="DACHWInterfaces\HeliosPro\HeliosProAdapter.hpp" />
+    <ClInclude Include="DACHWInterfaces\Helios\HeliosAdapter.hpp" />
+    <ClInclude Include="DACHWInterfaces\Helios\HeliosDac.hpp" />
+    <ClInclude Include="DACHWInterfaces\Helios\libusb.h" />
+    <ClInclude Include="HWBridge.hpp" />
     <ClInclude Include="idn-hello.h" />
     <ClInclude Include="idn-stream.h" />
     <ClInclude Include="idn.h" />
     <ClInclude Include="IDNServer.hpp" />
     <ClInclude Include="IDNSession.hpp" />
     <ClInclude Include="ini.h" />
-    <ClInclude Include="libusb.h" />
     <ClInclude Include="LLNode.hpp" />
-    <ClInclude Include="ManagementInterface.h" />
+    <ClInclude Include="ManagementInterface.hpp" />
     <ClInclude Include="OpenIDN.hpp" />
     <ClInclude Include="Service.hpp" />
-    <ClInclude Include="SPIDevAdapter.h" />
     <ClInclude Include="types.h" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">

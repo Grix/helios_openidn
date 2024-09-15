@@ -1,4 +1,4 @@
-#include "./DACHWInterface.h"
+#include "../DACHWInterface.hpp"
 
 #include <stdint.h>
 #include <unistd.h>
@@ -9,7 +9,7 @@
 #include <errno.h>
 #include <sys/mman.h>
 
-#include "./types.h"
+#include "../../types.h"
 
 #define HELIOSPRO_CHUNKSIZE 0xB00
 

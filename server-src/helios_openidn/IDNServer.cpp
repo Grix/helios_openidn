@@ -465,7 +465,7 @@ IDNHelloConnection::IDNHelloConnection(struct sockaddr_storage *clientAddr, uint
     // Populate link identification (for log/diagnostics)
     if((logIdent != (char *)0) && (*logIdent != '\0'))
     {
-        snprintf(this->logIdent, sizeof(this->logIdent), logIdent);
+        snprintf(this->logIdent, sizeof(this->logIdent), "%s", logIdent);
     }
     else
     {
@@ -1390,7 +1390,7 @@ void IDNServer::mainNetLoop(ODF_ENV *env, int sd)
 
         struct timespec delay, dummy; // Prevents hogging 100% CPU use
         delay.tv_sec = 0;
-        delay.tv_nsec = 500;
+        delay.tv_nsec = 1000;
         nanosleep(&delay, &dummy);
     }
 }
@@ -1405,7 +1405,7 @@ IDNServer::IDNServer(std::shared_ptr<LaproService> laproService)
     this->laproService = laproService;
 
     firstConnection = (LLNode<ConnectionNode> *)0;
-    firstSession = (LLNode<SessionNode> *)0;
+    firstSession = (LLNode<SessionNode> *)0; 
 
     memset(hostName, 0, HOST_NAME_SIZE);
 }
@@ -1559,7 +1559,7 @@ void IDNServer::networkThreadFunc()
     unitID[6] = mac_address[4];
     unitID[7] = mac_address[5];
 
-    //gethostname((char *)&hostName, 20);
+    //gethostname((char *)&hostName, 20); // Set manually from settings instead
 
 
     // Run main loop

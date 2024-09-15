@@ -4,19 +4,17 @@
 #include <netdb.h>      /* gethostbyname */
 #include <pthread.h>    /* POSIX Threads */
 #include <string>
-#include <signal.h>
+#include <csignal>
 
 // Project headers
-#include "DACHWInterface.h"
-#include "HWBridge.h"
-#include "SPIDevAdapter.h"
-#include "HeliosAdapter.h"
-#include "HeliosProAdapter.h"
-#include "DummyAdapter.h"
+#include "DACHWInterfaces/DACHWInterface.hpp"
+#include "HWBridge.hpp"
+#include "DACHWInterfaces/Helios/HeliosAdapter.hpp"
+#include "DACHWInterfaces/HeliosPro/HeliosProAdapter.hpp"
+#include "DACHWInterfaces/Dummy/DummyAdapter.hpp"
 #include "Service.hpp"
 #include "IDNServer.hpp"
-
-#include "ManagementInterface.h"
+#include "ManagementInterface.hpp"
 
 pthread_t driver_thread = 0;
 std::shared_ptr<HWBridge> driver = nullptr;
@@ -30,23 +28,22 @@ std::shared_ptr<ManagementInterface> management = nullptr;
 
 
 //make the program emit debug information on SIGINT
-void sig_handler(int signum) {
-	//kill driver
+void sig_handler(int sig) {
+
 	pthread_cancel(driver_thread);
 	pthread_join(driver_thread, NULL);
 
 	system("echo 'heartbeat' > /sys/class/leds/rockpis:blue:user/trigger");
 
-	//output dark point so the laser doesn't linger
+	// Output dark point so the laser doesn't linger
 	driver->outputEmptyPoint();
 
-	//if we want debugging, give us that
-	if (driver->getDebugging() == DEBUG) {
-		driver->printStats();
-	}
+	const char* message = "\nCaught SIGINT (Ctrl+C). Exiting gracefully...\n";
+	write(STDOUT_FILENO, message, strlen(message));
 
-	signal(SIGINT, SIG_DFL);
-	raise(SIGINT);
+	driver.reset();
+
+	_exit(0);  // Use _exit to avoid issues with non-reentrant functions in exit()
 }
 
 void* networkThreadFunction(void* args) {
@@ -114,18 +111,6 @@ int parseArguments(int argc, char** argv) {
 		}
 #endif
 
-		if (strcmp(argv[i], "--spidev") == 0) {
-			if (driver == nullptr) {
-				printf("Using the Spidev driver\n");
-				driver = std::shared_ptr<HWBridge>(new HWBridge(std::shared_ptr<SPIDevAdapter>(new SPIDevAdapter), bex));
-			}
-			else {
-				driver = nullptr;
-				return -1;
-			}
-
-			continue;
-		}
 
 		if (strcmp(argv[i], "--helios") == 0) {
 			if (driver == nullptr) {
@@ -235,7 +220,8 @@ int parseArguments(int argc, char** argv) {
 }
 
 int main(int argc, char** argv) {
-	signal(SIGINT, sig_handler);
+	// Register the signal handler for SIGINT
+	std::signal(SIGINT, sig_handler);
 
 	system("echo 'none' > /sys/class/leds/rockpis:blue:user/trigger"); // manual blue LED control, stops heartbeat blinking
 	system("echo 0 > /sys/class/leds/rockpis:blue:user/brightness"); // turn LED off

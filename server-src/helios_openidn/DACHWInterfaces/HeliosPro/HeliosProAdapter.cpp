@@ -1,6 +1,6 @@
-#include "HeliosProAdapter.h"
+#include "HeliosProAdapter.hpp"
 
-// Interface to internal HeliosPro output microcontroller via SPIdev
+// Interface to internal HeliosPro output buffer microcontroller via SPIdev
 
 HeliosProAdapter::HeliosProAdapter() 
 {
@@ -90,7 +90,6 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 	unsigned int numPoints = dataSizeBytes / bytesPerPoint();
 	uint32_t pps = numPoints * 1000000l / durationUs;
 	printf("%d - %d - %f\n", pps, numPoints, durationUs);
-	//pps = 29013;
 
 	writeBuffer[0] = 'H';
 	writeBuffer[1] = 'P';
@@ -100,12 +99,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 	writeBuffer[5] = ((dataSizeBytes + 16) >> 8) & 0xFF;
 	writeBuffer[6] = 0; // reserved
 	writeBuffer[7] = 0; // reserved
-	//int _pps = pps;
 	memcpy(&writeBuffer[8], &pps, 4);
-	/*writeBuffer[8] = (pps >> 0) & 0xFF;
-	writeBuffer[9] = (pps >> 8) & 0xFF;
-	writeBuffer[10] = (pps >> 16) & 0xFF;
-	writeBuffer[11] = (pps >> 24) & 0xFF;*/
 	writeBuffer[12] = 0; // reserved
 	writeBuffer[13] = 0; // reserved
 	writeBuffer[14] = 0; // reserved
@@ -167,24 +161,6 @@ SliceType HeliosProAdapter::convertPoints(const std::vector<ISPDB25Point>& point
 {
 
 	SliceType result;
-
-	/*size_t numPoints = points.size();
-	result.push_back('H');
-	result.push_back('P');
-	result.push_back('D'); // data
-	result.push_back(0); // reserved
-	result.push_back(numPoints & 0xFF);
-	result.push_back((numPoints >> 8) & 0xFF);
-	result.push_back(0); // reserved
-	result.push_back(0); // reserved
-	result.push_back(0); // pps goes here later
-	result.push_back(0); // pps goes here later
-	result.push_back(0); // pps goes here later
-	result.push_back(0); // pps goes here later
-	result.push_back(0); // reserved
-	result.push_back(0); // reserved
-	result.push_back(0); // reserved
-	result.push_back(0); // reserved*/
 
 	for (const auto& point : points) 
 	{
