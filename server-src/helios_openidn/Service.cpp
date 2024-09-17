@@ -120,7 +120,7 @@ unsigned int LaproService::buildDictionary(uint8_t *buf, unsigned int len, unsig
     case 1: // 1
       if (sub == 0) { //1.0
     //BREAK TAG
-      } else if (sub = 1) { //1.1
+      } else if (sub == 1) { //1.1
     //COORDINATE AND COLOR SPACE MODIFIERS
       }
       break;

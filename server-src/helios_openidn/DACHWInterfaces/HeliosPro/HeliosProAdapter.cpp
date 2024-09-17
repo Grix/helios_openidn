@@ -151,7 +151,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		nsdif = now.tv_nsec - then.tv_nsec;
 		tdif = sdif * 1000000000 + nsdif;
 	}
-	while (tdif < ((unsigned long)durationUs * 1000));
+	while (tdif < ((unsigned long)durationUs * 1000 * 0.5));
 
 
 	return 0;
