@@ -472,6 +472,8 @@ void LaproService::processChannelMessage(uint8_t *recvBuffer, unsigned recvLen)
                         if (tag->type == IDN_DESCRIPTOR_INTENSITY)
                         {
                             offset++;
+                            if (tag->precision == 1)
+                                offset++;
                         }
                         if (tag->type == IDN_DESCRIPTOR_DRAW_CONTROL_0 || tag->type == IDN_DESCRIPTOR_DRAW_CONTROL_1)
                         {
