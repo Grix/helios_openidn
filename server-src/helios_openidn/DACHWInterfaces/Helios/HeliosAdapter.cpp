@@ -1,4 +1,4 @@
-#include "HeliosAdapter.hpp"
+#include "HeliosAdapter.h"
 
 HeliosAdapter::HeliosAdapter() {
 	this->numHeliosDevices = this->helios.OpenDevices();
@@ -7,7 +7,7 @@ HeliosAdapter::HeliosAdapter() {
 	}
 
 	this->heliosFlags = HELIOS_FLAGS_SINGLE_MODE;
-	this->maximumPointRate = 60000;
+	this->maximumPointRate = 54000; // Actual max is 65535, but subtract around 1/1.2 to account for max time factor strecthing
 }
 
 HeliosAdapter::~HeliosAdapter() {
@@ -32,7 +32,7 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 	if(duration > 0) {
 		framePointRate = (unsigned)((1000000.0*(double)data.size()) / (duration*(double)sizeof(HeliosPoint)));
 	}
-	
+
 	if (framePointRate <= HELIOS_MAX_RATE)
 	{
 		int status;
@@ -63,22 +63,39 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 			{
 				printf("Error writing Helios frame: %d\n", status);
 				checkConnection();
-
 			}
 			else
 				connectionRetries = 50;
 		}
 	}
 	else
+	{
 		printf("Too high helios rate, bypassing write: %d\n", framePointRate);
+		do {
+			clock_gettime(CLOCK_MONOTONIC, &now);
+			sdif = now.tv_sec - then.tv_sec;
+			nsdif = now.tv_nsec - then.tv_nsec;
+			tdif = sdif * 1000000000 + nsdif;
+		} while (tdif < ((unsigned long)duration * 1000 * 0.98));
+	}
 
+	
+	/*struct timespec delay, dummy; // Waits with CPU idle for half the time, to free up cycles
+	delay.tv_sec = 0;
+	delay.tv_nsec = duration / 4 * 1000;
+	nanosleep(&delay, &dummy);*/
 	//busy waiting
 	do {
 		clock_gettime(CLOCK_MONOTONIC, &now);
 		sdif = now.tv_sec - then.tv_sec;
 		nsdif = now.tv_nsec - then.tv_nsec;
-		tdif = sdif*1000000000 + nsdif ;
-	} while (tdif < ((unsigned long)duration * 1000 * 0.5) );
+		tdif = sdif * 1000000000 + nsdif;
+	} while (tdif < ((unsigned long)duration * 1000 * 0.8) );
+
+#ifndef NDEBUG
+	if (tdif > duration * 1000)
+		printf("Helios write time diff: %u\n", tdif / 1000);
+#endif
 
 
 	return 0;
@@ -144,6 +161,7 @@ void HeliosAdapter::checkConnection()
 	connectionRetries--;
 	if (connectionRetries <= 0)
 	{
+		printf("Too many Helios errors, closing connection.\n");
 		helios.CloseDevices();
 		numHeliosDevices = 0;
 	}

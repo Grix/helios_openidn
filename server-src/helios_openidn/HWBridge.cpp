@@ -1,4 +1,4 @@
-#include "./HWBridge.hpp"
+#include "./HWBridge.h"
 
 
 HWBridge::HWBridge(std::shared_ptr<DACHWInterface> hwDeviceInterface, std::shared_ptr<BEX> bufferExchange) : device(hwDeviceInterface), bex(bufferExchange) {
@@ -94,8 +94,16 @@ void HWBridge::driverLoop() {
 		} else if(bex->getMode() == DRIVER_WAVEMODE || bex->getMode() == DRIVER_INACTIVE) {
 			//write an empty point if there is a buffer underrun in wave mode or
 			//the driver is set to inactive
-			//printf("I am printing empty frames because I am annoying");
 			outputEmptyPoint();
+
+			if (bex->getMode() == DRIVER_INACTIVE)
+				this->accumOC = 0;
+
+			struct timespec delay, dummy; // Prevents hogging 100% CPU use
+			delay.tv_sec = 0;
+			delay.tv_nsec = 2000;
+			nanosleep(&delay, &dummy);
+
 			continue;
 		}
 		
@@ -138,6 +146,11 @@ void HWBridge::driverLoop() {
 				}
 			}
 		}
+
+		struct timespec delay, dummy; // Prevents hogging 100% CPU use
+		delay.tv_sec = 0;
+		delay.tv_nsec = 1000;
+		nanosleep(&delay, &dummy);
 	}
 }
 
@@ -150,10 +163,13 @@ double HWBridge::calculateSpeedfactor(double currentSpeed, std::shared_ptr<Slice
 		double offCenter = (center - bufUsageMs) / center;
 		this->accumOC += offCenter;
 
-		double newSpeed = (1.0 + offCenter + 0.005*accumOC);
+		double newSpeed = (1.0 + 0.3*offCenter + 0.000*accumOC); // 0.002*accumOC
 		newSpeed = (newSpeed + ((sm-1)*currentSpeed))/sm;
 
-		return std::min(10.0, std::max(0.01, newSpeed));
+		if (debug == DEBUGSIMPLE)
+			printf("Calculating speed factor: center %.2f, bufUsageMs %.2f, buffer->size() %.2f, buffer->front()->durationUs %.2f, accumOC %.2f, newSpeed %.2f \n", center, bufUsageMs, (double)buffer->size(), (double)buffer->front()->durationUs, this->accumOC, newSpeed);
+
+		return std::min(1.2, std::max(0.80, newSpeed));
 	} else {
 		return 1.0;
 	}
