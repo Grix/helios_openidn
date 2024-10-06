@@ -33,7 +33,7 @@ class LaproService
     bool dacBusyFlag;
 
     IDNChannel* channel;
-    double usPerSlice = 5000;
+    double usPerSlice = 10000;
     double currentSliceTime = usPerSlice;
     unsigned convertedChunks = 0;
 	std::vector<ISPDB25Point> currentSlicePoints;

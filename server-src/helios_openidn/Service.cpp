@@ -10,80 +10,80 @@
 //  Tools
 // -------------------------------------------------------------------------------------------------
 
-static void printDescrTag(struct IDNDescriptorTag *tag) {
-  printf("TAG: %x, %x, %x, %x\n", tag->type, tag->precision, tag->scannerId, tag->wavelength);
+static void printDescrTag(struct IDNDescriptorTag* tag) {
+    printf("TAG: %x, %x, %x, %x\n", tag->type, tag->precision, tag->scannerId, tag->wavelength);
 }
 
 
-static unsigned int read_uint8(uint8_t *buf, unsigned int len, unsigned int offset, uint8_t* data) {
-  if (len >= offset + 1) {
-    *data = buf[offset];
-    return offset + 1;
-  }
-  printf("[WAR] read err uint8, offset: %i, len: %i\n", offset, len);
-  return offset;
+static unsigned int read_uint8(uint8_t* buf, unsigned int len, unsigned int offset, uint8_t* data) {
+    if (len >= offset + 1) {
+        *data = buf[offset];
+        return offset + 1;
+    }
+    printf("[WAR] read err uint8, offset: %i, len: %i\n", offset, len);
+    return offset;
 }
 
 
-static void print_hex_memory(void *mem, int len) {
-  int i;
-  unsigned char *p = (unsigned char *)mem;
-  for (i=0;i<len;i++) {
-    printf("0x%02x ", p[i]);
-    if ((i%16==0) && i)
-      printf("\n");
-  }
-  printf("\n");
+static void print_hex_memory(void* mem, int len) {
+    int i;
+    unsigned char* p = (unsigned char*)mem;
+    for (i = 0; i < len; i++) {
+        printf("0x%02x ", p[i]);
+        if ((i % 16 == 0) && i)
+            printf("\n");
+    }
+    printf("\n");
 }
 
 
-static unsigned int read_uint16(uint8_t *buf, unsigned int len, unsigned int offset, uint16_t* data) {
-  if (len >= offset + 2) {
-    *data = ((buf[offset] << 8) & 0xff00) | (buf[offset+1] & 0xff);
-    return offset + 2;
-  }
-  printf("[WAR] read err uint16, offset: %i, len: %i\n", offset, len);
-  return offset;
+static unsigned int read_uint16(uint8_t* buf, unsigned int len, unsigned int offset, uint16_t* data) {
+    if (len >= offset + 2) {
+        *data = ((buf[offset] << 8) & 0xff00) | (buf[offset + 1] & 0xff);
+        return offset + 2;
+    }
+    printf("[WAR] read err uint16, offset: %i, len: %i\n", offset, len);
+    return offset;
 }
 
 
-static unsigned int read_uint24(uint8_t *buf, unsigned int len, unsigned int offset, uint32_t* data) {
-  if (len >= offset + 3) {
-    *data = ((buf[offset] << 16) & 0x00ff0000) | ((buf[offset+1] << 8) & 0x0000ff00) | (buf[offset+2] & 0x000000ff);
-    return offset + 3;
-  }
-  printf("[WAR] read err uint24, offset: %i, len: %i\n", offset, len);
-  return offset;
+static unsigned int read_uint24(uint8_t* buf, unsigned int len, unsigned int offset, uint32_t* data) {
+    if (len >= offset + 3) {
+        *data = ((buf[offset] << 16) & 0x00ff0000) | ((buf[offset + 1] << 8) & 0x0000ff00) | (buf[offset + 2] & 0x000000ff);
+        return offset + 3;
+    }
+    printf("[WAR] read err uint24, offset: %i, len: %i\n", offset, len);
+    return offset;
 }
 
 
-static unsigned int read_uint32(uint8_t *buf, unsigned int len, unsigned int offset, uint32_t* data) {
-  if (len >= offset + 4) {
-    *data = ((buf[offset] << 24) & 0xff000000) | ((buf[offset+1] << 16) & 0x00ff0000) | ((buf[offset+2] << 8) & 0x0000ff00) | (buf[offset+3] & 0x000000ff);
-    return offset + 4;
-  }
-  printf("[WAR] read err uint32, offset: %i, len: %i\n", offset, len);
-  return offset;
+static unsigned int read_uint32(uint8_t* buf, unsigned int len, unsigned int offset, uint32_t* data) {
+    if (len >= offset + 4) {
+        *data = ((buf[offset] << 24) & 0xff000000) | ((buf[offset + 1] << 16) & 0x00ff0000) | ((buf[offset + 2] << 8) & 0x0000ff00) | (buf[offset + 3] & 0x000000ff);
+        return offset + 4;
+    }
+    printf("[WAR] read err uint32, offset: %i, len: %i\n", offset, len);
+    return offset;
 }
 
 
-static unsigned int read_int8(uint8_t *buf, unsigned int len, unsigned int offset, int8_t* data) {
-  if (len >= offset + 1) {
-    *data = buf[offset];
-    return offset + 1;
-  }
-  printf("[WAR] read err int8, offset: %i, len: %i\n", offset, len);
-  return offset;
+static unsigned int read_int8(uint8_t* buf, unsigned int len, unsigned int offset, int8_t* data) {
+    if (len >= offset + 1) {
+        *data = buf[offset];
+        return offset + 1;
+    }
+    printf("[WAR] read err int8, offset: %i, len: %i\n", offset, len);
+    return offset;
 }
 
 
-static unsigned int read_int16(uint8_t *buf, unsigned int len, unsigned int offset, int16_t* data) {
-  if (len >= offset + 2) {
-    *data = (buf[offset] << 8) & 0xff00 | (buf[offset+1] & 0xff);
-    return offset + 2;
-  }
-  printf("[WAR] read err int16, offset: %i, len: %i\n", offset, len);
-  return offset;
+static unsigned int read_int16(uint8_t* buf, unsigned int len, unsigned int offset, int16_t* data) {
+    if (len >= offset + 2) {
+        *data = (buf[offset] << 8) & 0xff00 | (buf[offset + 1] & 0xff);
+        return offset + 2;
+    }
+    printf("[WAR] read err int16, offset: %i, len: %i\n", offset, len);
+    return offset;
 }
 
 
@@ -95,122 +95,130 @@ static unsigned int read_int16(uint8_t *buf, unsigned int len, unsigned int offs
 //  scope: private
 // -------------------------------------------------------------------------------------------------
 
-unsigned int LaproService::buildDictionary(uint8_t *buf, unsigned int len, unsigned int offset, uint8_t scwc, IDNDescriptorTag** data)
+unsigned int LaproService::buildDictionary(uint8_t* buf, unsigned int len, unsigned int offset, uint8_t scwc, IDNDescriptorTag** data)
 {
-  IDNDescriptorTag *result = NULL;
-  IDNDescriptorTag *last = NULL, *currentDescTag = NULL;
+    IDNDescriptorTag* result = NULL;
+    IDNDescriptorTag* last = NULL, * currentDescTag = NULL;
 
-  int i;
-  for (i = 0; i < scwc*4; i += 2) {
+    int i;
+    for (i = 0; i < scwc * 4; i += 2) {
 
-    uint16_t tag;
-    offset = read_uint16(buf, len, offset, &tag);
+        uint16_t tag;
+        offset = read_uint16(buf, len, offset, &tag);
 
-    uint16_t category = (tag & IDN_TAG_CAT_BMASK) >> IDN_TAG_CAT_OFFSET;
-    uint16_t sub = (tag & IDN_TAG_SUB_BMASK) >> IDN_TAG_SUB_OFFSET;
-    uint16_t id = (tag & IDN_TAG_ID_BMASK) >> IDN_TAG_ID_OFFSET;
-    uint16_t prm = (tag & IDN_TAG_PRM_BMASK);
-    uint16_t wl = (tag & IDN_TAG_WL_BMASK);
+        uint16_t category = (tag & IDN_TAG_CAT_BMASK) >> IDN_TAG_CAT_OFFSET;
+        uint16_t sub = (tag & IDN_TAG_SUB_BMASK) >> IDN_TAG_SUB_OFFSET;
+        uint16_t id = (tag & IDN_TAG_ID_BMASK) >> IDN_TAG_ID_OFFSET;
+        uint16_t prm = (tag & IDN_TAG_PRM_BMASK);
+        uint16_t wl = (tag & IDN_TAG_WL_BMASK);
 
-    switch(category) {
-    case 0: // 0
-          offset += prm*2; //skip over prm 16-bit words
-      i += prm*2;
-        break;
-    case 1: // 1
-      if (sub == 0) { //1.0
-    //BREAK TAG
-      } else if (sub = 1) { //1.1
-    //COORDINATE AND COLOR SPACE MODIFIERS
-      }
-      break;
-    case 4: //4
-      if (sub == 0) { //4.0
-     if (id == 0) { //4.0.0
-      //NOP
-      currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
-      currentDescTag->type = IDN_DESCRIPTOR_NOP;
-      //because this tag is not reflected as a data field, subtract it from the count
+        switch (category) {
+        case 0: // 0
+            offset += prm * 2; //skip over prm 16-bit words
+            i += prm * 2;
+            break;
+        case 1: // 1
+            if (sub == 0) { //1.0
+                //BREAK TAG
+            }
+            else if (sub == 1) { //1.1
+                //COORDINATE AND COLOR SPACE MODIFIERS
+            }
+            break;
+        case 4: //4
+            if (sub == 0) { //4.0
+                if (id == 0) { //4.0.0
+                    //NOP
+                    currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
+                    currentDescTag->type = IDN_DESCRIPTOR_NOP;
+                    //because this tag is not reflected as a data field, subtract it from the count
 
-      //append Tag
-      if (last != NULL)
-        last->next = currentDescTag;
-      last = currentDescTag;
-      if (result == NULL) result = last;
-      //end append
-     } else if (id == 1) { //4.0.1
-      //Precision Tag
-      if (last != NULL)
-        last->precision++;
-    }
-       } else if (sub == 1) { //4.1
-    currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
-    if (prm == 0) {
-      currentDescTag->type = IDN_DESCRIPTOR_DRAW_CONTROL_0;
-        } else if (prm == 1) {
-      currentDescTag->type = IDN_DESCRIPTOR_DRAW_CONTROL_1;
+                    //append Tag
+                    if (last != NULL)
+                        last->next = currentDescTag;
+                    last = currentDescTag;
+                    if (result == NULL) result = last;
+                    //end append
+                }
+                else if (id == 1) { //4.0.1
+                    //Precision Tag
+                    if (last != NULL)
+                        last->precision++;
+                }
+            }
+            else if (sub == 1) { //4.1
+                currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
+                if (prm == 0) {
+                    currentDescTag->type = IDN_DESCRIPTOR_DRAW_CONTROL_0;
+                }
+                else if (prm == 1) {
+                    currentDescTag->type = IDN_DESCRIPTOR_DRAW_CONTROL_1;
+                }
+
+                //apppend Tag
+                if (last != NULL)
+                    last->next = currentDescTag;
+                last = currentDescTag;
+                if (result == NULL) result = last;
+                //end append
+            }
+            else if (sub == 2) { //4.2
+                currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
+                if (id == 0) { //4.2.0
+                    currentDescTag->type = IDN_DESCRIPTOR_X;
+                }
+                else if (id == 1) { //4.2.1
+                    currentDescTag->type = IDN_DESCRIPTOR_Y;
+                }
+                else if (id == 2) { //4.2.2
+                    currentDescTag->type = IDN_DESCRIPTOR_Z;
+                }
+
+                currentDescTag->scannerId = prm;
+
+                //append Tag
+                if (last != NULL)
+                    last->next = currentDescTag;
+                last = currentDescTag;
+                if (result == NULL) result = last;
+                //end append
+            }
+            break;
+        case 5: //5
+            if (sub <= 3) { //5.0 - 5.3
+                currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
+                currentDescTag->type = IDN_DESCRIPTOR_COLOR;
+                currentDescTag->wavelength = wl;
+
+                //append Tag
+                if (last != NULL)
+                    last->next = currentDescTag;
+                last = currentDescTag;
+                if (result == NULL) result = last;
+                //end append
+            }
+            else if (sub == 12) { //5.12
+                currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
+                if (id == 0) //5.12.0
+                    currentDescTag->type = IDN_DESCRIPTOR_WAVELENGTH;
+                if (id == 1) //5.12.1
+                    currentDescTag->type = IDN_DESCRIPTOR_INTENSITY;
+                if (id == 2) //5.12.2
+                    currentDescTag->type = IDN_DESCRIPTOR_BEAM_BRUSH;
+
+                //append Tag
+                if (last != NULL)
+                    last->next = currentDescTag;
+                last = currentDescTag;
+                if (result == NULL) result = last;
+                //end append
+            }
+            break;
         }
-
-    //apppend Tag
-    if (last != NULL)
-      last->next = currentDescTag;
-    last = currentDescTag;
-    if (result == NULL) result = last;
-    //end append
-       } else if (sub == 2) { //4.2
-    currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
-    if (id == 0) { //4.2.0
-      currentDescTag->type = IDN_DESCRIPTOR_X;
-        } else if (id == 1) { //4.2.1
-      currentDescTag->type = IDN_DESCRIPTOR_Y;
-        } else if (id == 2) { //4.2.2
-      currentDescTag->type = IDN_DESCRIPTOR_Z;
-        }
-
-    currentDescTag->scannerId = prm;
-
-    //append Tag
-    if (last != NULL)
-     last->next = currentDescTag;
-    last = currentDescTag;
-    if (result == NULL) result = last;
-    //end append
     }
-    break;
-    case 5: //5
-      if (sub <= 3) { //5.0 - 5.3
-    currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
-    currentDescTag->type = IDN_DESCRIPTOR_COLOR;
-    currentDescTag->wavelength = wl;
-
-    //append Tag
-    if (last != NULL)
-      last->next = currentDescTag;
-    last = currentDescTag;
-    if (result == NULL) result = last;
-    //end append
-      } else if (sub == 12) { //5.12
-    currentDescTag = (IDNDescriptorTag*)calloc(1, sizeof(IDNDescriptorTag));
-    if (id == 0) //5.12.0
-      currentDescTag->type = IDN_DESCRIPTOR_WAVELENGTH;
-    if (id == 1) //5.12.1
-      currentDescTag->type = IDN_DESCRIPTOR_INTENSITY;
-    if (id == 2) //5.12.2
-      currentDescTag->type = IDN_DESCRIPTOR_BEAM_BRUSH;
-
-    //append Tag
-    if (last != NULL)
-      last->next = currentDescTag;
-    last = currentDescTag;
-    if (result == NULL) result = last;
-    //end append
-      }
-      break;
-    }
-  }
-  last->next = NULL;
-  *data = result;
-  return offset;
+    last->next = NULL;
+    *data = result;
+    return offset;
 }
 
 
@@ -223,7 +231,7 @@ void LaproService::resetChunkBuffer()
 
 void LaproService::commitChunk()
 {
-    if(currentSlicePoints.size() != 0) {
+    if (currentSlicePoints.size() != 0) {
         std::shared_ptr<DACHWInterface> device = driverPtr->getDevice();
         //if current slice is full, convert it to bytes, put it into
         //the ringbuffer, reset it and reset the currentSliceTime
@@ -241,7 +249,7 @@ void LaproService::addPointToSlice(ISPDB25Point newPoint, ISPFrameMetadata metad
 {
     unsigned pointsPerFrame = metadata.len;
     double pointDuration = (double)metadata.dur / pointsPerFrame;
-    double targetPointRate = ((1000000.0*(double)pointsPerFrame) / (double)metadata.dur);
+    double targetPointRate = ((1000000.0 * (double)pointsPerFrame) / (double)metadata.dur);
     //TODO: move this somewhere static
     std::shared_ptr<DACHWInterface> device = driverPtr->getDevice();
     double maxDevicePointRate = device->maxPointrate();
@@ -249,10 +257,10 @@ void LaproService::addPointToSlice(ISPDB25Point newPoint, ISPFrameMetadata metad
 
 
     //start downsampling if the maximum device pointrate is exceeded
-    if(rateRatio < 1.0) {
+    if (rateRatio < 1.0) {
         //skip point, but act like it was added
         //this keeps rateRatio% of points
-        if(skipCounter >= rateRatio) {
+        if (skipCounter >= rateRatio) {
             skipCounter += rateRatio;
             skipCounter -= (int)skipCounter;
             currentSliceTime -= pointDuration;
@@ -269,20 +277,21 @@ void LaproService::addPointToSlice(ISPDB25Point newPoint, ISPFrameMetadata metad
     currentSliceTime -= pointDuration;
 
     //chunk the points
-    if(metadata.isWave) {
+    if (metadata.isWave) {
         //wave mode chunks into chunks of x ms that don't exceed the maximum amount of
         //bytes that the adapter accepts
-        if(currentSliceTime < 0 ||
-                device->bytesPerPoint()*(currentSlicePoints.size()+1) > device->maxBytesPerTransmission()) {
+        if (currentSliceTime < 0 ||
+            device->bytesPerPoint() * (currentSlicePoints.size() + 1) > device->maxBytesPerTransmission()) {
             commitChunk();
         }
-    } else if(!metadata.isWave && device->maxBytesPerTransmission() != -1) {
+    }
+    else if (!metadata.isWave && device->maxBytesPerTransmission() != -1) {
         //frame mode does not need to chunk based on duration, but it still needs evenly sized chunks if
         //the device has a point limit, so it tries to equalize them
-        unsigned numChunksOfBlockSize = ceil(((double)metadata.len * (double)device->bytesPerPoint())/ (double)device->maxBytesPerTransmission());
+        unsigned numChunksOfBlockSize = ceil(((double)metadata.len * (double)device->bytesPerPoint()) / (double)device->maxBytesPerTransmission());
         unsigned equalizedSize = ceil((double)metadata.len / (double)numChunksOfBlockSize);
 
-        if(currentSlicePoints.size()+1 > equalizedSize) {
+        if (currentSlicePoints.size() + 1 > equalizedSize) {
             commitChunk();
         }
     }
@@ -317,7 +326,7 @@ LaproService::~LaproService()
 }
 
 
-void LaproService::getName(char *nameBufferPtr, unsigned nameBufferSize)
+void LaproService::getName(char* nameBufferPtr, unsigned nameBufferSize)
 {
     driverPtr->getDevice()->getName(nameBufferPtr, nameBufferSize);
 }
@@ -329,7 +338,7 @@ void LaproService::checkTimeout()
     gettimeofday(&now, NULL);
     uint64_t sdif = now.tv_sec - channel->timeout.tv_sec;
     uint64_t usdif = now.tv_usec - channel->timeout.tv_usec;
-    uint64_t tdif = sdif*1000000 + usdif;
+    uint64_t tdif = sdif * 1000000 + usdif;
 
     // FIXME: timeout
     if (tdif > 1000000)
@@ -344,7 +353,7 @@ void LaproService::checkTimeout()
 }
 
 
-void LaproService::processChannelMessage(uint8_t *recvBuffer, unsigned recvLen)
+void LaproService::processChannelMessage(uint8_t* recvBuffer, unsigned recvLen)
 {
     unsigned int offset = 0;
 
@@ -377,7 +386,7 @@ void LaproService::processChannelMessage(uint8_t *recvBuffer, unsigned recvLen)
         gettimeofday(&channel->timeout, NULL);
 
         //Only support Laser Frame Chunks and Wave Chunks
-        if (chMsgHeader->chunkType == IDN_CH_MSG_HEADER_CHUNK_TYPE_LASER_FRAME_CHUNK || chMsgHeader->chunkType == IDN_CH_MSG_HEADER_CHUNK_TYPE_LASER_WAVE) 
+        if (chMsgHeader->chunkType == IDN_CH_MSG_HEADER_CHUNK_TYPE_LASER_FRAME_CHUNK || chMsgHeader->chunkType == IDN_CH_MSG_HEADER_CHUNK_TYPE_LASER_WAVE)
         {
             //Check Channel header
             IDNChannelConfHeader* chConfHeader = NULL;
@@ -432,7 +441,7 @@ void LaproService::processChannelMessage(uint8_t *recvBuffer, unsigned recvLen)
                 if (chMsgHeader->chunkType == IDN_CH_MSG_HEADER_CHUNK_TYPE_LASER_WAVE) frame.isWave = 1;
 
                 //set BEX mode
-                if(frame.isWave)
+                if (frame.isWave)
                 {
                     bex->setMode(DRIVER_WAVEMODE);
                 }
@@ -605,7 +614,7 @@ void LaproService::processChannelMessage(uint8_t *recvBuffer, unsigned recvLen)
                 frame.len = currentFramePoints.size();
 
                 //feed the points to the driver
-                for(auto& point : currentFramePoints)
+                for (auto& point : currentFramePoints)
                 {
                     addPointToSlice(point, frame);
                 }
@@ -613,7 +622,7 @@ void LaproService::processChannelMessage(uint8_t *recvBuffer, unsigned recvLen)
                 //frame is over
                 //if it was a frame-mode frame, publish
                 //the buffer to the driver
-                if(!frame.isWave)
+                if (!frame.isWave)
                 {
                     //push final chunk even if it's not finished yet
                     commitChunk();
