@@ -96,12 +96,16 @@ void HWBridge::driverLoop() {
 			//the driver is set to inactive
 			outputEmptyPoint();
 
-			if (bex->getMode() == DRIVER_INACTIVE)
-				this->accumOC = 0;
-
 			struct timespec delay, dummy; // Prevents hogging 100% CPU use
 			delay.tv_sec = 0;
 			delay.tv_nsec = 2000;
+
+			if (bex->getMode() == DRIVER_INACTIVE)
+			{
+				this->accumOC = 0;
+				delay.tv_nsec = 50000;
+			}
+
 			nanosleep(&delay, &dummy);
 
 			continue;
