@@ -484,6 +484,12 @@ void LaproService::processChannelMessage(uint8_t* recvBuffer, unsigned recvLen)
                             if (tag->precision == 1)
                                 offset++;
                         }
+                        if (tag->type == IDN_DESCRIPTOR_BEAM_BRUSH)
+                        {
+                            offset++;
+                            if (tag->precision == 1)
+                                offset++;
+                        }
                         if (tag->type == IDN_DESCRIPTOR_DRAW_CONTROL_0 || tag->type == IDN_DESCRIPTOR_DRAW_CONTROL_1)
                         {
                             uint8_t hint;
@@ -536,6 +542,10 @@ void LaproService::processChannelMessage(uint8_t* recvBuffer, unsigned recvLen)
                                     offset += 2;
                                 }
                             }
+                            else if (tag->type == IDN_DESCRIPTOR_Z)
+                            {
+                                offset += 2;
+                            }
                         }// end precision 1
 
                         if (tag->precision == 0)
@@ -587,6 +597,10 @@ void LaproService::processChannelMessage(uint8_t* recvBuffer, unsigned recvLen)
                                 {
                                     offset++;
                                 }
+                            }
+                            else if (tag->type == IDN_DESCRIPTOR_Z)
+                            {
+                                offset++;
                             }
                         } //end precision 0
 
