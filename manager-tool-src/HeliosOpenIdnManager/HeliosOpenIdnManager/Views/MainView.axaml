@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:HeliosOpenIdnManager.ViewModels"
+			 xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="650" MinWidth="1000"
              x:Class="HeliosOpenIdnManager.Views.MainView"
              x:DataType="vm:MainViewModel">
@@ -46,7 +47,12 @@
 
 			<Button Command="{Binding RestartServerCommand}" IsEnabled="{Binding HasSelectedServer}" Background="LightBlue"  Content=" Restart server " ToolTip.Tip="Reboots the server. This will apply the new configuration or software update if one was uploaded. "></Button>
 
-			<Button Content="🛈 Help" Command="{Binding OpenManagerHelpPageCommand}" Background="Transparent" FontSize="22" Margin="0, 20, 0, 0" ToolTip.ShowDelay="0" ToolTip.Tip="Open help page."></Button>
+			<Button Command="{Binding OpenManagerHelpPageCommand}" Background="Transparent" FontSize="22" Margin="0, 20, 0, 0" ToolTip.ShowDelay="0" ToolTip.Tip="Open help page.">
+				<StackPanel Orientation="Horizontal">
+					<materialIcons:MaterialIcon Kind="QuestionMarkCircle" VerticalAlignment="Center" Foreground="MediumPurple" Height="29" Width="29" HorizontalAlignment="Left"/>
+					<TextBlock Text=" Help" VerticalAlignment="Center"></TextBlock>
+				</StackPanel>
+			</Button>
 			
 			<TextBlock Margin="0, 20, 0, 0" Foreground="Red" TextWrapping="Wrap" IsVisible="{Binding !!ErrorMessage}" Text="{Binding ErrorMessage, StringFormat='Error occured: &#x0a;{0}'}"/>
 			
