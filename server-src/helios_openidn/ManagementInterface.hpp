@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <string.h>
 #include "ini.h"
+#include "IDNServer.hpp"
 
 /// <summary>
 /// Class that exposes network and file system interfaces for managing the OpenIDN system, such as pinging, reading config files from USB drive, etc.
@@ -24,7 +25,8 @@ public:
 	std::string settingIdnHostname = "OpenIDN";
 	bool settingEnableIdnServer = true;
 	bool settingEnableIdtfPlayer = false;
-	const char softwareVersion[10] = "0.9.5";
+	const char softwareVersion[10] = "0.9.6";
+	std::shared_ptr<IDNServer> idnServer;
 
 private:
 	void networkLoop(int socketFd);

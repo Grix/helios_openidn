@@ -1,7 +1,7 @@
-#include "ManagementInterface.h"
+#include "ManagementInterface.hpp"
 
 #define MAXBUF 128
-#define MANAGEMENT_PING_PORT 7355
+#define MANAGEMENT_PORT 7355
 
 /// <summary>
 /// Looks for a file "settings.ini" on a USB drive connected to the computer, and if it exists, applies the settings there. 
@@ -206,6 +206,42 @@ void ManagementInterface::networkLoop(int sd) {
 					strcpy(responseBuffer + 2, softwareVersion);
 					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
 				}
+				else if (buffer_in[1] == 0x3)
+				{
+					// Got set name command, respond:
+					char responseBuffer[2] = { 0xE6, 0x3 };
+					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
+
+					// Set name
+					if (num_bytes > 3) // Name must not be empty
+					{
+						if (num_bytes > 22)
+							num_bytes = 22; // Can't have longer name than 20 chars
+						buffer_in[num_bytes] = '\0'; // Make sure we don't fuck up
+						settingIdnHostname = std::string((char*)&buffer_in[2]);
+						for (int i = 0; i < 20; i++)
+							idnServer->hostName[i] = 0;
+						memcpy(idnServer->hostName, settingIdnHostname.c_str(), settingIdnHostname.size() < HOST_NAME_SIZE ? settingIdnHostname.size() : HOST_NAME_SIZE);
+
+						try
+						{
+							mINI::INIFile file(settingsPath);
+							mINI::INIStructure ini;
+							if (!file.read(ini))
+							{
+								printf("WARNING: Could not find/open main settings file when setting new name.\n");
+								return;
+							}
+							ini["idn_server"]["name"] = settingIdnHostname;
+							file.write(ini);
+						}
+						catch (std::exception ex)
+						{
+							printf("WARNING: Failed to save settings file with new name.\n");
+							return;
+						}
+					}
+				}
 			}
 		}
 
@@ -254,7 +290,7 @@ void* ManagementInterface::networkThreadEntry() {
 
 	sockaddr.sin_family = AF_INET;
 	sockaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-	sockaddr.sin_port = htons(MANAGEMENT_PING_PORT);
+	sockaddr.sin_port = htons(MANAGEMENT_PORT);
 
 	if (bind(ld, (struct sockaddr*)&sockaddr, sizeof(sockaddr)) < 0) 
 	{

@@ -248,7 +248,7 @@ int main(int argc, char** argv) {
 		printf("ERROR CREATING MANAGEMENT THREAD\n");
 		return -1;
 	}
-
+	management->idnServer = idnServer;
 	memcpy(idnServer->hostName, management->settingIdnHostname.c_str(), management->settingIdnHostname.size() < HOST_NAME_SIZE ? management->settingIdnHostname.size() : HOST_NAME_SIZE);
 
 	std::atomic<int> atom(1);
