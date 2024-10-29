@@ -1,4 +1,4 @@
-#include "HeliosAdapter.h"
+#include "HeliosAdapter.hpp"
 
 HeliosAdapter::HeliosAdapter() {
 	this->numHeliosDevices = this->helios.OpenDevices();
