@@ -92,11 +92,6 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 		tdif = sdif * 1000000000 + nsdif;
 	} while (tdif < ((unsigned long)duration * 1000 * 0.8) );
 
-#ifndef NDEBUG
-	if (tdif > duration * 1000)
-		printf("Helios write time diff: %u\n", tdif / 1000);
-#endif
-
 
 	return 0;
 }
