@@ -466,7 +466,8 @@ void LaproService::processChannelMessage(uint8_t* recvBuffer, unsigned recvLen)
                 {
                     IDNDescriptorTag* tag = channel->descriptors;
                     //create new point
-                    ISPDB25Point newPoint;
+                    ISPDB25Point newPoint; 
+                    newPoint.intensity = 0xFFFF;
 
                     uint8_t point_cscl = 0;
                     uint8_t point_iscl = 0;
