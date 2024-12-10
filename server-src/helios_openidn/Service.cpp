@@ -341,7 +341,7 @@ void LaproService::checkTimeout()
     uint64_t tdif = sdif * 1000000 + usdif;
 
     // FIXME: timeout
-    if (tdif > 1000000)
+    if (tdif > 500000)
     {
         //      printf("timeout %d %d", sdif, usdif);
         //TODO make soft (timeout stop)
@@ -443,6 +443,8 @@ void LaproService::processChannelMessage(uint8_t* recvBuffer, unsigned recvLen)
                 //set BEX mode
                 if (frame.isWave)
                 {
+                    if (bex->getMode() == DRIVER_INACTIVE)
+                        resetChunkBuffer();
                     bex->setMode(DRIVER_WAVEMODE);
                 }
                 else

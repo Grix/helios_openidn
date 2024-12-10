@@ -1,4 +1,4 @@
-#include "./HWBridge.h"
+#include "./HWBridge.hpp"
 
 
 HWBridge::HWBridge(std::shared_ptr<DACHWInterface> hwDeviceInterface, std::shared_ptr<BEX> bufferExchange) : device(hwDeviceInterface), bex(bufferExchange) {
@@ -94,19 +94,19 @@ void HWBridge::driverLoop() {
 		} else if(bex->getMode() == DRIVER_WAVEMODE || bex->getMode() == DRIVER_INACTIVE) {
 			//write an empty point if there is a buffer underrun in wave mode or
 			//the driver is set to inactive
-			outputEmptyPoint();
 
-			struct timespec delay, dummy; // Prevents hogging 100% CPU use
-			delay.tv_sec = 0;
-			delay.tv_nsec = 2000;
+			// TODO If wave mode underrun that only lasts a brief time, blank the lasers but keep the current XY position
+			//outputEmptyPoint();
 
 			if (bex->getMode() == DRIVER_INACTIVE)
 			{
+				//outputEmptyPoint();
 				this->accumOC = 0;
+				struct timespec delay, dummy; // Prevents hogging 100% CPU use
+				delay.tv_sec = 0;
 				delay.tv_nsec = 50000;
+				nanosleep(&delay, &dummy);
 			}
-
-			nanosleep(&delay, &dummy);
 
 			continue;
 		}
@@ -159,15 +159,17 @@ void HWBridge::driverLoop() {
 }
 
 double HWBridge::calculateSpeedfactor(double currentSpeed, std::shared_ptr<SliceBuf> buffer) {
-	double sm = 5;
+	double sm = 4;
 	if(buffer->size() != 0) {
 		double center = this->bufferTargetMs;
 		//bufusage in ms = bufsize * avg slice duration
 		double bufUsageMs = (double)buffer->size()*(double)buffer->front()->durationUs / 1000.0;
 		double offCenter = (center - bufUsageMs) / center;
+		if (offCenter <= 0.25 && offCenter >= -0.25)
+			offCenter = 0;
 		this->accumOC += offCenter;
 
-		double newSpeed = (1.0 + 0.3*offCenter + 0.000*accumOC); // 0.002*accumOC
+		double newSpeed = (1.0 + 0.4*offCenter + 0.000*accumOC); // 0.002*accumOC
 		newSpeed = (newSpeed + ((sm-1)*currentSpeed))/sm;
 
 		if (debug == DEBUGSIMPLE)

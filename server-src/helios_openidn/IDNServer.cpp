@@ -1488,7 +1488,7 @@ void IDNServer::networkThreadFunc()
 
         if (ioctl(ld, SIOCGIFFLAGS, &ifr) == 0)
         {
-            int not_loopback = ! (ifr.ifr_flags & IFF_LOOPBACK);
+            bool not_loopback = ! (ifr.ifr_flags & IFF_LOOPBACK);
 
             //get IP
             ioctl(ld, SIOCGIFADDR, &ifr);

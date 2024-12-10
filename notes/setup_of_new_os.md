@@ -62,3 +62,8 @@
 	
 
 (Todo: SPI if needed, use rk3308-spi2-spidev_WORKING.dts)
+```
+sudo armbian-add-overlay rk3308-spi2-spidev.dts
+In /boot/armbianEnv.txt:
+param_spidev_spi_bus=2
+```

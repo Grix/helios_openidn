@@ -335,6 +335,19 @@ int HeliosDac::HeliosDacDevice::SendFrame(unsigned int pps, std::uint8_t flags, 
 		return HELIOS_ERROR_DEVICE_FRAME_READY;
 
 	unsigned int bufPos = 0;
+
+
+#ifndef NDEBUG
+	if (numOfPoints > 1)
+	{
+		struct timeval now;
+		gettimeofday(&now, NULL);
+		if (points[0].r == 0)
+			printf("Sent frame with %d points starting BLANK, t: %d \n", numOfPoints, now.tv_usec);
+		else
+			printf("Sent frame with %d points starting COLORED, t: %d \n", numOfPoints, now.tv_usec);
+	}
+#endif
 	
 	//this is a bug workaround, the mcu won't correctly receive transfers with these sizes
 	unsigned int ppsActual = pps;
