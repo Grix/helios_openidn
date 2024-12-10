@@ -36,6 +36,7 @@
 
 // Standard libraries
 #include <vector>
+#include <fstream>
 
 // Project headers
 #include "OpenIDN.hpp"
