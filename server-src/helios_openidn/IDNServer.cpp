@@ -1521,6 +1521,26 @@ void IDNServer::networkThreadFunc()
     {
         memcpy(mac_address, ifr.ifr_hwaddr.sa_data, 6);
     }
+    else
+    {
+        // Backup method of getting MAC address
+        std::ifstream file;
+        file.open("/sys/class/net/end0/address");
+        if (file.is_open())
+        {
+            char buffer[19] = { 0 };
+            file.read(buffer, 18);
+            if (file) {
+                sscanf(buffer, "%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx", &mac_address[0], &mac_address[1], &mac_address[2], &mac_address[3], &mac_address[4], &mac_address[5]);
+            }
+            else {
+                printf("Error reading file for MAC address or file has less than 8 bytes\n");
+            }
+            file.close();
+        }
+        else
+            printf("Error reading file for MAC address\n");
+    }
 
     printf("MAC address / ether ");
     printf("%02x:", mac_address[0]);

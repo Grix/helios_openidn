@@ -43,6 +43,8 @@
 #include "IDNSession.hpp"
 #include "idn-hello.h"
 
+#include <fstream>
+
 // Module header
 #include "Service.hpp"
 
