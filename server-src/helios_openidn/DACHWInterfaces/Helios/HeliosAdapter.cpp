@@ -35,7 +35,7 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 
 	if (framePointRate <= HELIOS_MAX_RATE)
 	{
-		int status;
+		int status = 0;
 
 		if (getHeliosConnected())
 		{
@@ -54,18 +54,21 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 				else
 					connectionRetries = 50;
 			}
-			status = this->helios.WriteFrame(this->numHeliosDevices - 1
-				, framePointRate
-				, this->heliosFlags, (HeliosPoint*)&data.front()
-				, numPoints);
-
-			if (status < 0)
+			if (status == 1)
 			{
-				printf("Error writing Helios frame: %d\n", status);
-				checkConnection();
+				status = this->helios.WriteFrame(this->numHeliosDevices - 1
+					, framePointRate
+					, this->heliosFlags, (HeliosPoint*)&data.front()
+					, numPoints);
+
+				if (status < 0)
+				{
+					printf("Error writing Helios frame: %d\n", status);
+					checkConnection();
+				}
+				else
+					connectionRetries = 50;
 			}
-			else
-				connectionRetries = 50;
 		}
 	}
 	else
