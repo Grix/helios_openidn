@@ -14,6 +14,7 @@ See header HeliosDac.h for function and usage documentation
 
 
 #include "HeliosDac.hpp"
+#include <cstdio> // test
 
 HeliosDac::HeliosDac()
 {
@@ -338,14 +339,11 @@ int HeliosDac::HeliosDacDevice::SendFrame(unsigned int pps, std::uint8_t flags, 
 
 
 #ifndef NDEBUG
-	if (numOfPoints > 1)
+	//if (numOfPoints > 1)
 	{
 		struct timeval now;
 		gettimeofday(&now, NULL);
-		if (points[0].r == 0)
-			printf("Sent frame with %d points starting BLANK, t: %d \n", numOfPoints, now.tv_usec);
-		else
-			printf("Sent frame with %d points starting COLORED, t: %d \n", numOfPoints, now.tv_usec);
+		printf("Sent frame with %d points starting %u, ending %u, t: %d \n", numOfPoints, points[0].x, points[numOfPoints-1].x, now.tv_usec);
 	}
 #endif
 	
@@ -380,6 +378,10 @@ int HeliosDac::HeliosDacDevice::SendFrame(unsigned int pps, std::uint8_t flags, 
 
 	if (!shutterIsOpen)
 		SetShutter(1);
+
+#ifndef NDEBUG
+	printf("Frame send executed.\n");
+#endif
 
 	if ((flags & HELIOS_FLAGS_DONT_BLOCK) != 0)
 	{

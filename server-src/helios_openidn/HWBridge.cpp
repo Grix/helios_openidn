@@ -91,6 +91,7 @@ void HWBridge::driverLoop() {
 			} else if (bex->getMode() == DRIVER_FRAMEMODE) {
 				speedFactor = 1.0;
 			}
+
 		} else if(bex->getMode() == DRIVER_WAVEMODE || bex->getMode() == DRIVER_INACTIVE) {
 			//write an empty point if there is a buffer underrun in wave mode or
 			//the driver is set to inactive
@@ -100,7 +101,8 @@ void HWBridge::driverLoop() {
 
 			if (bex->getMode() == DRIVER_INACTIVE)
 			{
-				//outputEmptyPoint();
+				outputEmptyPoint();
+				bex->resetBuffers();
 				this->accumOC = 0;
 				struct timespec delay, dummy; // Prevents hogging 100% CPU use
 				delay.tv_sec = 0;
@@ -110,12 +112,29 @@ void HWBridge::driverLoop() {
 
 			continue;
 		}
+
+#ifndef NDEBUG
+		try
+		{
+			printf("Buffer queue now contains ");
+			for (int i = 0; i < currentBuf->size(); i++)
+				printf(" %p, ", currentBuf->at(i).get());
+			printf("\n");
+		}
+		catch (...) { printf("ERROR. \n"); }
+#endif
+
 		
 		//rotate through the buffer once
 		unsigned currentBufSize = currentBuf->size();
 		for(int i = 0; i < currentBufSize; i++) {
 			clock_gettime(CLOCK_MONOTONIC, &then);
 			std::shared_ptr<TimeSlice> nextSlice = currentBuf->front();
+
+#ifndef NDEBUG
+			printf("Popped buffer %p\n", nextSlice.get());
+#endif
+
 			currentBuf->pop_front();
 
 			//if we're in frame mode, put the slice back

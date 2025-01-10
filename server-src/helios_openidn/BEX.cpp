@@ -29,6 +29,10 @@ void BEX::networkAppendSlice(std::shared_ptr<TimeSlice> slice) {
 	if(mode == DRIVER_INACTIVE)
 		return;
 
+#ifndef NDEBUG
+	printf("Put buffer %p\n", slice.get());
+#endif
+
 	//store slice in current hotBuf
 	hotBuf->push_back(slice);
 	
@@ -40,6 +44,11 @@ void BEX::networkAppendSlice(std::shared_ptr<TimeSlice> slice) {
 		hotBuf = atomicPtr.exchange(hotBuf);
 
 		if(hotBuf == nullptr) {
+
+#ifndef NDEBUG
+			printf("Buffer was null after swapping\n");
+#endif
+
 			//here the previous buffer was accepted by
 			//the driver and be just made the old
 			//version with a new slice public. therefore we
@@ -62,6 +71,8 @@ void BEX::networkAppendSlice(std::shared_ptr<TimeSlice> slice) {
 		//contain the current element, so we need to add it again
 		hotBuf->push_back(slice);
 	}
+
+
 }
 
 //publish the buffer but don't use the exchanged

@@ -15,6 +15,7 @@ public:
 	BEX();
 	void networkAppendSlice(std::shared_ptr<TimeSlice> slice);
 	void publishReset();
+	void resetBuffers();
 	void setMode(int mode);
 	unsigned getMode();
 	//get the currently advertised buffer
@@ -25,7 +26,6 @@ private:
 	//hotBuf: actively being changed
 	SliceBuf* hotBuf;
 	std::atomic<SliceBuf*> atomicPtr;
-	void resetBuffers();
 	int mode = DRIVER_INACTIVE;
 };
 
