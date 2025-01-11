@@ -4,6 +4,7 @@
 #include <memory>
 #include <atomic>
 #include <deque>
+#include <mutex>
 
 #include "./types.h"
 
@@ -27,6 +28,7 @@ private:
 	SliceBuf* hotBuf;
 	std::atomic<SliceBuf*> atomicPtr;
 	int mode = DRIVER_INACTIVE;
+	std::mutex threadLock;
 };
 
 #endif

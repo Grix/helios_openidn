@@ -96,7 +96,6 @@
     <ClInclude Include="LLNode.hpp" />
     <ClInclude Include="ManagementInterface.hpp" />
     <ClInclude Include="OpenIDN.hpp" />
-    <ClInclude Include="SafeQueue.hpp" />
     <ClInclude Include="Service.hpp" />
     <ClInclude Include="types.h" />
   </ItemGroup>

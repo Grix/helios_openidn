@@ -7,11 +7,13 @@ BEX::BEX() {
 }
 
 void BEX::resetBuffers() {
+
 	hotBuf->clear();
 	atomicPtr.store(new SliceBuf);
 }
 
 void BEX::setMode(int mode) {
+
 	if(mode != this->mode) {
 		resetBuffers();
 	}
@@ -28,6 +30,8 @@ unsigned BEX::getMode() {
 void BEX::networkAppendSlice(std::shared_ptr<TimeSlice> slice) {
 	if(mode == DRIVER_INACTIVE)
 		return;
+
+	std::lock_guard<std::mutex> lock(threadLock);
 
 #ifndef NDEBUG
 	printf("Put buffer %p\n", slice.get());
@@ -78,7 +82,8 @@ void BEX::networkAppendSlice(std::shared_ptr<TimeSlice> slice) {
 //publish the buffer but don't use the exchanged
 //buffer as a mirror (as is done in wavemode) so
 //throw the contained data away, if there is any
-void BEX::publishReset() {
+void BEX::publishReset() 
+{
 	hotBuf = atomicPtr.exchange(hotBuf);
 
 	if(hotBuf == nullptr) {
@@ -93,6 +98,8 @@ void BEX::publishReset() {
 //atomically getting the stored buffer
 //ptr and indicating that this buffer
 //is taken by swapping in a nullptr
-std::shared_ptr<SliceBuf> BEX::driverSwapRequest() {
+std::shared_ptr<SliceBuf> BEX::driverSwapRequest() 
+{
+	std::lock_guard<std::mutex> lock(threadLock);
 	return std::shared_ptr<SliceBuf>(atomicPtr.exchange(nullptr));
 }
