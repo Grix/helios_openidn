@@ -96,11 +96,12 @@ void HWBridge::driverLoop() {
 			//write an empty point if there is a buffer underrun in wave mode or
 			//the driver is set to inactive
 
-			// TODO If wave mode underrun that only lasts a brief time, blank the lasers but keep the current XY position
+			// If wave mode underrun that only lasts a brief time, blank the lasers but keep the current XY position
 			//outputEmptyPoint();
 
 			if (bex->getMode() == DRIVER_INACTIVE)
 			{
+				// Timeout, blank and return to center
 				outputEmptyPoint();
 				bex->resetBuffers();
 				this->accumOC = 0;
@@ -170,9 +171,9 @@ void HWBridge::driverLoop() {
 			}
 		}
 
-		struct timespec delay, dummy; // Prevents hogging 100% CPU use
+		struct timespec delay, dummy; // Yield timeslice
 		delay.tv_sec = 0;
-		delay.tv_nsec = 1000;
+		delay.tv_nsec = 0;
 		nanosleep(&delay, &dummy);
 	}
 }

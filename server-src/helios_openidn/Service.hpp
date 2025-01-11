@@ -38,6 +38,9 @@ class LaproService
     unsigned convertedChunks = 0;
 	std::vector<ISPDB25Point> currentSlicePoints;
 	double skipCounter = 0;
+    uint16_t lastX;
+    uint16_t lastY;
+    uint32_t lastWaveEndTimestamp;
 
     unsigned int buildDictionary(uint8_t *buf, unsigned int len, unsigned int offset, uint8_t scwc, IDNDescriptorTag** data);
     void resetChunkBuffer();
