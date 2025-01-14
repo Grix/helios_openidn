@@ -114,7 +114,7 @@ void HWBridge::driverLoop() {
 			continue;
 		}
 
-#ifndef NDEBUG
+/*#ifndef NDEBUG
 		try
 		{
 			printf("Buffer queue now contains ");
@@ -124,17 +124,17 @@ void HWBridge::driverLoop() {
 		}
 		catch (...) { printf("ERROR. \n"); }
 #endif
+*/
 
-		
 		//rotate through the buffer once
 		unsigned currentBufSize = currentBuf->size();
 		for(int i = 0; i < currentBufSize; i++) {
 			clock_gettime(CLOCK_MONOTONIC, &then);
 			std::shared_ptr<TimeSlice> nextSlice = currentBuf->front();
 
-#ifndef NDEBUG
+/*#ifndef NDEBUG
 			printf("Popped buffer %p\n", nextSlice.get());
-#endif
+#endif*/
 
 			currentBuf->pop_front();
 

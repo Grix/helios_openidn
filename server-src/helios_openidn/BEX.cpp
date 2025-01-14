@@ -33,9 +33,9 @@ void BEX::networkAppendSlice(std::shared_ptr<TimeSlice> slice) {
 
 	std::lock_guard<std::mutex> lock(threadLock);
 
-#ifndef NDEBUG
+/*#ifndef NDEBUG
 	printf("Put buffer %p\n", slice.get());
-#endif
+#endif*/
 
 	//store slice in current hotBuf
 	hotBuf->push_back(slice);
@@ -49,9 +49,9 @@ void BEX::networkAppendSlice(std::shared_ptr<TimeSlice> slice) {
 
 		if(hotBuf == nullptr) {
 
-#ifndef NDEBUG
+/*#ifndef NDEBUG
 			printf("Buffer was null after swapping\n");
-#endif
+#endif*/
 
 			//here the previous buffer was accepted by
 			//the driver and be just made the old

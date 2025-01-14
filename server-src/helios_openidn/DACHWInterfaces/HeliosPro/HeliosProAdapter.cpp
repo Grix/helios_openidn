@@ -89,7 +89,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 
 	unsigned int numPoints = dataSizeBytes / bytesPerPoint();
 	uint32_t pps = numPoints * 1000000l / durationUs;
-	printf("%d - %d - %f\n", pps, numPoints, durationUs);
+	//printf("%d - %d - %f\n", pps, numPoints, durationUs);
 
 	writeBuffer[0] = 'H';
 	writeBuffer[1] = 'P';
@@ -112,6 +112,22 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 	writeBuffer[16 + dataSizeBytes + 2] = 'I';
 	writeBuffer[16 + dataSizeBytes + 3] = 'X';
 
+	// TESTING
+	static int frame = 0;
+	for (int i = 0; i < numPoints; i++)
+	{
+		if ((frame & 3) == 1)
+			*(uint16_t*)(&writeBuffer[16 + i * 10]) = i * 0xffff / numPoints;
+		else if ((frame & 3) == 2)
+			*(uint16_t*)(&writeBuffer[16 + i * 10]) = (numPoints-i) * 0xffff / numPoints;
+		else if ((frame & 3) == 3)
+			*(uint16_t*)(&writeBuffer[16 + i * 10]) = i * 0x7fff / numPoints;
+		else
+			*(uint16_t*)(&writeBuffer[16 + i * 10]) = (numPoints - i) * 0x7fff / numPoints;
+	}
+	frame++;
+
+
 	//printf("busy status: %d\n", GPIO_LEV(GPIOPIN_STATUS));
 
 	while (!GPIO_LEV(GPIOPIN_STATUS)) // Wait for free space in buffer chip
@@ -131,11 +147,26 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 
 	//write the whole block all at once
 	int writeErr = write(this->spidevFd, writeBuffer, dataSizeBytes + 16 + 4);
-	uint32_t test[128];
-	for (int i = 0; i < 128; i++)
+
+	/*static uint16_t prevX = 0x8000;
+	static uint16_t prevY = 0x8000;
+	for (int i = 0; i < numPoints; i++)
 	{
-		test[i] = 0xE5000000 + i;
-	}
+		uint16_t x = *(uint16_t*)(&writeBuffer[16 + i * 10]);
+		uint16_t y = *(uint16_t*)(&writeBuffer[16 + i * 10 + 2]);
+		if (x != 0x8000 && (abs(x - prevX) > 10000 || abs(y - prevY) > 10000))
+		{
+			printf("ERROR: Noncontinous data\n");
+		}
+		prevX = x;
+		prevY = y;
+	}*/
+
+	//uint32_t test[128];
+	//for (int i = 0; i < 128; i++)
+	//{
+	//	test[i] = 0xE5000000 + i;
+	//}
 	//int writeErr = write(this->spidevFd, test, 128 * 4);
 	if (writeErr == -1) 
 	{
@@ -150,6 +181,11 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		sdif = now.tv_sec - then.tv_sec;
 		nsdif = now.tv_nsec - then.tv_nsec;
 		tdif = sdif * 1000000000 + nsdif;
+
+		//struct timespec delay, dummy; // Yield timeslice
+		//delay.tv_sec = 0;
+		//delay.tv_nsec = 0;
+		//nanosleep(&delay, &dummy);
 	}
 	while (tdif < ((unsigned long)durationUs * 1000 * 0.5));
 
