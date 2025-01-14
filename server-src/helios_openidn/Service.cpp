@@ -438,11 +438,19 @@ void LaproService::processChannelMessage(uint8_t* recvBuffer, unsigned recvLen)
 
                 // Set Flag for Wave/Frame mode
                 frame.isWave = 0;
-                if (chMsgHeader->chunkType == IDN_CH_MSG_HEADER_CHUNK_TYPE_LASER_WAVE) frame.isWave = 1;
+                if (chMsgHeader->chunkType == IDN_CH_MSG_HEADER_CHUNK_TYPE_LASER_WAVE) 
+                    frame.isWave = 1;
 
                 //set BEX mode
                 if (frame.isWave)
                 {
+                    if (bex->getMode() == DRIVER_INACTIVE)
+                    {
+                        resetChunkBuffer();
+                        lastX = 0x8000;
+                        lastY = 0x8000;
+                        lastWaveEndTimestamp = chMsgHeader->timestamp;
+                    }
                     bex->setMode(DRIVER_WAVEMODE);
                 }
                 else
@@ -627,6 +635,33 @@ void LaproService::processChannelMessage(uint8_t* recvBuffer, unsigned recvLen)
                 } // end while sample data
 
                 frame.len = currentFramePoints.size();
+
+                if (frame.len > 1 && frame.isWave)
+                {
+                    if (chMsgHeader->timestamp != lastWaveEndTimestamp)
+                    {
+                        uint32_t timeskip = chMsgHeader->timestamp - lastWaveEndTimestamp;
+                        if (timeskip > 10 && timeskip < 500000)
+                        {
+                            if (timeskip > frame.dur)
+                                timeskip = frame.dur;
+                            uint16_t newX = currentFramePoints.front().x;
+                            uint16_t newY = currentFramePoints.front().y;
+                            unsigned int numInterpolatedPoints = frame.len * timeskip / frame.dur;
+                            for (unsigned int i = 0; i < numInterpolatedPoints; i++)
+                            {
+                                ISPDB25Point point = {};
+                                point.x = lastX + (newX - lastX) / (i / (double)numInterpolatedPoints);
+                                point.y = lastY + (newY - lastY) / (i / (double)numInterpolatedPoints);
+                                addPointToSlice(point, frame);
+                            }
+                        }
+                        printf("[WAR] wave timestamp mismatch: %u\n", timeskip);
+                    }
+                    lastX = currentFramePoints.back().x;
+                    lastY = currentFramePoints.back().y;
+                    lastWaveEndTimestamp = chMsgHeader->timestamp + frame.dur;
+                }
 
                 //feed the points to the driver
                 for (auto& point : currentFramePoints)

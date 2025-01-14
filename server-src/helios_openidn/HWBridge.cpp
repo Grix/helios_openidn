@@ -94,19 +94,21 @@ void HWBridge::driverLoop() {
 		} else if(bex->getMode() == DRIVER_WAVEMODE || bex->getMode() == DRIVER_INACTIVE) {
 			//write an empty point if there is a buffer underrun in wave mode or
 			//the driver is set to inactive
-			outputEmptyPoint();
-
-			struct timespec delay, dummy; // Prevents hogging 100% CPU use
-			delay.tv_sec = 0;
-			delay.tv_nsec = 2000;
+			
+			// TODO: If wave mode underrun that only lasts a brief time, blank the lasers but keep the current XY position. In the Helios USB this is already done internally.
+			//outputEmptyPoint();
 
 			if (bex->getMode() == DRIVER_INACTIVE)
 			{
+				// Timeout, blank and return to center
+				outputEmptyPoint();
+				bex->resetBuffers();
 				this->accumOC = 0;
+				struct timespec delay, dummy; // Prevents hogging 100% CPU use
+				delay.tv_sec = 0;
 				delay.tv_nsec = 50000;
+				nanosleep(&delay, &dummy);
 			}
-
-			nanosleep(&delay, &dummy);
 
 			continue;
 		}
@@ -151,9 +153,9 @@ void HWBridge::driverLoop() {
 			}
 		}
 
-		struct timespec delay, dummy; // Prevents hogging 100% CPU use
+		struct timespec delay, dummy; // Yield timeslice
 		delay.tv_sec = 0;
-		delay.tv_nsec = 1000;
+		delay.tv_nsec = 0;
 		nanosleep(&delay, &dummy);
 	}
 }
