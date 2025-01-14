@@ -206,6 +206,42 @@ void ManagementInterface::networkLoop(int sd) {
 					strcpy(responseBuffer + 2, softwareVersion);
 					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
 				}
+				else if (buffer_in[1] == 0x3)
+				{
+					// Got set name command, respond:
+					char responseBuffer[2] = { 0xE6, 0x3 };
+					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
+
+					// Set name
+					if (num_bytes > 3) // Name must not be empty
+					{
+						if (num_bytes > 22)
+							num_bytes = 22; // Can't have longer name than 20 chars
+						buffer_in[num_bytes] = '\0'; // Make sure we don't fuck up
+						settingIdnHostname = std::string((char*)&buffer_in[2]);
+						for (int i = 0; i < 20; i++)
+							idnServer->hostName[i] = 0;
+						memcpy(idnServer->hostName, settingIdnHostname.c_str(), settingIdnHostname.size() < HOST_NAME_SIZE ? settingIdnHostname.size() : HOST_NAME_SIZE);
+
+						try
+						{
+							mINI::INIFile file(settingsPath);
+							mINI::INIStructure ini;
+							if (!file.read(ini))
+							{
+								printf("WARNING: Could not find/open main settings file when setting new name.\n");
+								return;
+							}
+							ini["idn_server"]["name"] = settingIdnHostname;
+							file.write(ini);
+						}
+						catch (std::exception ex)
+						{
+							printf("WARNING: Failed to save settings file with new name.\n");
+							return;
+						}
+					}
+				}
 			}
 		}
 

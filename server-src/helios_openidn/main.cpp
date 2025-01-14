@@ -10,7 +10,7 @@
 #include "DACHWInterface.h"
 #include "HWBridge.h"
 #include "SPIDevAdapter.h"
-#include "HeliosAdapter.h"
+#include "HeliosAdapter.hpp"
 #include "DummyAdapter.h"
 #include "Service.hpp"
 #include "IDNServer.hpp"
@@ -251,6 +251,7 @@ int main(int argc, char** argv) {
 		return -1;
 	}
 
+	management->idnServer = idnServer;
 	memcpy(idnServer->hostName, management->settingIdnHostname.c_str(), management->settingIdnHostname.size() < HOST_NAME_SIZE ? management->settingIdnHostname.size() : HOST_NAME_SIZE);
 
 	std::atomic<int> atom(1);
