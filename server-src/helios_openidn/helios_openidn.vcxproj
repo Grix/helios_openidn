@@ -82,7 +82,7 @@
     <ClInclude Include="BEX.h" />
     <ClInclude Include="DACHWInterface.h" />
     <ClInclude Include="DummyAdapter.h" />
-    <ClInclude Include="HeliosAdapter.h" />
+    <ClInclude Include="HeliosAdapter.hpp" />
     <ClInclude Include="HeliosDac.h" />
     <ClInclude Include="HWBridge.h" />
     <ClInclude Include="idn-hello.h" />

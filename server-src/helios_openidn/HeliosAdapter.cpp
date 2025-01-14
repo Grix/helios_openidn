@@ -1,8 +1,8 @@
-#include "HeliosAdapter.h"
+#include "HeliosAdapter.hpp"
 
 HeliosAdapter::HeliosAdapter() {
 	this->numHeliosDevices = this->helios.OpenDevices();
-	if(this->numHeliosDevices == 0) {
+	if (this->numHeliosDevices == 0) {
 		printf("No Helios device found!\n");
 	}
 
@@ -29,13 +29,13 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 	unsigned numPoints = data.size() / bytesPerPoint();
 	unsigned framePointRate = 65500;
 
-	if(duration > 0) {
-		framePointRate = (unsigned)((1000000.0*(double)data.size()) / (duration*(double)sizeof(HeliosPoint)));
+	if (duration > 0) {
+		framePointRate = (unsigned)((1000000.0 * (double)data.size()) / (duration * (double)sizeof(HeliosPoint)));
 	}
 
 	if (framePointRate <= HELIOS_MAX_RATE)
 	{
-		int status;
+		int status = 0;
 
 		if (getHeliosConnected())
 		{
@@ -54,18 +54,21 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 				else
 					connectionRetries = 50;
 			}
-			status = this->helios.WriteFrame(this->numHeliosDevices - 1
-				, framePointRate
-				, this->heliosFlags, (HeliosPoint*)&data.front()
-				, numPoints);
-
-			if (status < 0)
+			if (status == 1)
 			{
-				printf("Error writing Helios frame: %d\n", status);
-				checkConnection();
+				status = this->helios.WriteFrame(this->numHeliosDevices - 1
+					, framePointRate
+					, this->heliosFlags, (HeliosPoint*)&data.front()
+					, numPoints);
+
+				if (status < 0)
+				{
+					printf("Error writing Helios frame: %d\n", status);
+					checkConnection();
+				}
+				else
+					connectionRetries = 50;
 			}
-			else
-				connectionRetries = 50;
 		}
 	}
 	else
@@ -79,7 +82,7 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 		} while (tdif < ((unsigned long)duration * 1000 * 0.98));
 	}
 
-	
+
 	/*struct timespec delay, dummy; // Waits with CPU idle for half the time, to free up cycles
 	delay.tv_sec = 0;
 	delay.tv_nsec = duration / 4 * 1000;
@@ -90,12 +93,7 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 		sdif = now.tv_sec - then.tv_sec;
 		nsdif = now.tv_nsec - then.tv_nsec;
 		tdif = sdif * 1000000000 + nsdif;
-	} while (tdif < ((unsigned long)duration * 1000 * 0.8) );
-
-#ifndef NDEBUG
-	if (tdif > duration * 1000)
-		printf("Helios write time diff: %u\n", tdif / 1000);
-#endif
+	} while (tdif < ((unsigned long)duration * 1000 * 0.8));
 
 
 	return 0;
@@ -105,15 +103,15 @@ SliceType HeliosAdapter::convertPoints(const std::vector<ISPDB25Point>& points) 
 	SliceType result;
 	HeliosPoint currentPoint;
 
-	for(const auto& point : points) {
+	for (const auto& point : points) {
 		currentPoint.x = (std::uint16_t)(point.x >> 4); //12 bit (from 0 to 0xFFF)
 		currentPoint.y = (std::uint16_t)(point.y >> 4); //12 bit (from 0 to 0xFFF)
-		currentPoint.r = (std::uint8_t) (point.r >> 8);	//8 bit	(from 0 to 0xFF)
-		currentPoint.g = (std::uint8_t) (point.g >> 8);	//8 bit (from 0 to 0xFF)
-		currentPoint.b = (std::uint8_t) (point.b >> 8);	//8 bit (from 0 to 0xFF)
-		currentPoint.i = (std::uint8_t) (point.intensity >> 8);	//8 bit (from 0 to 0xFF)
+		currentPoint.r = (std::uint8_t)(point.r >> 8);	//8 bit	(from 0 to 0xFF)
+		currentPoint.g = (std::uint8_t)(point.g >> 8);	//8 bit (from 0 to 0xFF)
+		currentPoint.b = (std::uint8_t)(point.b >> 8);	//8 bit (from 0 to 0xFF)
+		currentPoint.i = (std::uint8_t)(point.intensity >> 8);	//8 bit (from 0 to 0xFF)
 
-		for(int i = 0; i < bytesPerPoint(); i++) {
+		for (int i = 0; i < bytesPerPoint(); i++) {
 			result.push_back(*((uint8_t*)&currentPoint + i));
 		}
 	}
@@ -126,7 +124,7 @@ unsigned HeliosAdapter::bytesPerPoint() {
 }
 
 unsigned HeliosAdapter::maxBytesPerTransmission() {
-	return 4096*bytesPerPoint();
+	return 4096 * bytesPerPoint();
 }
 
 unsigned HeliosAdapter::maxPointrate() {
@@ -137,7 +135,7 @@ void HeliosAdapter::setMaxPointrate(unsigned newRate) {
 	this->maximumPointRate = newRate;
 }
 
-void HeliosAdapter::getName(char *nameBufferPtr, unsigned nameBufferSize)
+void HeliosAdapter::getName(char* nameBufferPtr, unsigned nameBufferSize)
 {
 	char heliosName[32];
 	if (getHeliosConnected())
