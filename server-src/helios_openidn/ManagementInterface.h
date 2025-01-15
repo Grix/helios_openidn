@@ -25,7 +25,7 @@ public:
 	std::string settingIdnHostname = "OpenIDN";
 	bool settingEnableIdnServer = true;
 	bool settingEnableIdtfPlayer = false;
-	const char softwareVersion[10] = "0.9.6";
+	const char softwareVersion[10] = "0.9.7";
 	std::shared_ptr<IDNServer> idnServer;
 
 private:
