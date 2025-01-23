@@ -1,4 +1,5 @@
 #include "./HWBridge.hpp"
+#include <thread>
 
 
 HWBridge::HWBridge(std::shared_ptr<DACHWInterface> hwDeviceInterface, std::shared_ptr<BEX> bufferExchange) : device(hwDeviceInterface), bex(bufferExchange) {
@@ -171,10 +172,11 @@ void HWBridge::driverLoop() {
 			}
 		}
 
-		struct timespec delay, dummy; // Yield timeslice
-		delay.tv_sec = 0;
-		delay.tv_nsec = 0;
-		nanosleep(&delay, &dummy);
+		//struct timespec delay, dummy; // Yield timeslice
+		//delay.tv_sec = 0;
+		//delay.tv_nsec = 0;
+		//nanosleep(&delay, &dummy);
+		std::this_thread::yield();
 	}
 }
 

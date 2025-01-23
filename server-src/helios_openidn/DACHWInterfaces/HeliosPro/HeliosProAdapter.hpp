@@ -11,7 +11,7 @@
 
 #include "../../types.h"
 
-#define HELIOSPRO_CHUNKSIZE 0xB00
+#define HELIOSPRO_CHUNKSIZE 0xE00
 
 #define GPIO_DIR_IN(g)		*(gpio + (0x04 / 4)) &= ~(1 << (g & 0xFF))
 #define GPIO_DIR_OUT(g)		*(gpio + (0x04 / 4)) |= (1 << (g & 0xFF))
@@ -37,10 +37,10 @@ private:
 	unsigned maximumPointrate;
 
 	int	mem_fd;
-	void* spi2_ctrl_mem_map;
-	volatile uint32_t* spi2_ctrl;
-	void* spi2_tx_mem_map;
-	volatile uint32_t* spi2_tx;
+	//void* spi2_ctrl_mem_map;
+	//volatile uint32_t* spi2_ctrl;
+	//void* spi2_tx_mem_map;
+	//volatile uint32_t* spi2_tx;
 	void* gpio_mem_map;
 	volatile uint32_t* gpio;
 

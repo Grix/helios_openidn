@@ -1,7 +1,6 @@
 #include "ManagementInterface.hpp"
 
-#define MAXBUF 128
-#define MANAGEMENT_PORT 7355
+#define UDP_MAXBUF 128
 
 /// <summary>
 /// Looks for a file "settings.ini" on a USB drive connected to the computer, and if it exists, applies the settings there. 
@@ -178,14 +177,14 @@ void ManagementInterface::readSettingsFile()
 void ManagementInterface::networkLoop(int sd) {
 	unsigned int len;
 	int num_bytes;
-	char buffer_in[MAXBUF];
+	char buffer_in[UDP_MAXBUF];
 	struct sockaddr_in remote;
 
 	len = sizeof(remote);
 
 	while (1)
 	{
-		num_bytes = recvfrom(sd, buffer_in, MAXBUF, 0, (struct sockaddr*)&remote, &len);
+		num_bytes = recvfrom(sd, buffer_in, UDP_MAXBUF, 0, (struct sockaddr*)&remote, &len);
 
 		if (num_bytes >= 2)
 		{
@@ -316,4 +315,19 @@ void* ManagementInterface::networkThreadEntry() {
 
 
 	return NULL;
+}
+
+void ManagementInterface::setMode(int _mode)
+{
+	if (mode == _mode || _mode < 0 || _mode > OUTPUT_MODE_DMX)
+		return;
+
+	mode = _mode;
+	
+	// todo turn on and off modules
+}
+
+int ManagementInterface::getMode()
+{
+	return mode;
 }

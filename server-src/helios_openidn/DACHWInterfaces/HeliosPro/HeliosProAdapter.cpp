@@ -113,7 +113,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 	writeBuffer[16 + dataSizeBytes + 3] = 'X';
 
 	// TESTING
-	static int frame = 0;
+/*	static int frame = 0;
 	for (int i = 0; i < numPoints; i++)
 	{
 		if ((frame & 3) == 1)
@@ -126,7 +126,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 			*(uint16_t*)(&writeBuffer[16 + i * 10]) = (numPoints - i) * 0x7fff / numPoints;
 	}
 	frame++;
-
+	*/
 
 	//printf("busy status: %d\n", GPIO_LEV(GPIOPIN_STATUS));
 
@@ -200,16 +200,24 @@ SliceType HeliosProAdapter::convertPoints(const std::vector<ISPDB25Point>& point
 
 	for (const auto& point : points) 
 	{
-		result.push_back(point.x & 0xFF);
-		result.push_back((point.x >> 8) & 0xFF);
 		result.push_back(point.y & 0xFF);
 		result.push_back((point.y >> 8) & 0xFF);
-		result.push_back((point.r >> 8) & 0xFF);
-		result.push_back((point.g >> 8) & 0xFF);
-		result.push_back((point.b >> 8) & 0xFF);
-		result.push_back((point.intensity >> 8) & 0xFF);
-		result.push_back((point.u1 >> 8) & 0xFF);
+		result.push_back(point.u3 & 0xFF);
+		result.push_back((point.u3 >> 8) & 0xFF);
+		result.push_back(point.u2 & 0xFF);
 		result.push_back((point.u2 >> 8) & 0xFF);
+		result.push_back(point.u1 & 0xFF);
+		result.push_back((point.u1 >> 8) & 0xFF);
+		result.push_back(point.intensity & 0xFF);
+		result.push_back((point.intensity >> 8) & 0xFF);
+		result.push_back(point.b & 0xFF);
+		result.push_back((point.b >> 8) & 0xFF);
+		result.push_back(point.g & 0xFF);
+		result.push_back((point.g >> 8) & 0xFF);
+		result.push_back(point.x & 0xFF);
+		result.push_back((point.x >> 8) & 0xFF);
+		result.push_back(point.r & 0xFF);
+		result.push_back((point.r >> 8) & 0xFF);
 	}
 
 	return result;
@@ -217,7 +225,7 @@ SliceType HeliosProAdapter::convertPoints(const std::vector<ISPDB25Point>& point
 
 unsigned int HeliosProAdapter::bytesPerPoint() 
 {
-	return 10;
+	return 18;
 }
 
 

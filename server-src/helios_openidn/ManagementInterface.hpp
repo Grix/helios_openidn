@@ -10,6 +10,12 @@
 #include "ini.h"
 #include "IDNServer.hpp"
 
+#define MANAGEMENT_PORT 7355
+
+#define OUTPUT_MODE_IDN 0
+#define OUTPUT_MODE_FILE 1
+#define OUTPUT_MODE_DMX 2
+
 /// <summary>
 /// Class that exposes network and file system interfaces for managing the OpenIDN system, such as pinging, reading config files from USB drive, etc.
 /// </summary>
@@ -21,6 +27,8 @@ public:
 	void readAndStoreNewSettingsFile();
 	void readSettingsFile();
 	void* networkThreadEntry();
+	void setMode(int mode);
+	int getMode();
 
 	std::string settingIdnHostname = "OpenIDN";
 	bool settingEnableIdnServer = true;
@@ -35,5 +43,7 @@ private:
 
 	const std::string newSettingsPath = "/media/usbdrive/settings.ini";
 	const std::string settingsPath = "/home/laser/openidn/settings.ini";
+
+	int mode = OUTPUT_MODE_IDN;
 };
 
