@@ -19,6 +19,9 @@
 #define GPIO_CLR(g)		*(gpio + (0x00 / 4)) &= ~(1 << (g & 0xFF))
 #define GPIO_LEV(g)		((*(gpio + (0x50 / 4)) >> (g & 0xFF)) & 1)
 #define GPIOPIN_STATUS    13    // B5
+#define GPIOPIN_RED_LED    8    // B0
+#define GPIOPIN_GREEN_LED 11	// B3
+#define GPIOPIN_ON_LED    12    // B4
 
 class HeliosProAdapter : public DACHWInterface {
 public:

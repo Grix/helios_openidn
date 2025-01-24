@@ -202,22 +202,22 @@ SliceType HeliosProAdapter::convertPoints(const std::vector<ISPDB25Point>& point
 	{
 		result.push_back(point.y & 0xFF);
 		result.push_back((point.y >> 8) & 0xFF);
-		result.push_back(point.u3 & 0xFF);
-		result.push_back((point.u3 >> 8) & 0xFF);
-		result.push_back(point.u2 & 0xFF);
-		result.push_back((point.u2 >> 8) & 0xFF);
-		result.push_back(point.u1 & 0xFF);
-		result.push_back((point.u1 >> 8) & 0xFF);
-		result.push_back(point.intensity & 0xFF);
-		result.push_back((point.intensity >> 8) & 0xFF);
-		result.push_back(point.b & 0xFF);
-		result.push_back((point.b >> 8) & 0xFF);
-		result.push_back(point.g & 0xFF);
-		result.push_back((point.g >> 8) & 0xFF);
+		result.push_back((point.u3 >> 4) & 0xFF);
+		result.push_back((point.u3 >> 12) & 0xFF);
+		result.push_back((point.u2 >> 4) & 0xFF);
+		result.push_back((point.u2 >> 12) & 0xFF);
+		result.push_back((point.u1 >> 4) & 0xFF);
+		result.push_back((point.u1 >> 12) & 0xFF);
+		result.push_back((point.intensity >> 4) & 0xFF);
+		result.push_back((point.intensity >> 12) & 0xFF);
+		result.push_back((point.b >> 4) & 0xFF);
+		result.push_back((point.b >> 12) & 0xFF);
+		result.push_back((point.g >> 4) & 0xFF);
+		result.push_back((point.g >> 12) & 0xFF);
 		result.push_back(point.x & 0xFF);
 		result.push_back((point.x >> 8) & 0xFF);
-		result.push_back(point.r & 0xFF);
-		result.push_back((point.r >> 8) & 0xFF);
+		result.push_back((point.r >> 4) & 0xFF);
+		result.push_back((point.r >> 12) & 0xFF);
 	}
 
 	return result;
