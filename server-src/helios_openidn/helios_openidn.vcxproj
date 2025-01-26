@@ -77,6 +77,8 @@
     <ClCompile Include="ManagementInterface.cpp" />
     <ClCompile Include="OpenIDN.cpp" />
     <ClCompile Include="Service.cpp" />
+    <ClCompile Include="UsbGadget.c" />
+    <ClCompile Include="UsbInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="BEX.hpp" />
@@ -98,6 +100,7 @@
     <ClInclude Include="OpenIDN.hpp" />
     <ClInclude Include="Service.hpp" />
     <ClInclude Include="types.h" />
+    <ClInclude Include="UsbInterface.hpp" />
   </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <ClCompile>

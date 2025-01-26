@@ -13,8 +13,10 @@
 #define MANAGEMENT_PORT 7355
 
 #define OUTPUT_MODE_IDN 0
-#define OUTPUT_MODE_FILE 1
-#define OUTPUT_MODE_DMX 2
+#define OUTPUT_MODE_USB 1
+#define OUTPUT_MODE_FILE 2
+#define OUTPUT_MODE_DMX 3
+#define OUTPUT_MODE_MAX OUTPUT_MODE_DMX
 
 /// <summary>
 /// Class that exposes network and file system interfaces for managing the OpenIDN system, such as pinging, reading config files from USB drive, etc.
@@ -27,7 +29,7 @@ public:
 	void readAndStoreNewSettingsFile();
 	void readSettingsFile();
 	void* networkThreadEntry();
-	void setMode(int mode);
+	void setMode(unsigned int mode);
 	int getMode();
 
 	std::string settingIdnHostname = "OpenIDN";

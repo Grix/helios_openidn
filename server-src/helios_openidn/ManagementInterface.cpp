@@ -317,9 +317,9 @@ void* ManagementInterface::networkThreadEntry() {
 	return NULL;
 }
 
-void ManagementInterface::setMode(int _mode)
+void ManagementInterface::setMode(unsigned int _mode)
 {
-	if (mode == _mode || _mode < 0 || _mode > OUTPUT_MODE_DMX)
+	if (mode == _mode || _mode > OUTPUT_MODE_MAX)
 		return;
 
 	mode = _mode;
