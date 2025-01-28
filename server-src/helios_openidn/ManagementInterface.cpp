@@ -164,7 +164,32 @@ void ManagementInterface::readSettingsFile()
 
 	std::string& idn_enable = ini["idn_server"]["enable"];
 	if (!idn_enable.empty())
-		settingEnableIdnServer = !(idn_enable == "false" || idn_enable == "False" || idn_enable == "\"false\"" || idn_enable == "\"False\"");
+	{
+		bool enableIdnServer = !(idn_enable == "false" || idn_enable == "False" || idn_enable == "\"false\"" || idn_enable == "\"False\"");
+		if (!enableIdnServer)
+			modePriority[OUTPUT_MODE_MAX] = 0;
+	}
+
+	std::string& fileplayer_autoplay = ini["file_player"]["autoplay"];
+	if (!fileplayer_autoplay.empty())
+		filePlayerAutoplay = (fileplayer_autoplay == "true" || fileplayer_autoplay == "True" || fileplayer_autoplay == "\"true\"" || fileplayer_autoplay == "\"True\"");
+
+	std::string& fileplayer_startingfile = ini["file_player"]["starting_file"];
+	if (!fileplayer_startingfile.empty())
+		filePlayerStartingFile = fileplayer_startingfile;
+
+	std::string& fileplayer_mode = ini["file_player"]["mode"];
+	if (!fileplayer_mode.empty())
+	{
+		if (fileplayer_mode == "once" || fileplayer_mode == "Once" || fileplayer_mode == "\"once\"" || fileplayer_mode == "\"Once\"")
+			filePlayerMode = FILEPLAYER_MODE_ONCE;
+		else if (fileplayer_mode == "next" || fileplayer_mode == "Next" || fileplayer_mode == "\"next\"" || fileplayer_mode == "\"Next\"")
+			filePlayerMode = FILEPLAYER_MODE_NEXT;
+		else if (fileplayer_mode == "shuffle" || fileplayer_mode == "Shuffle" || fileplayer_mode == "\"shuffle\"" || fileplayer_mode == "\"Shuffle\"")
+			filePlayerMode = FILEPLAYER_MODE_SHUFFLE;
+		else
+			filePlayerMode = FILEPLAYER_MODE_REPEAT;
+	}
 
 	if (shouldRewrite)
 	{

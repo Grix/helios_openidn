@@ -6,9 +6,9 @@
 #include <unistd.h>
 #include <netdb.h>
 #include <filesystem>
-#include <string.h>
-#include "ini.h"
+#include "ini.hpp"
 #include "IDNServer.hpp"
+#include "FilePlayer.hpp"
 
 #define MANAGEMENT_PORT 7355
 
@@ -33,10 +33,11 @@ public:
 	int getMode();
 
 	std::string settingIdnHostname = "OpenIDN";
-	bool settingEnableIdnServer = true;
-	bool settingEnableIdtfPlayer = false;
 	const char softwareVersion[10] = "0.9.7";
 	std::shared_ptr<IDNServer> idnServer;
+	int modePriority[OUTPUT_MODE_MAX + 1] = { 3, 4, 1, 2 }; // If <=0, disable entirely
+	FilePlayer filePlayer;
+
 
 private:
 	void networkLoop(int socketFd);
@@ -48,4 +49,3 @@ private:
 
 	int mode = OUTPUT_MODE_IDN;
 };
-

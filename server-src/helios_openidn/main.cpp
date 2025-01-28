@@ -15,6 +15,7 @@
 #include "Service.hpp"
 #include "IDNServer.hpp"
 #include "ManagementInterface.hpp"
+#include "UsbInterface.hpp"
 
 pthread_t driver_thread = 0;
 std::shared_ptr<HWBridge> driver = nullptr;
@@ -250,6 +251,8 @@ int main(int argc, char** argv) {
 	}
 	management->idnServer = idnServer;
 	memcpy(idnServer->hostName, management->settingIdnHostname.c_str(), management->settingIdnHostname.size() < HOST_NAME_SIZE ? management->settingIdnHostname.size() : HOST_NAME_SIZE);
+
+	UsbInterface* usbInterface = new UsbInterface();
 
 	std::atomic<int> atom(1);
 	printf("lockless atomics: ");

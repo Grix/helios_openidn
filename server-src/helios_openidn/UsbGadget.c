@@ -182,8 +182,8 @@ void* rx_bulk_thread(void* arg);
 void* tx_int_thread(void* arg);
 int init_usb_gadget(void);
 
-void (*interrupt_msg_received_callback)(size_t numBytes, void* buffer);
-void (*bulk_msg_received_callback)(size_t numBytes, void* buffer);
+void (*interrupt_msg_received_callback)(size_t numBytes, unsigned char* buffer);
+void (*bulk_msg_received_callback)(size_t numBytes, unsigned char* buffer);
 void set_msg_received_callbacks(void (*bulk_msg_callback)(size_t, unsigned char*), void (*interrupt_msg_callback)(size_t, unsigned char*));
 int send_interrupt_msg_response(size_t numBytes, unsigned char* buffer);
 
