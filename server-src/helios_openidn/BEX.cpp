@@ -103,3 +103,9 @@ std::shared_ptr<SliceBuf> BEX::driverSwapRequest()
 	std::lock_guard<std::mutex> lock(threadLock);
 	return std::shared_ptr<SliceBuf>(atomicPtr.exchange(nullptr));
 }
+
+bool BEX::hasSliceInQueue()
+{
+	std::lock_guard<std::mutex> lock(threadLock);
+	return !(hotBuf == nullptr || hotBuf->empty());
+}

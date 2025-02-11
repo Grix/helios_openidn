@@ -21,6 +21,7 @@ public:
 	unsigned getMode();
 	//get the currently advertised buffer
 	std::shared_ptr<SliceBuf> driverSwapRequest();
+	bool hasSliceInQueue();
 
 private:
 	//an atomic pointer to a list of TimeSlices

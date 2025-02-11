@@ -708,3 +708,15 @@ void LaproService::processChannelMessage(uint8_t* recvBuffer, unsigned recvLen)
     free(chMsgHeader);
 }
 
+void LaproService::stopAndEmptyQueue()
+{
+    bex->resetBuffers();
+    resetChunkBuffer();
+    driverPtr->outputEmptyPoint();
+}
+
+bool LaproService::getHasFrameInQueue()
+{
+    return bex->
+}
+

@@ -3,8 +3,10 @@
 // Class that sets up and handles a Helios USB interface on the USB-C port. 
 // Meaning an INPUT interface, as an alternative to the IDN network server, not output. For output USB interface see HeliosAdapter.cpp
 
+#include "ManagementInterface.hpp"
 #include <unistd.h>
 #include <cstdio>
+#include <memory>
 
 extern "C"
 {
@@ -28,5 +30,6 @@ private:
     void bulkUsbReceived(size_t numBytes, unsigned char* buffer);
 
     inline static UsbInterface* instance = nullptr;
+    bool hasSentReadySignal = false;
 };
 

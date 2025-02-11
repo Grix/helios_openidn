@@ -34,9 +34,11 @@ public:
 
 	std::string settingIdnHostname = "OpenIDN";
 	const char softwareVersion[10] = "0.9.7";
+	const unsigned char softwareVersionUsb = 97;
 	std::shared_ptr<IDNServer> idnServer;
 	int modePriority[OUTPUT_MODE_MAX + 1] = { 3, 4, 1, 2 }; // If <=0, disable entirely
 	FilePlayer filePlayer;
+	std::vector<std::shared_ptr<LaproService>> devices;
 
 
 private:

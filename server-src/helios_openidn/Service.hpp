@@ -45,7 +45,6 @@ class LaproService
     unsigned int buildDictionary(uint8_t *buf, unsigned int len, unsigned int offset, uint8_t scwc, IDNDescriptorTag** data);
     void resetChunkBuffer();
     void commitChunk();
-    void addPointToSlice(ISPDB25Point newPoint, ISPFrameMetadata metadata);
 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -53,6 +52,8 @@ class LaproService
 
     LaproService(std::shared_ptr<HWBridge> driver, std::shared_ptr<BEX> bufferExchange);
     ~LaproService();
+
+    void addPointToSlice(ISPDB25Point newPoint, ISPFrameMetadata metadata);
 
     void getName(char *nameBufferPtr, unsigned nameBufferSize);
 
@@ -64,6 +65,9 @@ class LaproService
     void setChunkLengthUs(double us) { this->usPerSlice = us; }
     bool getDACBusy() { return dacBusyFlag; }
     void setDACBusy(bool dacBusyFlag) { this->dacBusyFlag = dacBusyFlag; }
+
+    void stopAndEmptyQueue();
+    bool getHasFrameInQueue();
 };
 
 

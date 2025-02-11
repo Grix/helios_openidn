@@ -251,6 +251,7 @@ int main(int argc, char** argv) {
 	}
 	management->idnServer = idnServer;
 	memcpy(idnServer->hostName, management->settingIdnHostname.c_str(), management->settingIdnHostname.size() < HOST_NAME_SIZE ? management->settingIdnHostname.size() : HOST_NAME_SIZE);
+	management->devices.push_back(laproService);
 
 	UsbInterface* usbInterface = new UsbInterface();
 
@@ -258,20 +259,16 @@ int main(int argc, char** argv) {
 	printf("lockless atomics: ");
 	printf(atom.is_lock_free() ? "true\n" : "false\n");
 
-	if (management->settingEnableIdnServer)
-	{
-		/* Startup Driver Thread */
-		if (pthread_create(&driver_thread, NULL, &driverThreadFunction, NULL) != 0) {
-			printf("ERROR CREATING DRIVER THREAD\n");
-			return -1;
-		}
-
-		system("echo 1 > /sys/class/leds/rockpis:blue:user/brightness"); // turn LED on continuously
-
-		networkThreadFunction(NULL);
+	/* Startup Driver Thread */
+	if (pthread_create(&driver_thread, NULL, &driverThreadFunction, NULL) != 0) {
+		printf("ERROR CREATING DRIVER THREAD\n");
+		return -1;
 	}
-	else
-		while (1);
+	 
+	system("echo 1 > /sys/class/leds/rockpis:blue:user/brightness"); // turn LED on continuously
+	// todo adapt to rock s0
+
+	networkThreadFunction(NULL);
 
 	return(0);
 }
