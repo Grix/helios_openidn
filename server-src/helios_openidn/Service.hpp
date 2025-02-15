@@ -28,7 +28,6 @@ class LaproService
     private:
 
     std::shared_ptr<HWBridge> driverPtr = nullptr;
-    std::shared_ptr<BEX> bex = nullptr;
 
     bool dacBusyFlag;
 
@@ -43,8 +42,7 @@ class LaproService
     uint32_t lastWaveEndTimestamp;
 
     unsigned int buildDictionary(uint8_t *buf, unsigned int len, unsigned int offset, uint8_t scwc, IDNDescriptorTag** data);
-    void resetChunkBuffer();
-    void commitChunk();
+
 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -53,7 +51,8 @@ class LaproService
     LaproService(std::shared_ptr<HWBridge> driver, std::shared_ptr<BEX> bufferExchange);
     ~LaproService();
 
-    void addPointToSlice(ISPDB25Point newPoint, ISPFrameMetadata metadata);
+    void addPointToSlice(ISPDB25Point newPoint, ISPFrameMetadata metadata);    
+    void commitChunk(bool publish = false);
 
     void getName(char *nameBufferPtr, unsigned nameBufferSize);
 
@@ -68,6 +67,9 @@ class LaproService
 
     void stopAndEmptyQueue();
     bool getHasFrameInQueue();
+    void resetChunkBuffer();
+
+    std::shared_ptr<BEX> bex = nullptr;
 };
 
 

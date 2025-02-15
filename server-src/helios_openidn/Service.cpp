@@ -229,7 +229,7 @@ void LaproService::resetChunkBuffer()
 }
 
 
-void LaproService::commitChunk()
+void LaproService::commitChunk(bool publish)
 {
     if (currentSlicePoints.size() != 0) {
         std::shared_ptr<DACHWInterface> device = driverPtr->getDevice();
@@ -240,6 +240,9 @@ void LaproService::commitChunk()
         newSlice->durationUs = this->usPerSlice - this->currentSliceTime;
         bex->networkAppendSlice(newSlice);
         resetChunkBuffer();
+
+        if (publish)
+            bex->publishReset();
     }
 }
 
@@ -717,6 +720,6 @@ void LaproService::stopAndEmptyQueue()
 
 bool LaproService::getHasFrameInQueue()
 {
-    return bex->
+    return bex->hasSliceInQueue();
 }
 

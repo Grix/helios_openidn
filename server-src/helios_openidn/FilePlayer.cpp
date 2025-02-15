@@ -23,7 +23,7 @@ void FilePlayer::pause()
 void FilePlayer::playFile(std::string filename)
 {
 	currentFile = filename;
-	if (idtfRead() < 0)
+	//if (idtfRead() < 0)
 	{
 		// File error
 

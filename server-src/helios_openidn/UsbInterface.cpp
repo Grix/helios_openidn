@@ -19,6 +19,7 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
         if (management->devices.size() > 0)
         {
             management->devices.front()->stopAndEmptyQueue();
+            //management->devices.front()->setDACBusy(false);
         }
     }
     else if (buffer[1] == 0x02)
@@ -71,6 +72,8 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
     if (management->devices.size() == 0)
         return;
 
+    //management->devices.front()->setDACBusy(true);
+
     if (numBytes < (5 + 7))
         return;
 
@@ -78,14 +81,20 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
     uint16_t numOfPointBytes2 = ((buffer[numOfPointBytes + 3] << 8) | buffer[numOfPointBytes + 2]) * 7; // from control bytes
 
     if (numOfPointBytes != numOfPointBytes2)
+    {
+        printf("Error in USB frame: length %d, expected %d\n", numOfPointBytes, numOfPointBytes2);
         return;
+    }
+
+    management->devices.front()->resetChunkBuffer();
+    management->devices.front()->bex->setMode(DRIVER_FRAMEMODE);
 
     unsigned int pps = (buffer[numOfPointBytes + 1] << 8) | buffer[numOfPointBytes + 0];
     unsigned int flags = buffer[numOfPointBytes + 4];
 
     ISPFrameMetadata metadata;
     metadata.once = (flags & (1 << 1));
-    metadata.isWave = true;
+    metadata.isWave = false;
     metadata.len = numOfPointBytes / 7;
     metadata.dur = (1000000 * metadata.len) / pps;
 
@@ -104,6 +113,7 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
         point.u1 = point.u2 = point.u3 = point.u4 = 0;
         management->devices.front()->addPointToSlice(point, metadata);
     }
+    management->devices.front()->commitChunk(true);
 }
 
 
