@@ -43,6 +43,11 @@ HeliosProAdapter::HeliosProAdapter()
 
 	GPIO_DIR_IN(GPIOPIN_STATUS);
 
+	GPIO_DIR_OUT(GPIOPIN_MCURESET_LED);
+	GPIO_CLR(GPIOPIN_MCURESET_LED);
+	GPIO_SET(GPIOPIN_MCURESET_LED);
+	GPIO_DIR_IN(GPIOPIN_MCURESET_LED);
+
 	/*#define CTRL_BIT_SET(offset, bit)	*(spi2_ctrl + (offset / 4)) |= (1 << (bit & 0xFF))
 
 	CTRL_BIT_SET(0x00, 18); // Set transmit only
@@ -136,9 +141,15 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		sdif = now.tv_sec - then.tv_sec;
 		nsdif = now.tv_nsec - then.tv_nsec;
 		tdif = sdif * 1000000000 + nsdif;
-		if (tdif > ((unsigned long)durationUs * 1000 * 3))
+		if (tdif > ((unsigned long)durationUs * 1000 * 5))
 		{
 			printf("WARNING: Timeout waiting for Helios buffer chip\n");
+
+			GPIO_DIR_OUT(GPIOPIN_MCURESET_LED);
+			GPIO_CLR(GPIOPIN_MCURESET_LED);
+			GPIO_SET(GPIOPIN_MCURESET_LED);
+			GPIO_DIR_IN(GPIOPIN_MCURESET_LED);
+
 			return 0;
 		}
 	};

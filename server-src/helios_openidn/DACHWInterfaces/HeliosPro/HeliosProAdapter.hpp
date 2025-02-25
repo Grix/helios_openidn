@@ -22,6 +22,7 @@
 #define GPIOPIN_RED_LED    8    // B0
 #define GPIOPIN_GREEN_LED 11	// B3
 #define GPIOPIN_ON_LED    12    // B4
+#define GPIOPIN_MCURESET_LED    14    // B6
 
 class HeliosProAdapter : public DACHWInterface {
 public:

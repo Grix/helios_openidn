@@ -57,7 +57,7 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
     {
         printf("COMMAND RECEIVED: GET NAME\n");
         unsigned char response[32];
-        strncpy((char*)response + 1, management->settingIdnHostname.append(" (USB)").c_str(), 31);
+        strncpy((char*)response + 1, (management->settingIdnHostname +" (USB)").c_str(), 31);
         response[0] = 0x85;
         response[31] = '\0';
         send_interrupt_msg_response(32, response);
