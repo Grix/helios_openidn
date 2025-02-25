@@ -26,6 +26,10 @@
 
 //--- include ---
 
+
+
+#define CONFIG_USB_GADGET_VERBOSE 
+
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -109,8 +113,8 @@ struct io_thread_args {
 
 //make this configurable
 struct usb_string stringtab[] = {
-    { STRINGID_MANUFACTURER, "my Test", },
-    { STRINGID_PRODUCT,      "beb's WinUSB Gadget Device", },
+    { STRINGID_MANUFACTURER, "Gitle Mikkelsen", },
+    { STRINGID_PRODUCT,      "Helios Laser DAC", },
     { STRINGID_SERIAL,       "b00000001", },
     { STRINGID_CONFIG_HS,    "High speed configuration", },
     { STRINGID_CONFIG_LS,    "Low speed configuration", },
@@ -969,47 +973,22 @@ void* rx_bulk_thread(void* arg)
 void* tx_int_thread(void* arg)
 {
     struct io_thread_args* thread_args = (struct io_thread_args*)arg;
-    fd_set write_set;
-    int max_write_fd = 0;
 
-    if (thread_args->fd_int_in > max_write_fd)
-        max_write_fd = thread_args->fd_int_in;
+    //fd_set write_set;
+    //int max_write_fd = 0;
+    //if (thread_args->fd_int_in > max_write_fd)
+    //    max_write_fd = thread_args->fd_int_in;
 
     while (!thread_args->stop)
     {
         if (txSize == 0)
         {
-            usleep(1);
+            usleep(100000);
             continue;
         }
 
-        FD_ZERO(&write_set);
-        FD_SET(thread_args->fd_int_in, &write_set);
+        // txs moved to synchronous send_interrupt_msg_response()
 
-        int ret = select(max_write_fd + 1, NULL, &write_set, NULL, NULL);
-
-        // Error
-        if (ret < 0)
-        {
-            if (verbosity)
-                fprintf(stderr, "select ERROR %d!\n", ret);
-            break;
-        }
-        ret = write(thread_args->fd_int_in, txBuffer, txSize);
-        if (verbosity > 1)
-            printf("Write status %d (%m)\n", ret);
-        if (ret > 0)
-        {
-            txcounter++;
-            txSize = 0;
-        }
-        else if (ret < 0)
-        {
-            //write error
-            if (verbosity > 1)
-                printf("Write ERROR");
-            usleep(1);
-        }
     }
 
     close(thread_args->fd_int_in);
@@ -1031,6 +1010,42 @@ int send_interrupt_msg_response(size_t numBytes, unsigned char* buffer)
 
     memcpy(txBuffer, buffer, numBytes);
     txSize = numBytes;
+
+    // was previously in tx_int_thread: 
+    fd_set write_set;
+    int max_write_fd = 0;
+    if (thread_args.fd_int_in > max_write_fd)
+        max_write_fd = thread_args.fd_int_in;
+    //in loop:
+    FD_ZERO(&write_set);
+    FD_SET(thread_args.fd_int_in, &write_set);
+
+    int ret = select(max_write_fd + 1, NULL, &write_set, NULL, NULL);
+
+    // Error
+    if (ret < 0)
+    {
+        if (verbosity)
+            fprintf(stderr, "select ERROR in int msg response %d!\n", ret);
+    }
+    else
+    {
+        ret = write(thread_args.fd_int_in, txBuffer, txSize);
+        if (verbosity > 1)
+            printf("Write status %d (%m)\n", ret);
+        if (ret > 0)
+        {
+            txcounter++;
+            txSize = 0;
+        }
+        else if (ret < 0)
+        {
+            //write error
+            if (verbosity > 1)
+                printf("Write ERROR");
+            //usleep(1);
+        }
+    }
 }
 
 //eof
