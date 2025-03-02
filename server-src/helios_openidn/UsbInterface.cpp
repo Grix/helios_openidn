@@ -106,10 +106,10 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
         ISPDB25Point point;
         point.x = (currentPoint[0] << 8) | (currentPoint[1] & 0xF0);
         point.y = (((currentPoint[1] & 0x0F) << 8) | currentPoint[2]) << 4;
-        point.r = currentPoint[3];
-        point.g = currentPoint[4];
-        point.b = currentPoint[5];
-        point.intensity = currentPoint[6];
+        point.r = currentPoint[3] * 0x101;
+        point.g = currentPoint[4] * 0x101;
+        point.b = currentPoint[5] * 0x101;
+        point.intensity = currentPoint[6] * 0x101;
         point.u1 = point.u2 = point.u3 = point.u4 = 0;
         management->devices.front()->addPointToSlice(point, metadata);
     }

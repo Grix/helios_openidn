@@ -1046,6 +1046,7 @@ int send_interrupt_msg_response(size_t numBytes, unsigned char* buffer)
             //usleep(1);
         }
     }
+    txSize = 0; // todo retry once if not successful
 }
 
 //eof

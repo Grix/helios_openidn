@@ -34,7 +34,12 @@ void sig_handler(int sig) {
 	pthread_cancel(driver_thread);
 	pthread_join(driver_thread, NULL);
 
-	system("echo 'heartbeat' > /sys/class/leds/rockpis:blue:user/trigger");
+	if (management->getHardwareType() == HARDWARE_ROCKPIS)
+	{
+		system("echo 'heartbeat' > /sys/class/leds/rockpis:blue:user/trigger");
+	}
+	else if (management->getHardwareType() == HARDWARE_ROCKS0)
+		; //todo
 
 	// Output dark point so the laser doesn't linger
 	driver->outputEmptyPoint();
@@ -224,8 +229,13 @@ int main(int argc, char** argv) {
 	// Register the signal handler for SIGINT
 	std::signal(SIGINT, sig_handler);
 
-	system("echo 'none' > /sys/class/leds/rockpis:blue:user/trigger"); // manual blue LED control, stops heartbeat blinking
-	system("echo 0 > /sys/class/leds/rockpis:blue:user/brightness"); // turn LED off
+	if (management->getHardwareType() == HARDWARE_ROCKPIS)
+	{
+		system("echo 'none' > /sys/class/leds/rockpis:blue:user/trigger"); // manual blue LED control, stops heartbeat blinking
+		system("echo 0 > /sys/class/leds/rockpis:blue:user/brightness"); // turn LED off
+	}
+	else if (management->getHardwareType() == HARDWARE_ROCKS0)
+		; //todo
 
 	int parsingRet = parseArguments(argc, argv);
 	if (parsingRet != 0) {
@@ -264,9 +274,11 @@ int main(int argc, char** argv) {
 		printf("ERROR CREATING DRIVER THREAD\n");
 		return -1;
 	}
-	 
-	system("echo 1 > /sys/class/leds/rockpis:blue:user/brightness"); // turn LED on continuously
-	// todo adapt to rock s0
+
+	if (management->getHardwareType() == HARDWARE_ROCKPIS)
+		system("echo 1 > /sys/class/leds/rockpis:blue:user/brightness"); // turn LED on continuously
+	else if (management->getHardwareType() == HARDWARE_ROCKS0)
+		; //todo
 
 	networkThreadFunction(NULL);
 

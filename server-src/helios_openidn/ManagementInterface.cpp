@@ -2,6 +2,10 @@
 
 #define UDP_MAXBUF 128
 
+ManagementInterface::ManagementInterface()
+{
+}
+
 /// <summary>
 /// Looks for a file "settings.ini" on a USB drive connected to the computer, and if it exists, applies the settings there. 
 /// See example_settings.ini in the source files for how the file could look. 
@@ -355,4 +359,27 @@ void ManagementInterface::setMode(unsigned int _mode)
 int ManagementInterface::getMode()
 {
 	return mode;
+}
+
+int ManagementInterface::hardwareType = -1;
+
+int ManagementInterface::getHardwareType()
+{
+	if (ManagementInterface::hardwareType < 0)
+	{
+		struct utsname unameData;
+		if (uname(&unameData) == 0)
+		{
+			if (strstr(unameData.nodename, "rock-s0") != NULL)
+				ManagementInterface::hardwareType = HARDWARE_ROCKS0;
+			else if (strstr(unameData.nodename, "rockpi-s") != NULL)
+				ManagementInterface::hardwareType = HARDWARE_ROCKPIS;
+			else
+				ManagementInterface::hardwareType = -1;
+		}
+		else
+			ManagementInterface::hardwareType = -1;
+	}
+
+	return ManagementInterface::hardwareType;
 }

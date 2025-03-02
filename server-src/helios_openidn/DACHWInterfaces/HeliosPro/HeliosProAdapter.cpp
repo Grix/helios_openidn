@@ -184,6 +184,9 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		perror("spi write error");
 		printf("msg size = %u\n", dataSizeBytes + 16 + 4);
 	}
+#ifndef NDEBUG
+	printf("wrote to HelPro size = %u\n", dataSizeBytes + 16 + 4);
+#endif
 
 	//busy waiting to adjust for timing inaccuracy
 	do
