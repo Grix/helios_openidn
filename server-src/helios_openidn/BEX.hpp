@@ -22,6 +22,7 @@ public:
 	//get the currently advertised buffer
 	std::shared_ptr<SliceBuf> driverSwapRequest();
 	bool hasSliceInQueue();
+	double getBufUsageMs();
 
 private:
 	//an atomic pointer to a list of TimeSlices

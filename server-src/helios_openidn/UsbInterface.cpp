@@ -34,7 +34,10 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
         unsigned char status = 0;
         if (management->devices.size() > 0)
         {
-            status = management->devices.front()->getHasFrameInQueue() ? 0 : 1;
+            status = 0;//management->devices.front()->getHasFrameInQueue() ? 0 : 1;
+            double bufUsageMs = management->devices.front()->bex->getBufUsageMs();
+            if (bufUsageMs < 20) // todo make latency configurable
+                status = 1;
         }
 
         unsigned char response[52];

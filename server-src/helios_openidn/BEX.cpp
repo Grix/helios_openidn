@@ -109,3 +109,9 @@ bool BEX::hasSliceInQueue()
 	std::lock_guard<std::mutex> lock(threadLock);
 	return !(hotBuf == nullptr || hotBuf->empty());
 }
+
+double BEX::getBufUsageMs()
+{
+	std::lock_guard<std::mutex> lock(threadLock);
+	return (double)hotBuf->size() * (double)hotBuf->front()->durationUs / 1000.0;
+}

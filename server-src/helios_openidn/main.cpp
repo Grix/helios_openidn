@@ -235,7 +235,10 @@ int main(int argc, char** argv) {
 		system("echo 0 > /sys/class/leds/rockpis:blue:user/brightness"); // turn LED off
 	}
 	else if (management->getHardwareType() == HARDWARE_ROCKS0)
-		; //todo
+	{
+		system("echo 'none' > /sys/class/leds/rock-s0:green:power/trigger"); // manual blue LED control, stops heartbeat blinking
+		system("echo 0 > /sys/class/leds/rock-s0:green:power/brightness"); // turn LED off
+	}
 
 	int parsingRet = parseArguments(argc, argv);
 	if (parsingRet != 0) {
