@@ -25,7 +25,7 @@ std::shared_ptr<IDNServer> idnServer = nullptr;
 
 // Helios adapter management
 pthread_t management_thread = 0;
-std::shared_ptr<ManagementInterface> management = nullptr;
+ManagementInterface* management = nullptr;
 
 
 //make the program emit debug information on SIGINT
@@ -39,7 +39,9 @@ void sig_handler(int sig) {
 		system("echo 'heartbeat' > /sys/class/leds/rockpis:blue:user/trigger");
 	}
 	else if (management->getHardwareType() == HARDWARE_ROCKS0)
-		; //todo
+	{ 
+		//nothing
+	}
 
 	// Output dark point so the laser doesn't linger
 	driver->outputEmptyPoint();
@@ -245,6 +247,7 @@ int main(int argc, char** argv) {
 		printf("Argument error: ");
 		if (parsingRet == -1) {
 			printf("Specified more than one driver.\n");
+
 		}
 
 		if (parsingRet == -2) {
@@ -255,7 +258,7 @@ int main(int argc, char** argv) {
 	}
 
 	// Management specific to Helios OpenIDN product
-	management = std::shared_ptr<ManagementInterface>(new ManagementInterface());
+	management = new ManagementInterface();
 	management->readAndStoreNewSettingsFile();
 	management->readSettingsFile();
 	if (pthread_create(&management_thread, NULL, &managementThreadFunction, NULL) != 0) {
@@ -280,8 +283,7 @@ int main(int argc, char** argv) {
 
 	if (management->getHardwareType() == HARDWARE_ROCKPIS)
 		system("echo 1 > /sys/class/leds/rockpis:blue:user/brightness"); // turn LED on continuously
-	else if (management->getHardwareType() == HARDWARE_ROCKS0)
-		; //todo
+
 
 	networkThreadFunction(NULL);
 

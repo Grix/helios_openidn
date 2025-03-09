@@ -365,21 +365,21 @@ int ManagementInterface::hardwareType = -1;
 
 int ManagementInterface::getHardwareType()
 {
-	if (ManagementInterface::hardwareType < 0)
+	if (hardwareType < 0)
 	{
 		struct utsname unameData;
 		if (uname(&unameData) == 0)
 		{
 			if (strstr(unameData.nodename, "rock-s0") != NULL)
-				ManagementInterface::hardwareType = HARDWARE_ROCKS0;
+				hardwareType = HARDWARE_ROCKS0;
 			else if (strstr(unameData.nodename, "rockpi-s") != NULL)
-				ManagementInterface::hardwareType = HARDWARE_ROCKPIS;
+				hardwareType = HARDWARE_ROCKPIS;
 			else
-				ManagementInterface::hardwareType = -1;
+				hardwareType = HARDWARE_UNKNOWN;
 		}
 		else
-			ManagementInterface::hardwareType = -1;
+			hardwareType = -1;
 	}
 
-	return ManagementInterface::hardwareType;
+	return hardwareType;
 }

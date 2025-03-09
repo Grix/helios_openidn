@@ -19,8 +19,9 @@
 #define OUTPUT_MODE_DMX 3
 #define OUTPUT_MODE_MAX OUTPUT_MODE_DMX
 
-#define HARDWARE_ROCKPIS 0
-#define HARDWARE_ROCKS0 1
+#define HARDWARE_UNKNOWN 0
+#define HARDWARE_ROCKPIS 1
+#define HARDWARE_ROCKS0 2
 
 /// <summary>
 /// Class that exposes network and file system interfaces for managing the OpenIDN system, such as pinging, reading config files from USB drive, etc.

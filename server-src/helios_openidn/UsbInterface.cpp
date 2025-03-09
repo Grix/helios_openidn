@@ -1,6 +1,6 @@
 #include "UsbInterface.hpp"
 
-extern std::shared_ptr<ManagementInterface> management;
+extern ManagementInterface* management;
 
 UsbInterface::UsbInterface()
 {

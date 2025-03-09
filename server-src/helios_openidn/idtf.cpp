@@ -53,7 +53,7 @@ void logInfo(const char *fmt, ...);
 //  Variables
 // -------------------------------------------------------------------------------------------------
 
-static unsigned long ildaDefaultPalette[256] =      // LFI / Aura Technologies
+unsigned long ildaDefaultPalette[256] =      // LFI / Aura Technologies
 {
     ILDACOLOR(255, 0,   0),                         // Red
     ILDACOLOR(255, 16,  0),
@@ -316,7 +316,7 @@ static unsigned long ildaDefaultPalette[256] =      // LFI / Aura Technologies
 };
 
 
-static unsigned long ildaStandardPalette[256] =     // ILDA color palette standard (obsolete)
+unsigned long ildaStandardPalette[256] =     // ILDA color palette standard (obsolete)
 {
     ILDACOLOR(0,   0,   0),
     ILDACOLOR(255, 255, 255),
@@ -577,14 +577,14 @@ static unsigned long ildaStandardPalette[256] =     // ILDA color palette standa
 };
 
 
-static unsigned long customPalette[256];
+unsigned long customPalette[256];
 
 
 // -------------------------------------------------------------------------------------------------
 //  Code
 // -------------------------------------------------------------------------------------------------
 
-inline static int checkEOF(FILE *fp, const char *dbgText)
+int checkEOF(FILE *fp, const char *dbgText)
 {
     if(feof(fp)) { logError("[IDTF] Unexpected end of file (%s)", dbgText); return -1; }
 
@@ -592,7 +592,7 @@ inline static int checkEOF(FILE *fp, const char *dbgText)
 }
 
 
-inline static uint16_t readShort(FILE *fp)
+uint16_t readShort(FILE *fp)
 {
     uint16_t c1 = ((uint16_t)fgetc(fp)) & 0xFF;
     uint16_t c2 = ((uint16_t)fgetc(fp)) & 0xFF;
