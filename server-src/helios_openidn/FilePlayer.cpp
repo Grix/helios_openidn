@@ -211,6 +211,7 @@ int FilePlayer::playFile(std::string filename)
                 point.b = b * 0x101;
                 point.intensity = 0xFFFF;
                 point.u1 = point.u2 = point.u3 = point.u4 = 0;
+
                 management->devices.front()->addPointToSlice(point, metadata);
 
                 /*if (cbFunc->putSampleXYRGB(cbContext, x, y, r, g, b))

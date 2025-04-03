@@ -275,7 +275,7 @@ void ManagementInterface::networkLoop(int sd) {
 
 		struct timespec delay, dummy; // Prevents hogging 100% CPU use
 		delay.tv_sec = 0;
-		delay.tv_nsec = 500;
+		delay.tv_nsec = 500000;
 		nanosleep(&delay, &dummy);
 	}
 }
