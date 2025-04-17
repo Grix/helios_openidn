@@ -18,9 +18,12 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
         printf("COMMAND RECEIVED: STOP\n");
         if (management->devices.size() > 0)
         {
-            management->devices.front()->stopAndEmptyQueue();
+            //management->devices.front()->stop();
             //management->devices.front()->setDACBusy(false);
+            // Todo write empty frame
+            management->outputs.front()->close();
         }
+        hasStarted = false;
     }
     else if (buffer[1] == 0x02)
     {
@@ -32,11 +35,9 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
         printf("COMMAND RECEIVED: GET STATUS\n");
 
         unsigned char status = 0;
-        if (management->devices.size() > 0)
+        if (management->outputs.size() > 0)
         {
-            status = 0;//management->devices.front()->getHasFrameInQueue() ? 0 : 1;
-            double bufUsageMs = management->devices.front()->bex->getBufUsageMs();
-            if (bufUsageMs < 20) // todo make latency configurable
+            if (!management->outputs.front()->hasBufferedFrame())
                 status = 1;
         }
 
@@ -70,43 +71,86 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
 
 void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
 {
+    isBusy = true;
     printf("RECEIVED BULK.\n");
 
-    if (management->devices.size() == 0)
+    if (management->outputs.size() == 0)
+    {
+        printf("Error: Received USB frame but no devices are available\n");
+        isBusy = false;
         return;
+    }
 
     //management->devices.front()->setDACBusy(true);
 
     if (numBytes < (5 + 7))
+    {
+        printf("Error: Received USB bulk but too short length\n");
+        isBusy = false;
         return;
+    }
 
     uint16_t numOfPointBytes = numBytes - 5; // from length of received data
     uint16_t numOfPointBytes2 = ((buffer[numOfPointBytes + 3] << 8) | buffer[numOfPointBytes + 2]) * 7; // from control bytes
 
     if (numOfPointBytes != numOfPointBytes2)
     {
-        printf("Error in USB frame: length %d, expected %d\n", numOfPointBytes, numOfPointBytes2);
+        printf("Error: USB frame: length %d, expected %d\n", numOfPointBytes, numOfPointBytes2);
+        isBusy = false;
         return;
     }
 
-    management->devices.front()->resetChunkBuffer();
-    management->devices.front()->bex->setMode(DRIVER_FRAMEMODE);
+    if (!hasStarted)
+    {
+        management->outputs.front()->close();
+        management->outputs.front()->open(RTLaproGraphicOutput::OPMODE_FRAME);
+        hasStarted = true;
+    }
+
+    //management->devices.front()->resetChunkBuffer();
+    //management->devices.front()->bex->setMode(DRIVER_FRAMEMODE);
 
     unsigned int pps = (buffer[numOfPointBytes + 1] << 8) | buffer[numOfPointBytes + 0];
     unsigned int flags = buffer[numOfPointBytes + 4];
 
-    ISPFrameMetadata metadata;
+    /*ISPFrameMetadata metadata;
     metadata.once = (flags & (1 << 1));
     metadata.isWave = false;
     metadata.len = numOfPointBytes / 7;
-    metadata.dur = (1000000 * metadata.len) / pps;
+    metadata.dur = (1000000 * metadata.len) / pps;*/
+
+    RTLaproGraphicOutput::CHUNKDATA chunkData;
+    memset(&chunkData, 0, sizeof(chunkData));
+    chunkData.chunkFlags = IDNFLG_GRAPHIC_FRAME_ONCE;
+    chunkData.chunkDuration = (1000000 * numOfPointBytes) / pps; // us
+    chunkData.decoder = &decoder;
+    chunkData.sampleCount = numOfPointBytes;
+
+    //pointBuffer.clear();
+
+    uint8_t newBuffer[numOfPointBytes * 8]; // Todo reuse buffer to avoid allocation
+
+    unsigned int bufferPos = 0;
 
     size_t loopLength = numBytes - 5;
     for (int i = 0; i < loopLength; i += 7)
     {
         uint8_t* currentPoint = buffer + i;
 
-        ISPDB25Point point;
+        uint16_t x = (currentPoint[0] << 8) | (currentPoint[1] & 0xF0);
+        newBuffer[bufferPos + 0] = x & 0xFF;
+        newBuffer[bufferPos + 1] = x >> 8;
+        uint16_t y = (((currentPoint[1] & 0x0F) << 8) | currentPoint[2]) << 4;
+        newBuffer[bufferPos + 2] = y & 0xFF;
+        newBuffer[bufferPos + 3] = y >> 8;
+        newBuffer[bufferPos + 4] = currentPoint[3];
+        newBuffer[bufferPos + 5] = currentPoint[4];
+        newBuffer[bufferPos + 6] = currentPoint[5];
+        newBuffer[bufferPos + 7] = currentPoint[6];
+
+        bufferPos += 8;
+
+        /*ISPDB25Point point;
         point.x = (currentPoint[0] << 8) | (currentPoint[1] & 0xF0);
         point.y = (((currentPoint[1] & 0x0F) << 8) | currentPoint[2]) << 4;
         point.r = currentPoint[3] * 0x101;
@@ -114,9 +158,21 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
         point.b = currentPoint[5] * 0x101;
         point.intensity = currentPoint[6] * 0x101;
         point.u1 = point.u2 = point.u3 = point.u4 = 0;
-        management->devices.front()->addPointToSlice(point, metadata);
+
+        pointBuffer.push_back(point);*/
+
+        //management->devices.front()->addPointToSlice(point, metadata);
     }
-    management->devices.front()->commitChunk(true);
+
+    management->outputs.front()->process(chunkData, newBuffer, bufferPos);
+
+    /*TimeSlice slice;
+    slice.dataChunk = management->devices.front()->convertPoints(pointBuffer);
+    slice.durationUs = (1000000 * numOfPointBytes) / pps;
+
+    management->devices.front()->writeFrame(slice, (1000000 * numOfPointBytes) / pps);*/
+
+    isBusy = false;
 }
 
 

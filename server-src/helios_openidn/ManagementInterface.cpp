@@ -4,6 +4,8 @@
 
 ManagementInterface::ManagementInterface()
 {
+	filePlayer.devices = &devices;
+	filePlayer.outputs = &outputs;
 }
 
 /// <summary>
@@ -198,6 +200,7 @@ void ManagementInterface::readSettingsFile()
 	if (shouldRewrite)
 	{
 		file.write(ini);
+		// Todo reboot if network settings has changed
 	}
 
 	printf("Finished reading main settings.\n");

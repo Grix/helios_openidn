@@ -1,10 +1,18 @@
 #pragma once
 
-#include "OpenIDN.hpp" //logError()
-#include "ManagementInterface.hpp"
+//#include "ManagementInterface.hpp"
+#include "server/openIDN.hpp" //logError()
+#include "shared/types.h"
+#include "output/IdtfDecoder.hpp"
+#include "output/RTLaproGraphOut.hpp"
+#include "shared/DACHWInterface.hpp"
+#include "output/V1LaproGraphOut.hpp"
 #include <string>
 #include <map>
 #include <cstring>
+#include <queue>
+#include <cmath>
+#include <mutex>
 
 #define FILEPLAYER_MODE_REPEAT 0
 #define FILEPLAYER_MODE_ONCE 1
@@ -30,6 +38,12 @@ public:
 		int palette = 0;
 	} FilePlayerFileParameters;
 
+    typedef struct QueuedFrame
+    {
+        std::vector<uint8_t> buffer; // Todo reuse buffers, avoid memory allocation
+        unsigned int pps;
+    } QueuedFrame;
+
 	bool autoplay = false;
 	std::string currentFile = "";
 	int mode = FILEPLAYER_MODE_REPEAT;
@@ -37,11 +51,16 @@ public:
 	unsigned int frame = 0;
 	std::map<std::string, FilePlayerFileParameters> fileParameters;
 	FilePlayerFileParameters defaultParameters;
+    std::vector<std::shared_ptr<DACHWInterface>>* devices;
+    std::vector<std::shared_ptr<V1LaproGraphicOutput>>* outputs;
+
+    FilePlayer();
 
 	void start();
 	void stop();
 	void pause();
 	int playFile(std::string filename);
+    void outputLoop();
 
 private:
 
@@ -49,6 +68,14 @@ private:
 
     int checkEOF(FILE* fp, const char* dbgText);
     uint16_t readShort(FILE* fp);
+
+    //std::vector<ISPDB25Point> pointBuffer;
+    //SliceBuf queue;
+    std::deque<std::shared_ptr<QueuedFrame>> queue;
+    IdtfDecoder decoder;
+    pthread_t outputThread = 0;
+    std::mutex threadLock;
+    bool hasStarted = false;
 
     unsigned long customPalette[256];
     unsigned long ildaDefaultPalette[256] =      // LFI / Aura Technologies

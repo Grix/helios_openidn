@@ -1,5 +1,9 @@
 #pragma once
 
+#include "ini.hpp"
+#include "server/IDNServer.hpp"
+#include "FilePlayer.hpp"
+#include "output/V1LaproGraphOut.hpp"
 #include <string>
 #include <cstdint>
 #include <sys/socket.h>
@@ -7,9 +11,6 @@
 #include <netdb.h>
 #include <filesystem>
 #include <sys/utsname.h>
-#include "ini.hpp"
-#include "IDNServer.hpp"
-#include "FilePlayer.hpp"
 
 #define MANAGEMENT_PORT 7355
 
@@ -27,7 +28,6 @@
 /// Class that exposes network and file system interfaces for managing the OpenIDN system, such as pinging, reading config files from USB drive, etc.
 /// </summary>
 
-
 class ManagementInterface
 {
 public:
@@ -40,12 +40,13 @@ public:
 	static int getHardwareType();
 
 	std::string settingIdnHostname = "OpenIDN";
-	const char softwareVersion[10] = "0.9.7";
-	const unsigned char softwareVersionUsb = 97;
+	const char softwareVersion[10] = "0.9.8";
+	const unsigned char softwareVersionUsb = 98;
 	std::shared_ptr<IDNServer> idnServer;
-	int modePriority[OUTPUT_MODE_MAX + 1] = { 3, 4, 1, 2 }; // If <=0, disable entirely
 	FilePlayer filePlayer;
-	std::vector<std::shared_ptr<LaproService>> devices;
+	int modePriority[OUTPUT_MODE_MAX + 1] = { 3, 4, 1, 2 }; // If <=0, disable entirely
+	std::vector<std::shared_ptr<DACHWInterface>> devices;
+	std::vector<std::shared_ptr<V1LaproGraphicOutput>> outputs;
 
 
 private:

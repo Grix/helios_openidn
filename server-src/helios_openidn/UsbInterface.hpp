@@ -4,6 +4,8 @@
 // Meaning an INPUT interface, as an alternative to the IDN network server, not output. For output USB interface see HeliosAdapter.cpp
 
 #include "ManagementInterface.hpp"
+#include "shared/types.h"
+#include "output/IdtfDecoder.hpp"
 #include <unistd.h>
 #include <cstdio>
 #include <memory>
@@ -31,5 +33,9 @@ private:
 
     inline static UsbInterface* instance = nullptr;
     bool hasSentReadySignal = false;
+    bool isBusy = false;
+    IdtfDecoder decoder;
+    //std::vector<ISPDB25Point> pointBuffer;
+    bool hasStarted = false;
 };
 
