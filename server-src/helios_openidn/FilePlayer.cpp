@@ -398,7 +398,7 @@ void FilePlayer::outputLoop()
         {
 
 
-            delay.tv_nsec = 3000000; // 3 ms
+            delay.tv_nsec = 5000000; // 5 ms
         }
         else if (state == FILEPLAYER_STATE_PLAY || state == FILEPLAYER_STATE_PAUSE)
         {

@@ -99,7 +99,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 	//printf("%d - %d - %f\n", pps, numPoints, durationUs);
 
 	unsigned int pointsPerFrame = numPoints;
-	unsigned int maxPointsPerFrame = maxBytesPerTransmission() / bytesPerPoint() - 1;
+	unsigned int maxPointsPerFrame = HELIOSPRO_CHUNKSIZE / bytesPerPoint() - 1;
 	if (pointsPerFrame > maxPointsPerFrame)
 		pointsPerFrame = numPoints / ceil((double)maxPointsPerFrame / pointsPerFrame) + 1;
 
@@ -156,20 +156,31 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 			sdif = now.tv_sec - then.tv_sec;
 			nsdif = now.tv_nsec - then.tv_nsec;
 			tdif = sdif * 1000000000 + nsdif;
-			if (tdif > ((unsigned long)durationUs * 1000 * 5))
+			//printf("no: %d\n", tdif / 1000);
+			if (tdif > ((unsigned long)durationUs * 1000 * 5) || (durationUs < 200 && (tdif > durationUs * 1000)))
 			{
 				printf("WARNING: Timeout waiting for Helios buffer chip: %d\n", tdif / 1000);
 
-				GPIO_DIR_OUT(GPIOPIN_MCURESET_LED);
-				GPIO_CLR(GPIOPIN_MCURESET_LED);
-				GPIO_SET(GPIOPIN_MCURESET_LED);
-				GPIO_DIR_IN(GPIOPIN_MCURESET_LED);
+				//GPIO_DIR_OUT(GPIOPIN_MCURESET_LED);
+				//GPIO_CLR(GPIOPIN_MCURESET_LED); // turn off resetting for now
+				//GPIO_SET(GPIOPIN_MCURESET_LED);
+				//GPIO_DIR_IN(GPIOPIN_MCURESET_LED);
+
+				//struct timespec delay, dummy; // Prevents hogging 100% CPU use
+				//delay.tv_sec = 0;
+				//delay.tv_nsec = 500000;
+				//nanosleep(&delay, &dummy);
 
 				isBusy = false;
 				return 0;
 			}
 			std::this_thread::yield(); //todo use sleep if RT scheduling?
 		};
+		clock_gettime(CLOCK_MONOTONIC, &now);
+		sdif = now.tv_sec - then.tv_sec;
+		nsdif = now.tv_nsec - then.tv_nsec;
+		tdif = sdif * 1000000000 + nsdif;
+		printf("Helios rdy signal recvd: %d\n", tdif / 1000);
 
 		//printf("got ready\n");
 
@@ -203,22 +214,45 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 			printf("msg size = %u\n", dataSizeBytes + 16 + 4);
 		}
 #ifndef NDEBUG
-		printf("wrote to HelPro size = %u\n", dataSizeBytes + 16 + 4);
+		//printf("wrote to HelPro size = %u\n", dataSizeBytes + 16 + 4);
 #endif
 
-		clock_gettime(CLOCK_MONOTONIC, &now);
-		sdif = now.tv_sec - then.tv_sec;
-		nsdif = now.tv_nsec - then.tv_nsec;
-		tdif = sdif * 1000000000 + nsdif;
-		while (tdif < ((unsigned long)durationUs * 1000 * 0.3))
+		//if (durationUs > 200)
 		{
-			std::this_thread::yield(); // todo sleep if RT scheduler
+			struct timespec then2;
+			clock_gettime(CLOCK_MONOTONIC, &then2);
+			while (GPIO_LEV(GPIOPIN_STATUS)) // Wait for chip to signal transfer was received, to avoid race condition
+			{
+				clock_gettime(CLOCK_MONOTONIC, &now);
+				sdif = now.tv_sec - then2.tv_sec;
+				nsdif = now.tv_nsec - then2.tv_nsec;
+				tdif = sdif * 1000000000 + nsdif;
+				//printf("no2: %d\n", tdif / 1000);
+				if (tdif > 100000)
+				{
+					printf("WARNING: Helios write ack delayed: %d\n", tdif / 1000);
+					break;
+				}
+				std::this_thread::yield(); //todo use sleep if RT scheduling?
+			};
+			clock_gettime(CLOCK_MONOTONIC, &now);
+			sdif = now.tv_sec - then2.tv_sec;
+			nsdif = now.tv_nsec - then2.tv_nsec;
+			tdif = sdif * 1000000000 + nsdif;
+			printf("Helios write ack recvd: %d\n", tdif / 1000);
+		}
+
+		do
+		{
+			if (durationUs > 300)
+				std::this_thread::yield(); // todo sleep if RT scheduler
 
 			clock_gettime(CLOCK_MONOTONIC, &now);
 			sdif = now.tv_sec - then.tv_sec;
 			nsdif = now.tv_nsec - then.tv_nsec;
 			tdif = sdif * 1000000000 + nsdif;
-		}
+
+		} while (tdif < ((unsigned long)durationUs * 1000 * 0.3));
 
 		pointsLeft -= pointsThisFrame;
 		offsetPoints += pointsThisFrame;
