@@ -45,6 +45,10 @@ HeliosProAdapter::HeliosProAdapter()
 
 	GPIO_DIR_OUT(GPIOPIN_MCURESET_LED);
 	GPIO_CLR(GPIOPIN_MCURESET_LED);
+	struct timespec delay, dummy; // Prevents hogging 100% CPU use
+	delay.tv_sec = 0;
+	delay.tv_nsec = 1000000;
+	nanosleep(&delay, &dummy);
 	GPIO_SET(GPIOPIN_MCURESET_LED);
 	GPIO_DIR_IN(GPIOPIN_MCURESET_LED);
 
@@ -157,7 +161,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 			nsdif = now.tv_nsec - then.tv_nsec;
 			tdif = sdif * 1000000000 + nsdif;
 			//printf("no: %d\n", tdif / 1000);
-			if (tdif > ((unsigned long)durationUs * 1000 * 5) || (durationUs < 200 && (tdif > durationUs * 1000)))
+			if (tdif > ((unsigned long)durationUs * 1000) || (durationUs < 200 && (tdif > durationUs * 1000))) // todo use duration of previous write
 			{
 				printf("WARNING: Timeout waiting for Helios buffer chip: %d\n", tdif / 1000);
 
@@ -228,9 +232,9 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 				nsdif = now.tv_nsec - then2.tv_nsec;
 				tdif = sdif * 1000000000 + nsdif;
 				//printf("no2: %d\n", tdif / 1000);
-				if (tdif > 100000)
+				if (tdif > 1000000)
 				{
-					printf("WARNING: Helios write ack delayed: %d\n", tdif / 1000);
+					printf("WARNING: Helios write ack NOT recvd: %d\n", tdif / 1000);
 					break;
 				}
 				std::this_thread::yield(); //todo use sleep if RT scheduling?
@@ -239,7 +243,8 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 			sdif = now.tv_sec - then2.tv_sec;
 			nsdif = now.tv_nsec - then2.tv_nsec;
 			tdif = sdif * 1000000000 + nsdif;
-			printf("Helios write ack recvd: %d\n", tdif / 1000);
+			if (tdif < 1000000)
+				printf("Helios write ack recvd: %d\n", tdif / 1000);
 		}
 
 		do
