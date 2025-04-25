@@ -123,7 +123,7 @@ void HWBridge::driverLoop() {
 			//if we're in frame mode, put the slice back
 			//wave mode just discards
 			if(bex->getMode() == DRIVER_FRAMEMODE) {
-				currentBuf->push_back(nextSlice);
+				//currentBuf->push_back(nextSlice);
 			}
 
 			this->device->writeFrame(*nextSlice, speedFactor*nextSlice->durationUs);

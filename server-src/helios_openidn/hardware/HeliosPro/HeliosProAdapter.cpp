@@ -115,6 +115,10 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		unsigned int pointsThisFrame = pointsLeft < pointsPerFrame ? pointsLeft : pointsPerFrame;
 		dataSizeBytes = pointsThisFrame * bytesPerPoint();
 
+#ifndef NDEBUG
+		printf("Set helPro frame: samples %d, left %d, pps %d\n", pointsThisFrame, pointsLeft, pps);
+#endif
+
 		writeBuffer[0] = 'H';
 		writeBuffer[1] = 'P';
 		writeBuffer[2] = 'D'; // data
@@ -237,7 +241,8 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 					printf("WARNING: Helios write ack NOT recvd: %d\n", tdif / 1000);
 					break;
 				}
-				std::this_thread::yield(); //todo use sleep if RT scheduling?
+				if (durationUs > 200)
+					std::this_thread::yield(); //todo use sleep if RT scheduling?
 			};
 			clock_gettime(CLOCK_MONOTONIC, &now);
 			sdif = now.tv_sec - then2.tv_sec;
@@ -264,6 +269,10 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 	}
 
 	isBusy = false;
+
+#ifndef NDEBUG
+	printf("Finished helPro frame\n");
+#endif
 
 
 	return 0;

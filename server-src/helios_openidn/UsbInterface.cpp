@@ -112,6 +112,11 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
 
     unsigned int pps = (buffer[numOfPointBytes + 1] << 8) | buffer[numOfPointBytes + 0];
     unsigned int flags = buffer[numOfPointBytes + 4];
+    unsigned int numPoints = numOfPointBytes / 7;
+
+#ifndef NDEBUG
+    printf("Recvd USB: points %d, pps %d\n", numPoints, pps);
+#endif
 
     /*ISPFrameMetadata metadata;
     metadata.once = (flags & (1 << 1));
@@ -121,28 +126,30 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
 
     RTLaproGraphicOutput::CHUNKDATA chunkData;
     memset(&chunkData, 0, sizeof(chunkData));
-    chunkData.chunkFlags = IDNFLG_GRAPHIC_FRAME_ONCE;
-    chunkData.chunkDuration = (1000000 * numOfPointBytes) / pps; // us
+    chunkData.chunkFlags = IDNFLG_GRAPHIC_FRAME_ONCE; // todo
+    chunkData.chunkDuration = (1000000 * numPoints) / pps; // us
     chunkData.decoder = &decoder;
-    chunkData.sampleCount = numOfPointBytes;
+    chunkData.sampleCount = numPoints;
 
     //pointBuffer.clear();
 
-    uint8_t newBuffer[numOfPointBytes * 8]; // Todo reuse buffer to avoid allocation
+    uint8_t newBuffer[numPoints * 8]; // Todo reuse buffer to avoid allocation
 
     unsigned int bufferPos = 0;
 
-    size_t loopLength = numBytes - 5;
+    size_t loopLength = numOfPointBytes;
     for (int i = 0; i < loopLength; i += 7)
     {
         uint8_t* currentPoint = buffer + i;
 
         uint16_t x = (currentPoint[0] << 8) | (currentPoint[1] & 0xF0);
-        newBuffer[bufferPos + 0] = x & 0xFF;
-        newBuffer[bufferPos + 1] = x >> 8;
+        *((uint16_t*)&newBuffer[bufferPos + 0]) = x;
+        //newBuffer[bufferPos + 0] = x & 0xFF;
+        //newBuffer[bufferPos + 1] = x >> 8;
         uint16_t y = (((currentPoint[1] & 0x0F) << 8) | currentPoint[2]) << 4;
-        newBuffer[bufferPos + 2] = y & 0xFF;
-        newBuffer[bufferPos + 3] = y >> 8;
+        *((uint16_t*)&newBuffer[bufferPos + 2]) = y;
+        //newBuffer[bufferPos + 2] = y & 0xFF;
+        //newBuffer[bufferPos + 3] = y >> 8;
         newBuffer[bufferPos + 4] = currentPoint[3];
         newBuffer[bufferPos + 5] = currentPoint[4];
         newBuffer[bufferPos + 6] = currentPoint[5];
@@ -163,6 +170,10 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
 
         //management->devices.front()->addPointToSlice(point, metadata);
     }
+
+#ifndef NDEBUG
+    printf("Processing, bufferpos %d\n", bufferPos);
+#endif
 
     management->outputs.front()->process(chunkData, newBuffer, bufferPos);
 
