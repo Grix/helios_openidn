@@ -25,6 +25,7 @@
 #include <deque>
 #include <memory>
 #include <string>
+#include <stdexcept>
 
 #define DRIVER_INACTIVE 0
 #define DRIVER_WAVEMODE 1
