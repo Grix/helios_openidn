@@ -25,6 +25,17 @@
 #define HARDWARE_ROCKPIS 1
 #define HARDWARE_ROCKS0 2
 
+
+// Uncomment the line you need for your display
+//typedef DisplaySSD1331_96x64x8_SPI GraphicsDisplay;
+typedef DisplaySSD1306_128x64_I2C GraphicsDisplay;
+//typedef DisplaySSD1306_128x64_SPI GraphicsDisplay;
+//typedef DisplayPCD8544_84x48_SPI GraphicsDisplay;
+//typedef DisplayST7735_128x160_SPI GraphicsDisplay;
+//typedef DisplayIL9163_128x160_SPI GraphicsDisplay;
+
+//typedef NanoEngine8<GraphicsDisplay> GraphicsEngine;
+
 /// <summary>
 /// Class that exposes network and file system interfaces for managing the OpenIDN system, such as pinging, reading config files from USB drive, etc.
 /// </summary>
@@ -61,4 +72,7 @@ private:
 	int mode = OUTPUT_MODE_IDN;
 
 	static int hardwareType;
+
+	GraphicsDisplay* display = nullptr;
+	//NanoEngine8<DisplaySSD1306_128x64_I2C> graphicsEngine;
 };
