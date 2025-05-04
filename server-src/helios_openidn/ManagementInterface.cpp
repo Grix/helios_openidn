@@ -2,6 +2,19 @@
 
 #define UDP_MAXBUF 128
 
+// Uncomment the line you need for your display
+//typedef DisplaySSD1331_96x64x8_SPI GraphicsDisplay;
+typedef DisplaySSD1306_128x64_I2C GraphicsDisplay;
+//typedef DisplaySSD1306_128x64_SPI GraphicsDisplay;
+//typedef DisplayPCD8544_84x48_SPI GraphicsDisplay;
+//typedef DisplayST7735_128x160_SPI GraphicsDisplay;
+//typedef DisplayIL9163_128x160_SPI GraphicsDisplay;
+
+typedef NanoEngine8<GraphicsDisplay> GraphicsEngine;
+
+extern GraphicsDisplay display;
+extern GraphicsEngine engine;
+
 ManagementInterface::ManagementInterface()
 {
 	filePlayer.devices = &devices;

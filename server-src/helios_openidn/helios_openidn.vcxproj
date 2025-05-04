@@ -41,6 +41,36 @@
     <ClCompile Include="shared\BEX.cpp" />
     <ClCompile Include="shared\glue.cpp" />
     <ClCompile Include="shared\HWBridge.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\canvas\canvas.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\canvas\font.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\canvas\fonts\fonts.c" />
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\interface.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\linux\linux_i2c.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\linux\linux_spi.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\linux\platform.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\linux\sdl_i2c.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\linux\sdl_spi.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\gui\button.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\gui\menu.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\gui\yesno.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\il9163\lcd_il9163.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ili9341\lcd_ili9341.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\lcdany\lcd_any.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\lcdttgo\lcd_ttgo.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\lcdwio\lcd_wio.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\lcd_common.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\pcd8544\lcd_pcd8544.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\sh1106\lcd_sh1106.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\sh1107\lcd_sh1107.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ssd1306\lcd_ssd1306.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ssd1325\lcd_ssd1325.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ssd1327\lcd_ssd1327.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ssd1331\lcd_ssd1331.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ssd1351\lcd_ssd1351.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\st7735\lcd_st7735.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\st7789\lcd_st7789.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\nano_engine\core.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\utf8.c" />
     <ClCompile Include="UsbGadget.c" />
     <ClCompile Include="UsbInterface.cpp" />
   </ItemGroup>
@@ -75,7 +105,84 @@
     <ClInclude Include="shared\idn.h" />
     <ClInclude Include="shared\PEVFlags.h" />
     <ClInclude Include="shared\types.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\adafruit.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\canvas.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\canvas_types.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\font.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\fonts\fonts.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\internal\canvas_types_int.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\point.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\rect.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\UserSettings.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcdgfx.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcdgfx_gui.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\custom_interface.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\interface.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\io.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\Arduino.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\avr\interrupt.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\avr\pgmspace.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\avr\sleep.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\Print.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\Wire.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\io.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\linux_i2c.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\linux_spi.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\sdl_i2c.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\sdl_spi.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\Print_internal.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\UserSettings.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\nano_engine_v2.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\nano_gfx_types.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\gui\button.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\gui\menu.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\gui\yesno.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\base\display.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\base\display_base.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\il9163\lcd_il9163.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ili9341\lcd_ili9341.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\lcdany\lcd_any.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\lcdttgo\lcd_ttgo.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\lcdwio\lcd_wio.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\lcd_common.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\pcd8544\lcd_pcd8544.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\sh1106\lcd_sh1106.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\sh1107\lcd_sh1107.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ssd1306\lcd_ssd1306.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ssd1325\lcd_ssd1325.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ssd1327\lcd_ssd1327.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ssd1331\lcd_ssd1331.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ssd1351\lcd_ssd1351.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\st7735\lcd_st7735.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\st7789\lcd_st7789.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\core.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\menu.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\menu_items.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\object.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\sprite.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\tiler.h" />
     <ClInclude Include="UsbInterface.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="thirdparty\lcdgfx\src\README.md" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\base\ssd1306_16bit.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\base\ssd1306_1bit.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\base\ssd1306_4bit.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\base\ssd1306_8bit.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\base\ssd1306_common.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\il9163\lcd_il9163.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\ili9341\lcd_ili9341.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\lcd_common.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\pcd8544\lcd_pcd8544.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\sh1106\lcd_sh1106.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\sh1107\lcd_sh1107.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\ssd1306\lcd_ssd1306.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\ssd1325\lcd_ssd1325.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\ssd1327\lcd_ssd1327.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\ssd1331\lcd_ssd1331.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\ssd1351\lcd_ssd1351.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\st7735\lcd_st7735.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\st7789\lcd_st7789.inl" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{98e3da4e-c528-406b-95d3-ac02baae62b1}</ProjectGuid>
@@ -105,6 +212,12 @@
   <ImportGroup Label="Shared" />
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <IncludePath>$(ProjectDir)thirdparty\lcdgfx\src;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <IncludePath>$(ProjectDir)thirdparty\lcdgfx\src;$(IncludePath)</IncludePath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <Link>
       <LibraryDependencies>usb-1.0 pthread</LibraryDependencies>

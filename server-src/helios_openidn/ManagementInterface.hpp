@@ -4,6 +4,7 @@
 #include "server/IDNServer.hpp"
 #include "FilePlayer.hpp"
 #include "output/V1LaproGraphOut.hpp"
+#include "thirdparty/lcdgfx/src/lcdgfx.h"
 #include <string>
 #include <cstdint>
 #include <sys/socket.h>
