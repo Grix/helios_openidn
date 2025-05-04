@@ -14,9 +14,20 @@ ManagementInterface::ManagementInterface()
 		display = new GraphicsDisplay(-1, { 1, 0x3C, -1, -1, 0 });
 		display->begin();
 		display->clear();
-		display->drawLine(10, 10, 100, 40);
-		//display->setTextCursor(10, 10);
-		//display->write("Hello");
+		display->setFixedFont(ssd1306xled_font8x16);
+		display->printFixed(10, 10, "HelloWorld");
+		display->drawLine(10, 30, 110, 30);
+		//graphicsEngine = new GraphicsEngine(*display);
+		/*graphicsEngine->begin();
+		graphicsEngine->setFrameRate(20);
+		graphicsEngine->getCanvas().clear();
+		//display->drawLine(10, 10, 100, 40);
+		graphicsEngine->getCanvas().setFixedFont(ssd1306xled_font8x16);
+		graphicsEngine->getCanvas().printFixed(10, 10, "HelloWorld");
+		graphicsEngine->getCanvas().drawLine(10, 30, 110, 30);
+		//graphicsEngine->getCanvas().setTextCursor(10, 10);
+		//graphicsEngine->getCanvas().write("Hello");
+		graphicsEngine->refresh();*/
 	}
 }
 
@@ -216,6 +227,13 @@ void ManagementInterface::readSettingsFile()
 	}
 
 	printf("Finished reading main settings.\n");
+
+	if (display)
+	{
+		display->printFixed(10, 40, "InitFin");
+		//graphicsEngine->getCanvas().printFixed(10, 40, "InitFin");
+		//graphicsEngine->display();
+	}
 }
 
 void ManagementInterface::networkLoop(int sd) {

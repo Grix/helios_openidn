@@ -34,7 +34,7 @@ typedef DisplaySSD1306_128x64_I2C GraphicsDisplay;
 //typedef DisplayST7735_128x160_SPI GraphicsDisplay;
 //typedef DisplayIL9163_128x160_SPI GraphicsDisplay;
 
-//typedef NanoEngine8<GraphicsDisplay> GraphicsEngine;
+typedef NanoEngine<NanoCanvas<32, 32, 1U>, GraphicsDisplay> GraphicsEngine;
 
 /// <summary>
 /// Class that exposes network and file system interfaces for managing the OpenIDN system, such as pinging, reading config files from USB drive, etc.
@@ -74,5 +74,5 @@ private:
 	static int hardwareType;
 
 	GraphicsDisplay* display = nullptr;
-	//NanoEngine8<DisplaySSD1306_128x64_I2C> graphicsEngine;
+	GraphicsEngine* graphicsEngine = nullptr;
 };
