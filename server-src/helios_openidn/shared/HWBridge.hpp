@@ -28,6 +28,18 @@
 #define DEBUGLIVE 2
 #define DEBUGSIMPLE 3
 
+
+class TransformEnv
+{
+public:
+    double currentSliceTime;
+
+    std::vector<ISPDB25Point> db25Accu;
+    double skipCounter = 0;
+    
+};
+
+
 class HWBridge {
 public:
 	HWBridge(std::shared_ptr<DACHWInterface> hwDeviceInterface, std::shared_ptr<BEX> bex);
@@ -39,14 +51,27 @@ public:
 	void printStats();
 	void outputEmptyPoint();
 
+    void bexSetMode(int mode);
+    void bexPublishReset();
+    void bexNetworkAppendSlice(std::shared_ptr<DB25Chunk> db25Chunk);
+
+    // -- Inline Methods ----------------
+    void setChunkLengthUs(double us) { this->usPerSlice = us; }
+
+
+	std::shared_ptr<BEX> bex;
+
 private:
 	void waveIteration();
 	void frameIteration();
 	double calculateSpeedfactor(double currentSpeed, std::shared_ptr<SliceBuf> buf);
 	void resetInternals();
 
+    double usPerSlice = 10000;
+    void commitChunk(TransformEnv &tfEnv, std::shared_ptr<SliceBuf> &sliceBuf);
+    std::shared_ptr<SliceBuf> db25toDevice(TransformEnv &tfEnv, std::shared_ptr<DB25ChunkQueue> db25ChunkQueue);
+
 	std::shared_ptr<DACHWInterface> device;
-	std::shared_ptr<BEX> bex;
 	double bufferTargetMs = 40;
 	double speedFactor = 1.0;
 	double accumOC = 0.0;

@@ -11,11 +11,13 @@ UsbInterface::UsbInterface()
 
 void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
 {
+#ifndef NDEBUG
     printf("RECEIVED INT.\n");
+#endif
 
     if (buffer[1] == 0x01)
     {
-        printf("COMMAND RECEIVED: STOP\n");
+        printf("CMD RECVD: STOP\n");
         if (management->devices.size() > 0)
         {
             //management->devices.front()->stop();
@@ -27,12 +29,12 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
     }
     else if (buffer[1] == 0x02)
     {
-        printf("COMMAND RECEIVED: SET SHUTTER\n");
+        printf("CMD RECVD: SET SHUTTER\n");
         // Todo?
     }
     else if (buffer[0] == 0x03)
     {
-        printf("COMMAND RECEIVED: GET STATUS\n");
+        printf("CMD RECVD: GET STATUS\n");
 
         unsigned char status = 0;
         if (management->outputs.size() > 0)
@@ -48,7 +50,7 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
     }
     else if (buffer[0] == 0x04)
     {
-        printf("COMMAND RECEIVED: GET FW VERSION\n");
+        printf("CMD RECVD: GET FW VERSION\n");
         unsigned char response[5];
         response[0] = 0x84;
         response[1] = management->softwareVersionUsb; // todo make same format as network response
@@ -59,7 +61,7 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
     }
     else if (buffer[0] == 0x05)
     {
-        printf("COMMAND RECEIVED: GET NAME\n");
+        printf("CMD RECVD: GET NAME\n");
         unsigned char response[32];
         strncpy((char*)response + 1, (management->settingIdnHostname +" (USB)").c_str(), 31);
         response[0] = 0x85;
@@ -72,7 +74,10 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
 void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
 {
     isBusy = true;
+
+#ifndef NDEBUG
     printf("RECEIVED BULK.\n");
+#endif
 
     if (management->outputs.size() == 0)
     {

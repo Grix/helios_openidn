@@ -69,7 +69,7 @@ class IDNLaproGraConInlet: public IDNLaproGraphInlet
     ////////////////////////////////////////////////////////////////////////////////////////////////
     public:
 
-    IDNLaproGraConInlet(std::shared_ptr<RTLaproGraphicOutput> rtOutput);
+    IDNLaproGraConInlet(RTLaproGraphicOutput *rtOutput);
     virtual ~IDNLaproGraConInlet();
 
     // -- Inherited Members -------------

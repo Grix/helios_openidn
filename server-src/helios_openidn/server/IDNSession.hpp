@@ -39,7 +39,8 @@
 
 // Project headers
 #include "../shared/idn-stream.h"
-#include "../shared/glue.hpp"
+#include "../shared/ODFEnvironment.hpp"
+#include "../shared/ODFTaxiBuffer.hpp"
 
 
 

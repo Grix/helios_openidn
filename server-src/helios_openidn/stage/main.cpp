@@ -15,7 +15,7 @@
 #include <memory>
 #include <stdexcept>
 #include <atomic>
-#include <optional>
+#include  <optional>
 #include <iostream>
 
 #include <cstdarg> 
@@ -31,18 +31,18 @@
 
 #include "../output/V1LaproGraphOut.hpp"
 
-#include "IDNLaproService.hpp"
-#include "openIDN.hpp"
+#include "../server/IDNLaproService.hpp"
+#include "SockIDNServer.hpp"
+
 #include "../ManagementInterface.hpp"
 #include "../UsbInterface.hpp"
 
 
 std::vector<std::shared_ptr<HWBridge>> driverObjects;
-std::vector<std::shared_ptr<V1LaproGraphicOutput>> laproGraphicOutputs;
-std::vector<std::shared_ptr<IDNService>> services;
+std::vector<RTOutput *> rtOutputs;
+LLNode<ServiceNode> *firstService = nullptr;
+std::shared_ptr<SockIDNServer> idnServer = nullptr;
 std::vector<pthread_t> driverThreads;
-
-std::shared_ptr<OpenIDNServer> idnServer = nullptr;
 
 // Helios adapter management
 pthread_t management_thread = 0;
@@ -76,6 +76,21 @@ void sig_handler(int sig) {
 
     // Clear the driver list.
     driverObjects.clear();
+
+    // Delete outputs
+    for(auto rtOutput : rtOutputs) delete rtOutput;
+    rtOutputs.clear();
+    management->outputs.clear();
+
+    // Delete services
+    while(firstService)
+    {
+        LLNode<ServiceNode> *node = firstService;
+        IDNService *service = static_cast<IDNService *>(node);
+
+        service->linkout();
+        delete(service);
+    }
 
     _exit(0); 
 }
@@ -209,22 +224,23 @@ std::optional<int> maxPointRate = std::nullopt, std::optional<int> bufferTargetM
         printf("[Service %d]: Starting with changed Buffer Target (MS): %d \n", id, bufferTargetMs.value());
     }
 
-    driverObjects.push_back(driverObj);
-
-    auto laproGraphicOut = std::make_shared<V1LaproGraphicOutput>(driverObj, bex);
-
     if(chunkLengthUs) {
-        laproGraphicOut->setChunkLengthUs(chunkLengthUs.value());
+        driverObj->setChunkLengthUs(chunkLengthUs.value());
         printf("[Service %d]: Starting with changed Chunk Length (Us): %d \n", id, chunkLengthUs.value());
     }
 
-    laproGraphicOutputs.push_back(laproGraphicOut);
+    driverObjects.push_back(driverObj);
+
+    auto laproGraphicOut = new V1LaproGraphicOutput(driverObj);
+
+    rtOutputs.push_back(laproGraphicOut);
 
     char* serviceName = strdup(name.c_str());
 
     auto laproService = new IDNLaproService(id, serviceName, true, laproGraphicOut);
 
-    services.push_back(std::shared_ptr<IDNService>(laproService));
+    laproService->linkinLast(&firstService);
+
     management->devices.push_back(adapter);
     management->outputs.push_back(laproGraphicOut);
 }
@@ -242,7 +258,8 @@ int parseArguments(int argc, char** argv) {
             printf("--<driver>\n");
             printf("\t--dummy\n");
             printf("\t--helios\n");
-            printf("\t--heliospro\n");
+            if (management->getHardwareType() == HARDWARE_ROCKS0)
+                printf("\t--heliospro\n");
             printf("\t--multiservice [filename / automap]\n");
             printf("--list-available-devices\n");
             printf("--dump\n");
@@ -273,7 +290,9 @@ int parseArguments(int argc, char** argv) {
 
                     if (!available.empty()) {
                         for(const auto& [name, id] : available) {
-                            createLaProService(std::make_shared<HeliosAdapter>(id), name, services.size() + 1);
+                            int serviceID = 1;
+                            for(LLNode<ServiceNode> *node = firstService; node != nullptr; node = node->getNextNode()) serviceID++;
+                            createLaProService(std::make_shared<HeliosAdapter>(id), name, serviceID);
                             printf("Started Helios device: %s \n", name.c_str());
                         }
                     } else {
@@ -285,6 +304,7 @@ int parseArguments(int argc, char** argv) {
                     continue;
                 }
 
+
                 continue;
                 
 
@@ -293,6 +313,7 @@ int parseArguments(int argc, char** argv) {
                 std::map<std::string, ServiceConfig> iniServices;
 
                 bool heliosInit = false;
+                bool etherdreamInit = false;
 
                 std::string filename = "services.ini";
 
@@ -381,7 +402,6 @@ int parseArguments(int argc, char** argv) {
                 printf("HeliosAdapter initialization failed: %s\n", e.what());
             }
 
-
             // Exit after listing the devices
             exit(0);
         }
@@ -395,7 +415,6 @@ int parseArguments(int argc, char** argv) {
                 printf("HeliosAdapter initialization failed: %s\n", e.what());
             }
         
-        
             printf("\n\n\n");
         
             std::map<std::string, int> heliosDevices = HeliosAdapter::getAvailableDevices();
@@ -405,8 +424,6 @@ int parseArguments(int argc, char** argv) {
             if (heliosDevices.size() > 0) {
                 dummyHelios.emplace(0);
             }
-
-            
         
             int serviceCount = 1;
             
@@ -460,20 +477,24 @@ int parseArguments(int argc, char** argv) {
             continue;
         }
 
-        if (strcmp(argv[i], "--heliospro") == 0) {
-            try {
-                printf("Using the HeliosPRO driver\n");
-                auto device = std::make_shared<HeliosProAdapter>();
-                char name[32];
-                device->getName(name, 32);
-                createLaProService(device, std::string(name), 1);
+        if (management->getHardwareType() == HARDWARE_ROCKS0)
+        {
+            if (strcmp(argv[i], "--heliospro") == 0) {
+                try {
+                    printf("Using the HeliosPRO driver\n");
+                    auto device = std::make_shared<HeliosProAdapter>();
+                    char name[32];
+                    device->getName(name, 32);
+                    createLaProService(device, std::string(name), 1);
+                }
+                catch (const std::exception& e) {
+                    printf("HeliosPRO driver error: %s\n", e.what());
+                    return -1;
+                }
+                continue;
             }
-            catch (const std::exception& e) {
-                printf("HeliosPRO driver error: %s\n", e.what());
-                return -1;
-            }
-            continue;
         }
+
         //#endif
 
 
@@ -502,8 +523,8 @@ int parseArguments(int argc, char** argv) {
             double chunkUs = (double)std::stoi(argv[i + 1]);
             printf("Changed ChunkLengthUs to %f us\n", chunkUs);
 
-            for (auto &laproGraphicOut : laproGraphicOutputs) {
-                laproGraphicOut->setChunkLengthUs(chunkUs);
+            for (auto &driverObj : driverObjects) {
+                driverObj->setChunkLengthUs(chunkUs);
             }
 
             i++;
@@ -553,11 +574,11 @@ int parseArguments(int argc, char** argv) {
     // Default: If no driver was specified, use dummy.
     if (driverObjects.empty()) 
     {
-        printf("No driver specified,"); 
+        printf("No driver specified, ");
         if (management->getHardwareType() == HARDWARE_ROCKS0)
         {
             try {
-                printf(" using the HeliosPRO driver\n");
+                printf("using the HeliosPRO driver\n");
                 auto device = std::make_shared<HeliosProAdapter>();
                 char name[32];
                 device->getName(name, 32);
@@ -571,7 +592,7 @@ int parseArguments(int argc, char** argv) {
         else if (management->getHardwareType() == HARDWARE_ROCKPIS)
         {
             try {
-                printf(" using the Helios driver\n");
+                printf("using the Helios driver\n");
                 HeliosAdapter::initialize();
                 std::map<std::string, int> available = HeliosAdapter::getAvailableDevices();
 
@@ -588,33 +609,21 @@ int parseArguments(int argc, char** argv) {
         }
         else
         {
-            printf(" using the Dummy driver, device: Dummy\n");
+            printf("using the Dummy driver, device: Dummy\n");
             createLaProService(std::make_shared<DummyAdapter>(), "Dummy", 1);
         }
     }
 
-    // Create the server. OpenIDNServer requires the services list.
-    idnServer = std::make_shared<OpenIDNServer>(services);
+    // Create the server, pass the list of services.
+    idnServer = std::make_shared<SockIDNServer>(firstService);
 
     return 0;
 }
 
 int main(int argc, char** argv) {
-    // Declare local services vector to be used by OpenIDNServer.
 
     // Register the signal handler for SIGINT.
     std::signal(SIGINT, sig_handler);
-
-    if (management->getHardwareType() == HARDWARE_ROCKPIS)
-    {
-        system("echo 'none' > /sys/class/leds/rockpis:blue:user/trigger"); // manual blue LED control, stops heartbeat blinking
-        system("echo 0 > /sys/class/leds/rockpis:blue:user/brightness"); // turn LED off
-    }
-    else if (management->getHardwareType() == HARDWARE_ROCKS0)
-    {
-        system("echo 'none' > /sys/class/leds/rock-s0:green:power/trigger"); // manual blue LED control, stops heartbeat blinking
-        system("echo 0 > /sys/class/leds/rock-s0:green:power/brightness"); // turn LED off
-    }
 
     // Management specific to Helios OpenIDN product
     management = new ManagementInterface();
@@ -632,7 +641,7 @@ int main(int argc, char** argv) {
         return -1;
     }
     management->idnServer = idnServer;
-    memcpy(idnServer->hostName, management->settingIdnHostname.c_str(), management->settingIdnHostname.size() < HOST_NAME_SIZE ? management->settingIdnHostname.size() : HOST_NAME_SIZE);
+    idnServer->setHostName((char*)management->settingIdnHostname.c_str());
 
     std::atomic<int> atom(1);
     printf("lockless atomics: %s\n", atom.is_lock_free() ? "true" : "false");
@@ -641,7 +650,6 @@ int main(int argc, char** argv) {
     createDriverThreads();
 
     UsbInterface* usbInterface = new UsbInterface();
-    //FilePlayer* filePlayer = new FilePlayer();
 
     // Run the network thread on the main thread.
     networkThreadFunction(nullptr);

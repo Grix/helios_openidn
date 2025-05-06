@@ -21,92 +21,12 @@
 //  Class V1LaproGraphicOutput
 //
 // -------------------------------------------------------------------------------------------------
-//  scope: private
-// -------------------------------------------------------------------------------------------------
-
-void V1LaproGraphicOutput::resetChunkBuffer()
-{
-    currentSlicePoints.clear();
-    currentSliceTime = this->usPerSlice;
-}
-
-
-void V1LaproGraphicOutput::commitChunk()
-{
-    if(currentSlicePoints.size() != 0) {
-        std::shared_ptr<DACHWInterface> device = driverPtr->getDevice();
-        //if current slice is full, convert it to bytes, put it into
-        //the ringbuffer, reset it and reset the currentSliceTime
-        std::shared_ptr<TimeSlice> newSlice(new TimeSlice);
-        newSlice->dataChunk = device->convertPoints(currentSlicePoints);
-        newSlice->durationUs = this->usPerSlice - this->currentSliceTime;
-        bex->networkAppendSlice(newSlice);
-        resetChunkBuffer();
-    }
-}
-
-
-//add a point to the current slice / filter it
-void V1LaproGraphicOutput::addPointToSlice(ISPDB25Point newPoint, ISPFrameMetadata metadata)
-{
-    unsigned pointsPerFrame = metadata.len;
-    double pointDuration = (double)metadata.dur / pointsPerFrame;
-    double targetPointRate = ((1000000.0*(double)pointsPerFrame) / (double)metadata.dur);
-    //TODO: move this somewhere static
-    std::shared_ptr<DACHWInterface> device = driverPtr->getDevice();
-    double maxDevicePointRate = device->maxPointrate();
-    double rateRatio = maxDevicePointRate / targetPointRate;
-
-
-    //start downsampling if the maximum device pointrate is exceeded
-    if(rateRatio < 1.0) {
-        //skip point, but act like it was added
-        //this keeps rateRatio% of points
-        if(skipCounter >= rateRatio) {
-            skipCounter += rateRatio;
-            skipCounter -= (int)skipCounter;
-            currentSliceTime -= pointDuration;
-            return;
-        }
-        skipCounter += rateRatio;
-        skipCounter -= (int)skipCounter;
-    }
-
-    //here the current slice has enough space,
-    //so append the point and decrease
-    //the currentSliceTime by the point duration
-    currentSlicePoints.push_back(newPoint);
-    currentSliceTime -= pointDuration;
-
-    //chunk the points
-    if(metadata.isWave) {
-        //wave mode chunks into chunks of x ms that don't exceed the maximum amount of
-        //bytes that the adapter accepts
-        if(currentSliceTime < 0 ||
-                device->bytesPerPoint()*(currentSlicePoints.size()+1) > device->maxBytesPerTransmission()) {
-            commitChunk();
-        }
-    } else if(!metadata.isWave && device->maxBytesPerTransmission() != -1) {
-        //frame mode does not need to chunk based on duration, but it still needs evenly sized chunks if
-        //the device has a point limit, so it tries to equalize them
-        unsigned numChunksOfBlockSize = ceil(((double)metadata.len * (double)device->bytesPerPoint())/ (double)device->maxBytesPerTransmission());
-        unsigned equalizedSize = ceil((double)metadata.len / (double)numChunksOfBlockSize);
-
-        if(currentSlicePoints.size()+1 > equalizedSize) {
-            commitChunk();
-        }
-    }
-}
-
-
-// -------------------------------------------------------------------------------------------------
 //  scope: public
 // -------------------------------------------------------------------------------------------------
 
-V1LaproGraphicOutput::V1LaproGraphicOutput(std::shared_ptr<HWBridge> hwBridge, std::shared_ptr<BEX> bex)
+V1LaproGraphicOutput::V1LaproGraphicOutput(std::shared_ptr<HWBridge> hwBridge)
 {
     driverPtr = hwBridge;
-    this->bex = bex;
 
     opMode = OPMODE_IDLE;
 }
@@ -157,64 +77,54 @@ void V1LaproGraphicOutput::close()
 
 //FIXME: log
 
-    bex->setMode(DRIVER_INACTIVE);
+    driverPtr->bexSetMode(DRIVER_INACTIVE);
     this->opMode = OPMODE_IDLE;
 }
 
 
 void V1LaproGraphicOutput::process(CHUNKDATA &chunkData, uint8_t *recvBuffer, unsigned recvLen)
 {
-    // Create new frame
-    ISPFrameMetadata frame;
-    memset(&frame, 0, sizeof(ISPFrameMetadata));
+    // Create and populate a new chink
+    std::shared_ptr<DB25Chunk> db25Chunk(new DB25Chunk);
+    db25Chunk->duration = chunkData.chunkDuration;
+
+    // Populate chunk metadata
     if (opMode == OPMODE_WAVE)
     {
-        frame.isWave = 1;
+        db25Chunk->isWave = 1;
+        db25Chunk->once = 0;
+
+        driverPtr->bexSetMode(DRIVER_WAVEMODE);
     }
     else if (opMode == OPMODE_FRAME)
     {
-        frame.isWave = 0;
-        frame.once = chunkData.chunkFlags & IDNFLG_GRAPHIC_FRAME_ONCE;
-    }
-    frame.dur = chunkData.chunkDuration;
+        db25Chunk->isWave = 0;
+        db25Chunk->once = chunkData.chunkFlags & IDNFLG_GRAPHIC_FRAME_ONCE;
 
-
-    //set BEX mode
-    if (frame.isWave)
-    {
-        bex->setMode(DRIVER_WAVEMODE);
+        driverPtr->bexSetMode(DRIVER_FRAMEMODE);
     }
     else
     {
-        //reset in case there was part of a wave chunk in the buffers already
-        resetChunkBuffer();
-        bex->setMode(DRIVER_FRAMEMODE);
+        return;
     }
 
     // Decode the input samples into the internally used struct
-    std::vector<ISPDB25Point> currentFramePoints(chunkData.sampleCount);
-    chunkData.decoder->decode((uint8_t *)currentFramePoints.data(), recvBuffer, chunkData.sampleCount);
+    db25Chunk->db25Samples.resize(chunkData.sampleCount);
+    chunkData.decoder->decode((uint8_t *)db25Chunk->db25Samples.data(), recvBuffer, chunkData.sampleCount);
 
-    //feed the points to the driver
-    frame.len = currentFramePoints.size();
-    for(auto& point : currentFramePoints)
-    {
-        addPointToSlice(point, frame);
-    }
+    // Send to Buffer EXchange
+    driverPtr->bexNetworkAppendSlice(db25Chunk);
 
-    //frame is over
-    //if it was a frame-mode frame, publish
-    //the buffer to the driver
-    if (!frame.isWave)
+    // If it was a frame-mode chunk, publish the buffer to the driver
+    if (!db25Chunk->isWave)
     {
-        //push final chunk even if it's not finished yet
-        commitChunk();
-        bex->publishReset();
+        // Push final chunk even if it's not finished yet
+        driverPtr->bexPublishReset();
     }
 }
 
 bool V1LaproGraphicOutput::hasBufferedFrame()
 {
-    return bex->hasBufferedFrame();
+    return driverPtr->bex->hasBufferedFrame();
 }
 

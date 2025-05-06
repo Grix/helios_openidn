@@ -38,6 +38,7 @@
 
 // Project headers
 #include "../shared/idn-stream.h"
+#include "../shared/ODFTools.hpp"
 #include "../shared/PEVFlags.h"
 
 // Module header
@@ -64,7 +65,7 @@ void IDNLaproGraConInlet::invalidateChronology()
 //  scope: public
 // -------------------------------------------------------------------------------------------------
 
-IDNLaproGraConInlet::IDNLaproGraConInlet(std::shared_ptr<RTLaproGraphicOutput> rtOutput):
+IDNLaproGraConInlet::IDNLaproGraConInlet(RTLaproGraphicOutput *rtOutput):
     Inherited(rtOutput)
 {
 }
@@ -83,7 +84,7 @@ uint8_t IDNLaproGraConInlet::getServiceMode()
 
 void IDNLaproGraConInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
 {
-    IDNHDR_CHANNEL_MESSAGE *channelMessageHdr = (IDNHDR_CHANNEL_MESSAGE *)(taxiBuffer->payloadPtr);
+    IDNHDR_CHANNEL_MESSAGE *channelMessageHdr = (IDNHDR_CHANNEL_MESSAGE *)taxiBuffer->getPayloadPtr();
     uint16_t contentID = btoh16(channelMessageHdr->contentID);
     uint16_t chunkType = (contentID & IDNMSK_CONTENTID_CNKTYPE);
 
@@ -109,8 +110,7 @@ void IDNLaproGraConInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
             }
 
             // Unwrap data: Remove channel message header
-            taxiBuffer->payloadPtr = &((uint8_t *)(taxiBuffer->payloadPtr))[sizeof(IDNHDR_CHANNEL_MESSAGE)];
-            taxiBuffer->payloadLen -= sizeof(IDNHDR_CHANNEL_MESSAGE);
+            taxiBuffer->adjustFront(-1 * (int)sizeof(IDNHDR_CHANNEL_MESSAGE));
 
             // Unwrap data: Remove config header (in case present)
             if((chunkType <= 0xBF) && (contentID & IDNFLG_CONTENTID_CONFIG_LSTFRG))
@@ -119,19 +119,17 @@ void IDNLaproGraConInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
                 unsigned configSize = sizeof(IDNHDR_CHANNEL_CONFIG);
                 configSize += channelConfigHdr->wordCount * sizeof(uint32_t);
 
-                taxiBuffer->payloadPtr = &((uint8_t *)(taxiBuffer->payloadPtr))[configSize];
-                taxiBuffer->payloadLen -= configSize;
+                taxiBuffer->adjustFront(-1 * configSize);
             }
 
             // Unwrap data: Remove sample chunk header
-            IDNHDR_SAMPLE_CHUNK *sampleChunkHdr = (IDNHDR_SAMPLE_CHUNK *)taxiBuffer->payloadPtr;
+            IDNHDR_SAMPLE_CHUNK *sampleChunkHdr = (IDNHDR_SAMPLE_CHUNK *)taxiBuffer->getPayloadPtr();
             uint32_t flagsDuration = btoh32(sampleChunkHdr->flagsDuration);
-            taxiBuffer->payloadPtr = &((uint8_t *)(taxiBuffer->payloadPtr))[sizeof(IDNHDR_SAMPLE_CHUNK)];
-            taxiBuffer->payloadLen -= sizeof(IDNHDR_SAMPLE_CHUNK);
+            taxiBuffer->adjustFront(-1 * (int)sizeof(IDNHDR_SAMPLE_CHUNK));
 
             // Check for integer sample count
             unsigned sampleSize = decoder->getSampleSize();
-            if((taxiBuffer->payloadLen % sampleSize) != 0)
+            if((taxiBuffer->getPayloadLen() % sampleSize) != 0)
             {
                 pipelineEvents |= IDN_PEVFLG_OUTPUT_PVLERR;
                 break;
@@ -143,7 +141,7 @@ void IDNLaproGraConInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
             chunkData.chunkFlags = flagsDuration >> 24;
             chunkData.chunkDuration = flagsDuration & 0x00FFFFFF;
             chunkData.decoder = decoder;
-            chunkData.sampleCount = taxiBuffer->payloadLen / sampleSize;
+            chunkData.sampleCount = taxiBuffer->getPayloadLen() / sampleSize;
  
             // Check for match between config version and chunk data version
             if((chunkData.chunkFlags & 0x30) != (getConfigFlags() & 0x30))
@@ -197,7 +195,7 @@ void IDNLaproGraConInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
             // Send the buffer to the driver
             // Note: Preliminary solution: The buffer should be passed to the output (zero copy)
             // Instead, let the output copy and delete the buffer here.
-            rtOutput->process(chunkData, (uint8_t *)(taxiBuffer->payloadPtr), taxiBuffer->payloadLen);
+            rtOutput->process(chunkData, (uint8_t *)taxiBuffer->getPayloadPtr(), taxiBuffer->getPayloadLen());
         }
         else
         {
@@ -208,11 +206,10 @@ void IDNLaproGraConInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
     }
     while(0);
 
-    // In case the taxi buffer was not passed on - free memory
+    // In case the taxi buffer was not passed - free memory. No more access!
     if(taxiBuffer != (ODF_TAXI_BUFFER *)0)
     {
-        env->freeTaxiBuffer(taxiBuffer);
-        taxiBuffer = (ODF_TAXI_BUFFER *)0;
+        taxiBuffer->discard();
     }
 
     // In case of too many chronology errors - invalidate processing (and start over with the next decoder)

@@ -14,9 +14,6 @@ void IdtfDecoder::decode(uint8_t* dstPtr, uint8_t* srcPtr)
 
 void IdtfDecoder::decode(uint8_t* dstPtr, uint8_t* srcPtr, unsigned sampleCount)
 {
-#ifndef NDEBUG
-    printf("Decoding, sampleCount %d\n", sampleCount);
-#endif
     // Copy sample data
     for (; sampleCount > 0; sampleCount--)
     {

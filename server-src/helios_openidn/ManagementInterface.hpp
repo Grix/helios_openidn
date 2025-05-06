@@ -58,7 +58,7 @@ public:
 	FilePlayer filePlayer;
 	int modePriority[OUTPUT_MODE_MAX + 1] = { 3, 4, 1, 2 }; // If <=0, disable entirely
 	std::vector<std::shared_ptr<DACHWInterface>> devices;
-	std::vector<std::shared_ptr<V1LaproGraphicOutput>> outputs;
+	std::vector<V1LaproGraphicOutput*> outputs;
 
 
 private:

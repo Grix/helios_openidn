@@ -34,6 +34,9 @@
 #include <string.h>
 #include <stdio.h>
 
+// Project headers
+#include "../shared/ODFTools.hpp"
+
 // Module header
 #include "IDNSession.hpp"
 
@@ -147,7 +150,8 @@ IDNSession::~IDNSession()
             openChannels = true;
         }
     }
-    if(openChannels) logError("IDNSession|dtor: Allocated channels");
+// FIXME
+//    if(openChannels) logError("IDNSession|dtor: Allocated channels");
 }
 
 
@@ -186,7 +190,7 @@ int IDNSession::processChannelMessage(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
     TracePrinter tpr(env, "IDNSession~processChannelMessage");
 
     // Get/Check channelID
-    IDNHDR_CHANNEL_MESSAGE *channelMessage = (IDNHDR_CHANNEL_MESSAGE *)(taxiBuffer->payloadPtr);
+    IDNHDR_CHANNEL_MESSAGE *channelMessage = (IDNHDR_CHANNEL_MESSAGE *)taxiBuffer->getPayloadPtr();
     uint16_t contentID = btoh16(channelMessage->contentID);
     unsigned channelID = (contentID & IDNMSK_CONTENTID_CHANNELID) >> 8;
     if(channelID >= IDNVAL_CHANNEL_COUNT)

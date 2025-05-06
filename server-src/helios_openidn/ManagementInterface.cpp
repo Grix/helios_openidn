@@ -28,6 +28,14 @@ ManagementInterface::ManagementInterface()
 		//graphicsEngine->getCanvas().setTextCursor(10, 10);
 		//graphicsEngine->getCanvas().write("Hello");
 		graphicsEngine->refresh();*/
+
+		system("echo 'none' > /sys/class/leds/rock-s0:green:power/trigger"); // manual blue LED control, stops heartbeat blinking
+		system("echo 0 > /sys/class/leds/rock-s0:green:power/brightness"); // turn LED off
+	}
+	else if (getHardwareType() == HARDWARE_ROCKPIS)
+	{
+		system("echo 'none' > /sys/class/leds/rockpis:blue:user/trigger"); // manual blue LED control, stops heartbeat blinking
+		system("echo 0 > /sys/class/leds/rockpis:blue:user/brightness"); // turn LED off
 	}
 }
 
@@ -280,9 +288,7 @@ void ManagementInterface::networkLoop(int sd) {
 							num_bytes = 22; // Can't have longer name than 20 chars
 						buffer_in[num_bytes] = '\0'; // Make sure we don't fuck up
 						settingIdnHostname = std::string((char*)&buffer_in[2]);
-						for (int i = 0; i < 20; i++)
-							idnServer->hostName[i] = 0;
-						memcpy(idnServer->hostName, settingIdnHostname.c_str(), settingIdnHostname.size() < HOST_NAME_SIZE ? settingIdnHostname.size() : HOST_NAME_SIZE);
+						idnServer->setHostName((char*)settingIdnHostname.c_str());
 
 						try
 						{

@@ -2,6 +2,7 @@
 #define DACADAPTER_H_
 
 #include "types.h"
+#include "ISPDB25Point.h"
 
 class DACHWInterface {
 public:
@@ -24,16 +25,12 @@ public:
 	//in pps
 	virtual unsigned maxPointrate() = 0;
 	virtual void setMaxPointrate(unsigned) = 0;
-
+	
 	// name of connected DAC
-	virtual void getName(char* nameBufferPtr, unsigned nameBufferSize)
+	virtual void getName(char *nameBufferPtr, unsigned nameBufferSize)
 	{
 		snprintf(nameBufferPtr, nameBufferSize, "");
 	}
-
-	// Needed for non-IDN Helios features
-	//virtual void stop() {};
-	//virtual bool getIsBusy() { return false; };
 
 };
 

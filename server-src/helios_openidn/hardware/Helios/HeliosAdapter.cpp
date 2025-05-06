@@ -122,19 +122,14 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 	else
 		printf("Too high helios rate, bypassing write: %d\n", framePointRate);
 
-	clock_gettime(CLOCK_MONOTONIC, &now);
-	sdif = now.tv_sec - then.tv_sec;
-	nsdif = now.tv_nsec - then.tv_nsec;
-	tdif = sdif * 1000000000 + nsdif;
-	while (tdif < ((unsigned long)duration * 1000 * 0.5))
-	{
-		std::this_thread::yield(); // todo sleep if RT scheduler
-
+	//busy waiting
+	do {
 		clock_gettime(CLOCK_MONOTONIC, &now);
 		sdif = now.tv_sec - then.tv_sec;
 		nsdif = now.tv_nsec - then.tv_nsec;
-		tdif = sdif * 1000000000 + nsdif;
-	}
+		tdif = sdif*1000000000 + nsdif ;
+	} while (tdif < ((unsigned long)duration * 1000 * 0.8) );
+
 
 	return 0;
 }

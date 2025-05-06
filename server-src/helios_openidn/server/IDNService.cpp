@@ -35,9 +35,11 @@
 
 // Standard libraries
 #include <string.h>
+#include <malloc.h>
 
 // Project headers
 #include "../shared/idn-stream.h"
+#include "../shared/ODFTools.hpp"
 #include "../shared/PEVFlags.h"
 
 // Module header
@@ -96,7 +98,7 @@ void IDNConfigInlet::invalidateConfig()
 
 void IDNConfigInlet::readConfig(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
 {
-    IDNHDR_CHANNEL_MESSAGE *channelMessageHdr = (IDNHDR_CHANNEL_MESSAGE *)(taxiBuffer->payloadPtr);
+    IDNHDR_CHANNEL_MESSAGE *channelMessageHdr = (IDNHDR_CHANNEL_MESSAGE *)taxiBuffer->getPayloadPtr();
     uint16_t contentID = btoh16(channelMessageHdr->contentID);
     uint16_t chunkType = (contentID & IDNMSK_CONTENTID_CNKTYPE);
 
@@ -137,7 +139,8 @@ void IDNConfigInlet::readConfig(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
         if(!configValid)
         {
             // Create a decoder in case the new configuration would fit into the cache
-            if(channelConfigHdr->wordCount <= (sizeof(keptConfigWords) / sizeof(uint32_t)))
+            unsigned wordCount = channelConfigHdr->wordCount;
+            if(wordCount <= (sizeof(keptConfigWords) / sizeof(uint32_t)))
             {
                 void *paramPtr = (void *)&channelConfigHdr[1];
                 unsigned paramLen = channelConfigHdr->wordCount * 4;
@@ -145,7 +148,7 @@ void IDNConfigInlet::readConfig(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
                 {
                     // Update cache. Note: Upper layer guarantees config data to be contiguous.
                     keptConfigWordCnt = channelConfigHdr->wordCount;
-                    unsigned *dst = keptConfigWords, *src = (unsigned *)&channelConfigHdr[1];
+                    uint32_t *dst = keptConfigWords, *src = (uint32_t *)&channelConfigHdr[1];
                     for(unsigned i = keptConfigWordCnt; i > 0; i--) *dst++ = *src++;
 
                     configValid = true;

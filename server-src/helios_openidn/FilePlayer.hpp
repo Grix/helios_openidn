@@ -1,8 +1,9 @@
 #pragma once
 
 //#include "ManagementInterface.hpp"
-#include "server/openIDN.hpp" //logError()
+#include "shared/ODFTools.hpp" //logError()
 #include "shared/types.h"
+#include "shared/idn-stream.h"
 #include "output/IdtfDecoder.hpp"
 #include "output/RTLaproGraphOut.hpp"
 #include "shared/DACHWInterface.hpp"
@@ -52,7 +53,7 @@ public:
 	std::map<std::string, FilePlayerFileParameters> fileParameters;
 	FilePlayerFileParameters defaultParameters;
     std::vector<std::shared_ptr<DACHWInterface>>* devices;
-    std::vector<std::shared_ptr<V1LaproGraphicOutput>>* outputs;
+    std::vector<V1LaproGraphicOutput*>* outputs;
 
     FilePlayer();
 

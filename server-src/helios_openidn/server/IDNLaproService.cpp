@@ -38,6 +38,7 @@
 
 // Project headers
 #include "../shared/idn-stream.h"
+#include "../shared/ODFTools.hpp"
 #include "../shared/PEVFlags.h"
 #include "IDNLaproGraConInlet.hpp"
 #include "IDNLaproGraDisInlet.hpp"
@@ -83,7 +84,7 @@ void IDNLaproGraphInlet::invalidateConfig()
 //  scope: public
 // -------------------------------------------------------------------------------------------------
 
-IDNLaproGraphInlet::IDNLaproGraphInlet(std::shared_ptr<RTLaproGraphicOutput> rtOutput):
+IDNLaproGraphInlet::IDNLaproGraphInlet(RTLaproGraphicOutput *rtOutput):
     rtOutput(rtOutput)
 {
     decoder = (RTLaproDecoder *)0;
@@ -112,7 +113,7 @@ void IDNLaproGraphInlet::reset()
 //  scope: public
 // -------------------------------------------------------------------------------------------------
 
-IDNLaproService::IDNLaproService(uint8_t serviceID, char *serviceName, bool defaultServiceFlag, std::shared_ptr<RTLaproGraphicOutput> rtOutput):
+IDNLaproService::IDNLaproService(uint8_t serviceID, char *serviceName, bool defaultServiceFlag, RTLaproGraphicOutput *rtOutput):
     IDNService(serviceID, serviceName, defaultServiceFlag),
     rtOutput(rtOutput)
 {

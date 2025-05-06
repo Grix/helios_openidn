@@ -4,8 +4,10 @@
 #include <stdio.h>
 #include <malloc.h>
 
+// Project headers
+#include "../shared/ISPDB25Point.h"
+
 // Module header
-#include "../shared/types.h"
 #include "IDNLaproDecoder.hpp"
 
 
@@ -33,11 +35,27 @@
 #define IDN_TAG_WL_BMASK 0x03FF
 
 
+/*
+Laser configuration
+*/
+
+#define ISP_DB25_RED_WAVELENGTH  0x27E
+#define ISP_DB25_GREEN_WAVELENGTH 0x214
+#define ISP_DB25_BLUE_WAVELENGTH 0x1CC
+
+#define ISP_DB25_USE_U1 0
+#define ISP_DB25_USE_U2 0
+#define ISP_DB25_USE_U3 0
+#define ISP_DB25_USE_U4 0
+#define ISP_DB25_U1_WAVELENGTH 0x1BD
+#define ISP_DB25_U2_WAVELENGTH 0x241
+#define ISP_DB25_U3_WAVELENGTH 0x1E8
+
 
 // -------------------------------------------------------------------------------------------------
 //  Tools
 // -------------------------------------------------------------------------------------------------
-
+/*
 static void printDescrTag(struct IDNDescriptorTag *tag) {
   printf("TAG: %x, %x, %x, %x\n", tag->type, tag->precision, tag->scannerId, tag->wavelength);
 }
@@ -53,7 +71,7 @@ static void print_hex_memory(void *mem, int len) {
   }
   printf("\n");
 }
-
+*/
 
 static unsigned int read_uint8(uint8_t *buf, unsigned int len, unsigned int offset, uint8_t* data) {
   if (len >= offset + 1) {
@@ -113,7 +131,7 @@ unsigned int IDNLaproDecoder::buildDictionary(uint8_t *buf, unsigned int len, un
                 //1.0
                 //BREAK TAG
             } 
-            else if (sub = 1)
+            else if (sub == 1)
             { 
                 //1.1
                 //COORDINATE AND COLOR SPACE MODIFIERS

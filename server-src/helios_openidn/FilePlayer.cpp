@@ -44,7 +44,7 @@ int FilePlayer::playFile(std::string filename)
 
     if (devices->empty())
     {
-        logWarn("[IDTF] Attempted to play file when no devices are connected");
+        printf("[IDTF] Attempted to play file when no devices are connected");
         return -1;
     }
 
@@ -53,7 +53,7 @@ int FilePlayer::playFile(std::string filename)
     unsigned long* currentPalette = ildaDefaultPalette;
     //if ((palOption == 0) || (palOption == IDTFOPT_PALETTE_IDTF_DEFAULT)) {}
     //else if (palOption == IDTFOPT_PALETTE_ILDA_STANDARD) { currentPalette = ildaStandardPalette; }
-    //else { logError("[IDTF] Invalid palette option"); return -1; }*/
+    //else { printf("[IDTF] Invalid palette option"); return -1; }*/
 
     const float xScale = 0xFFFF; //(options & IDTFOPT_MIRROR_X) ?  -xyScale : 0xFFFF;
     const float yScale = 0xFFFF; //(options & IDTFOPT_MIRROR_Y) ?  -xyScale : 0xFFFF;
@@ -62,7 +62,7 @@ int FilePlayer::playFile(std::string filename)
     FILE* fpIDTF = fopen(filename.c_str(), "rb");
     if (!fpIDTF)
     {
-        logError("[IDTF] %s: Cannot open file (errno: %d)", filename.c_str(), errno);
+        printf("[IDTF] %s: Cannot open file (errno: %d)", filename.c_str(), errno);
         return -1;
     }
 
@@ -76,7 +76,7 @@ int FilePlayer::playFile(std::string filename)
     // Check for EOF and the signature of first section
     if (feof(fpIDTF) || !((ilda[0] == 'I') && (ilda[1] == 'L') && (ilda[2] == 'D') && (ilda[3] == 'A')))
     {
-        logError("[IDTF] %s: Not an IDTF file", filename.c_str());
+        printf("[IDTF] %s: Not an IDTF file", filename.c_str());
         fclose(fpIDTF);
         return -1;
     }
@@ -105,7 +105,7 @@ int FilePlayer::playFile(std::string filename)
         // Check for IDTF section signature
         if (!((ilda[0] == 'I') && (ilda[1] == 'L') && (ilda[2] == 'D') && (ilda[3] == 'A')))
         {
-            logError("[IDTF] %s: Bad section signature at pos 0x%08X", filename.c_str(), filePos);
+            printf("[IDTF] %s: Bad section signature at pos 0x%08X", filename.c_str(), filePos);
             result = -1;
             break;
         }
@@ -154,7 +154,7 @@ int FilePlayer::playFile(std::string filename)
             // Terminate on insane frames
             if (recordCnt <= 1)
             {
-                logError("[IDTF] %s: Frames should contain at least 2 points", filename.c_str());
+                printf("[IDTF] %s: Frames should contain at least 2 points", filename.c_str());
                 result = -1;
                 break;
             }
@@ -247,7 +247,7 @@ int FilePlayer::playFile(std::string filename)
                 // Check for unexpected EOF
                 if (feof(fpIDTF))
                 {
-                    logError("[IDTF] Unexpected end of file: Record %u of %u", i, recordCnt);
+                    printf("[IDTF] Unexpected end of file: Record %u of %u", i, recordCnt);
                     result = -1;
                     break;
                 }
@@ -302,13 +302,13 @@ int FilePlayer::playFile(std::string filename)
                 int lastRecordFlag = ((i + 1) == recordCnt);
                 if (lastPointFlag && !lastRecordFlag)
                 {
-                    logError("[IDTF] Last point flag set, record count mismatch: Record %u of %u, file pos 0x%08X", i, recordCnt, filePos);
+                    printf("[IDTF] Last point flag set, record count mismatch: Record %u of %u, file pos 0x%08X", i, recordCnt, filePos);
                     result = -1;
                     break;
                 }
                 else if (!lastPointFlag && lastRecordFlag)
                 {
-                    logError("[IDTF] Last point flag not set on last record: File pos 0x%08X", filePos);
+                    printf("[IDTF] Last point flag not set on last record: File pos 0x%08X", filePos);
                 }
             }
             if (result != 0) 
@@ -340,7 +340,7 @@ int FilePlayer::playFile(std::string filename)
             // Terminate on insane palettes
             if (recordCnt > 256)
             {
-                logError("[IDTF] %s: Palettes shall not contain more than 256 colors", filename.c_str());
+                printf("[IDTF] %s: Palettes shall not contain more than 256 colors", filename.c_str());
                 result = -1;
                 break;
             }
@@ -359,7 +359,7 @@ int FilePlayer::playFile(std::string filename)
                 // Check for unexpected EOF
                 if (feof(fpIDTF))
                 {
-                    logError("[IDTF] Unexpected end of file: Record %u of %u", i, recordCnt);
+                    printf("[IDTF] Unexpected end of file: Record %u of %u", i, recordCnt);
                     result = -1;
                     break;
                 }
@@ -375,7 +375,7 @@ int FilePlayer::playFile(std::string filename)
         }
         else
         {
-            logError("[IDTF] %s: formatCode = %d", filename.c_str(), formatCode);
+            printf("[IDTF] %s: formatCode = %d", filename.c_str(), formatCode);
             result = -1;
             break;
         }
@@ -455,7 +455,7 @@ void FilePlayer::outputLoop()
 
 int FilePlayer::checkEOF(FILE* fp, const char* dbgText)
 {
-    if (feof(fp)) { logError("[IDTF] Unexpected end of file (%s)", dbgText); return -1; }
+    if (feof(fp)) { printf("[IDTF] Unexpected end of file (%s)", dbgText); return -1; }
 
     return 0;
 }

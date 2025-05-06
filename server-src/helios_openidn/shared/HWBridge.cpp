@@ -34,12 +34,94 @@ void HWBridge::trimBuffer(std::shared_ptr<SliceBuf> buf, unsigned n)
 	}
 }
 
+
+void HWBridge::commitChunk(TransformEnv &tfEnv, std::shared_ptr<SliceBuf> &sliceBuf)
+{
+    if(tfEnv.db25Accu.size() != 0) {
+        //if current slice is full, convert it to bytes, reset and reset the currentSliceTime
+        std::shared_ptr<TimeSlice> newSlice(new TimeSlice);
+        newSlice->dataChunk = device->convertPoints(tfEnv.db25Accu);
+        newSlice->durationUs = usPerSlice - tfEnv.currentSliceTime;
+        sliceBuf->push_back(newSlice);
+        tfEnv.db25Accu.clear();
+        tfEnv.currentSliceTime = usPerSlice;
+    }
+}
+
+std::shared_ptr<SliceBuf> HWBridge::db25toDevice(TransformEnv &tfEnv, std::shared_ptr<DB25ChunkQueue> db25ChunkQueue)
+{
+    std::shared_ptr<SliceBuf> sliceBuf(new SliceBuf);
+    double maxDevicePointRate = device->maxPointrate();
+
+    for(auto& db25Chunk : *db25ChunkQueue)
+    {
+        unsigned sampleCount = db25Chunk->db25Samples.size();
+        tfEnv.db25Accu.reserve(tfEnv.db25Accu.size() + sampleCount);
+
+        double pointDuration = (double)db25Chunk->duration / sampleCount;
+        double targetPointRate = ((1000000.0 * (double)sampleCount) / (double)db25Chunk->duration);
+        double rateRatio = maxDevicePointRate / targetPointRate;
+
+        for(auto& sample : db25Chunk->db25Samples)
+        {
+            //start downsampling if the maximum device pointrate is exceeded
+            if(rateRatio < 1.0) {
+                //skip point, but act like it was added
+                //this keeps rateRatio% of points
+                if(tfEnv.skipCounter >= rateRatio) {
+                    tfEnv.skipCounter += rateRatio;
+                    tfEnv.skipCounter -= (int)tfEnv.skipCounter;
+                    tfEnv.currentSliceTime -= pointDuration;
+                    continue;
+                }
+                tfEnv.skipCounter += rateRatio;
+                tfEnv.skipCounter -= (int)tfEnv.skipCounter;
+            }
+
+            //here the current slice has enough space,
+            //so append the point and decrease
+            //the currentSliceTime by the point duration
+            tfEnv.db25Accu.push_back(sample);
+            tfEnv.currentSliceTime -= pointDuration;
+
+            //chunk the points
+            if(db25Chunk->isWave) {
+                //wave mode chunks into chunks of x ms that don't exceed the maximum amount of
+                //bytes that the adapter accepts
+                if(tfEnv.currentSliceTime < 0 ||
+                        device->bytesPerPoint()*(tfEnv.db25Accu.size()+1) > device->maxBytesPerTransmission()) {
+                    commitChunk(tfEnv, sliceBuf);
+                }
+            } else if(!db25Chunk->isWave && device->maxBytesPerTransmission() != -1) {
+                //frame mode does not need to chunk based on duration, but it still needs evenly sized chunks if
+                //the device has a point limit, so it tries to equalize them
+                unsigned numChunksOfBlockSize = ceil(((double)sampleCount * (double)device->bytesPerPoint())/ (double)device->maxBytesPerTransmission());
+                unsigned equalizedSize = ceil((double)sampleCount / (double)numChunksOfBlockSize);
+
+                if(tfEnv.db25Accu.size()+1 > equalizedSize) {
+                    commitChunk(tfEnv, sliceBuf);
+                }
+            }
+        }
+
+        if (!db25Chunk->isWave)
+        {
+            commitChunk(tfEnv, sliceBuf);
+        }
+    }
+
+    return sliceBuf;
+}
+
 void HWBridge::driverLoop() {
 	struct timespec now, then;
 	struct timespec lastDebugTime;
 	unsigned sdif, nsdif, tdif;
 	std::shared_ptr<SliceBuf> currentBuf(new SliceBuf);
 	unsigned sliceCounter = 0;
+
+    TransformEnv tfEnv;
+    tfEnv.currentSliceTime = usPerSlice;
 
 	clock_gettime(CLOCK_MONOTONIC, &lastDebugTime);
 
@@ -79,18 +161,19 @@ void HWBridge::driverLoop() {
 			}
 		}
 
-		std::shared_ptr<SliceBuf> newBuf = bex->driverSwapRequest();
-		//if the new buffer was not ready yet, continue with the old one
-		if(newBuf) {
+        std::shared_ptr<DB25ChunkQueue> db25ChunkQueue = bex->driverSwapRequest();
+        //if the new buffer was not ready yet, continue with the old one
+		if(db25ChunkQueue) {
 			//if there is something new, play that
-			currentBuf = newBuf;
+			currentBuf = db25toDevice(tfEnv, db25ChunkQueue);
+            db25ChunkQueue.reset();
 
 			//only trim and adjust speed in wave mode
 			if(bex->getMode() == DRIVER_WAVEMODE) {
 				speedFactor = calculateSpeedfactor(speedFactor, currentBuf);
 			} else if (bex->getMode() == DRIVER_FRAMEMODE) {
 				speedFactor = 1.0;
-			}
+            }
 		} else if(bex->getMode() == DRIVER_WAVEMODE || bex->getMode() == DRIVER_INACTIVE) {
 			//write an empty point if there is a buffer underrun in wave mode or
 			//the driver is set to inactive
@@ -104,7 +187,7 @@ void HWBridge::driverLoop() {
 				this->accumOC = 0;
 				struct timespec delay, dummy; // Prevents hogging 100% CPU use when idle
 				delay.tv_sec = 0;
-				delay.tv_nsec = 500000;
+				delay.tv_nsec = 50000;
 				nanosleep(&delay, &dummy);
 			}
 			else
@@ -112,8 +195,8 @@ void HWBridge::driverLoop() {
 
 			continue;
 		}
-		
-		//rotate through the buffer once
+
+        //rotate through the buffer once
 		unsigned currentBufSize = currentBuf->size();
 		for(int i = 0; i < currentBufSize; i++) {
 			clock_gettime(CLOCK_MONOTONIC, &then);
@@ -123,7 +206,7 @@ void HWBridge::driverLoop() {
 			//if we're in frame mode, put the slice back
 			//wave mode just discards
 			if(bex->getMode() == DRIVER_FRAMEMODE) {
-				//currentBuf->push_back(nextSlice);
+				currentBuf->push_back(nextSlice);
 			}
 
 			this->device->writeFrame(*nextSlice, speedFactor*nextSlice->durationUs);
@@ -230,3 +313,22 @@ void HWBridge::clearStats() {
 	waveBufUsage.clear();
 	speedFactors.clear();
 }
+
+
+void HWBridge::bexSetMode(int mode)
+{
+    bex->setMode(mode);
+}
+
+
+void HWBridge::bexPublishReset()
+{
+    bex->publishReset();
+}
+
+
+void HWBridge::bexNetworkAppendSlice(std::shared_ptr<DB25Chunk> db25Chunk)
+{
+    bex->networkAppendSlice(db25Chunk);
+}
+

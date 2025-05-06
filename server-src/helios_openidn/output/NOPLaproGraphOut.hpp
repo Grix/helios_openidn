@@ -1,23 +1,17 @@
 // -------------------------------------------------------------------------------------------------
-//  File V1LaproGraphOut.hpp
+//  File NOPLaproGraphOut.hpp
 //
-//  Version 1 compatibility layer
+//  No OPeration Laser Projector Graphic Output
 //
-//  01/2025 Dirk Apitz, moved to new output architecture
+//  04/2025 Dirk Apitz, created
 // -------------------------------------------------------------------------------------------------
 
 
-#ifndef V1_LAPRO_GRAPHIC_OUTPUT_HPP
-#define V1_LAPRO_GRAPHIC_OUTPUT_HPP
+#ifndef NOP_LAPRO_GRAPHIC_OUTPUT_HPP
+#define NOP_LAPRO_GRAPHIC_OUTPUT_HPP
 
-
-// Standard libraries
-#include <vector>
 
 // Project headers
-#include "../shared/types.h"
-#include "../shared/HWBridge.hpp"
-#include "../shared/BEX.hpp"
 #include "RTLaproGraphOut.hpp"
 
 
@@ -26,30 +20,21 @@
 //  Classes
 // -------------------------------------------------------------------------------------------------
 
-class V1LaproGraphicOutput: public RTLaproGraphicOutput
+class NOPLaproGraphicOutput: public RTLaproGraphicOutput
 {
     // ------------------------------------------ Members ------------------------------------------
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    private:
-
-    std::shared_ptr<HWBridge> driverPtr = nullptr;
-
-    OPMODE opMode;
-
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////
     public:
 
-    V1LaproGraphicOutput(std::shared_ptr<HWBridge> driver);
-    ~V1LaproGraphicOutput();
+    NOPLaproGraphicOutput();
+    ~NOPLaproGraphicOutput();
 
     // -- Inherited Members -------------
     virtual void getDeviceName(char *nameBufferPtr, unsigned nameBufferSize);
     virtual int open(OPMODE opMode);
     virtual void close();
-    virtual void process(CHUNKDATA &chunkData, uint8_t *recvBuffer, unsigned recvLen); 
-    bool hasBufferedFrame();
+    virtual void process(CHUNKDATA &chunkData, uint8_t *recvBuffer, unsigned recvLen);
 };
 
 

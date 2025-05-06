@@ -1,7 +1,7 @@
 // -------------------------------------------------------------------------------------------------
-//  File IDNLaproService.hpp
+//  File SockIDNServer.hpp
 //
-//  Copyright (c) 2013-2025 DexLogic, Dirk Apitz. All Rights Reserved.
+//  Copyright (c) 2020-2025 DexLogic, Dirk Apitz. All Rights Reserved.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -22,98 +22,94 @@
 //  SOFTWARE.
 //
 // -------------------------------------------------------------------------------------------------
-//
-//  Laser projector service/inlet base classes
-//
-// -------------------------------------------------------------------------------------------------
 //  Change History:
 //
-//  07/2013 Dirk Apitz, created
-//  01/2025 Dirk Apitz, modifications and integration into OpenIDN
+//  07/2017 Dirk Apitz, created
+//  01/2024 Dirk Apitz, modifications and integration into OpenIDN
+//  04/2025 Dirk Apitz, independence from network layer through derived classes (Linux/LwIP support)
 // -------------------------------------------------------------------------------------------------
 
 
-#ifndef IDN_LAPRO_SERVICE_HPP
-#define IDN_LAPRO_SERVICE_HPP
+#ifndef SOCKIDNSERVER_HPP
+#define SOCKIDNSERVER_HPP
 
-
-// Standard libraries
-#include <memory>
 
 // Project headers
-#include "../output/RTLaproGraphOut.hpp"
-#include "IDNService.hpp"
+#include "../server/IDNServer.hpp"
 
 
 
-// Forward declarations
-class IDNLaproGraConInlet;
-class IDNLaproGraDisInlet;
+// -------------------------------------------------------------------------------------------------
+//  Defines
+// -------------------------------------------------------------------------------------------------
+
+// Shortcuts for struct field sizes
+#define UNITID_SIZE sizeof(((IDNHDR_SCAN_RESPONSE *)0)->unitID)
+#define HOST_NAME_SIZE sizeof(((IDNHDR_SCAN_RESPONSE *)0)->hostName)
 
 
 // -------------------------------------------------------------------------------------------------
 //  Classes
 // -------------------------------------------------------------------------------------------------
 
-class IDNLaproGraphInlet: public IDNConfigInlet
+class SockIDNHelloConnection: public IDNHelloConnection
 {
-    typedef IDNConfigInlet Inherited;
-
-    // ------------------------------------------ Members ------------------------------------------
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    protected:
-
-    RTLaproGraphicOutput *rtOutput;
-    RTLaproDecoder *decoder;
-
-    // -- Inherited Members -------------
-    virtual int createDecoder(unsigned serviceMode, void *paramPtr, unsigned paramLen);
-    virtual void invalidateConfig();
-
-
-    ////////////////////////////////////////////////////////////////////////////////////////////////
-    public:
-
-    IDNLaproGraphInlet(RTLaproGraphicOutput *rtOutput);
-    virtual ~IDNLaproGraphInlet();
-
-    // -- Inherited Members -------------
-    virtual void reset();
-};
-
-
-
-class IDNLaproService: public IDNService
-{
-    typedef IDNService Inherited;
+    typedef IDNHelloConnection Inherited;
 
     // ------------------------------------------ Members ------------------------------------------
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     private:
 
-    RTLaproGraphicOutput *rtOutput;
-    IDNLaproGraConInlet *graConInlet;
-    IDNLaproGraDisInlet *graDisInlet;
-
-    IDNInlet *currentInlet;
+    struct sockaddr_storage clientAddr;             // The network address of the client
 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     public:
 
-    IDNLaproService(uint8_t serviceID, char *serviceName, bool defaultServiceFlag, RTLaproGraphicOutput *rtOutput);
-    virtual ~IDNLaproService();
+    SockIDNHelloConnection(RECV_COOKIE *cookie, uint8_t clientGroup, char *logIdent);
+    virtual ~SockIDNHelloConnection();
 
     // -- Inherited Members -------------
-    virtual uint8_t getServiceType();
-    virtual int copyServiceName(char *bufferPtr, unsigned bufferSize);
-    virtual bool handlesMode(uint8_t serviceMode);
-    virtual IDNInlet *requestInlet(ODF_ENV *env, uint8_t serviceMode);
-    virtual void releaseInlet(ODF_ENV *env, IDNInlet *inlet);
+    virtual int clientMatchIDNHello(RECV_COOKIE *cookie, uint8_t clientGroup);
+};
+
+
+
+class SockIDNServer: public IDNServer
+{
+    typedef IDNServer Inherited;
+
+    // ------------------------------------------ Members ------------------------------------------
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    private:
+
+    void receiveUDP(ODF_ENV *env, int sd);
+    void mainNetLoop(ODF_ENV *env, int sd);
+
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    protected:
+
+    uint8_t unitID[UNITID_SIZE];                    // The unitID to report on scan requests
+    uint8_t hostName[HOST_NAME_SIZE];               // The host name to report on scan requests
+
+    // -- Inherited Members -------------
+    virtual IDNHelloConnection *createConnection(RECV_COOKIE *cookie, uint8_t clientGroup, char *logIdent);
+    virtual void getUnitID(uint8_t *fieldPtr, unsigned fieldSize);
+    virtual void getHostName(uint8_t *fieldPtr, unsigned fieldSize);
+
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    public:
+
+    SockIDNServer(LLNode<ServiceNode> *firstService);
+    virtual ~SockIDNServer();
+
+    void networkThreadFunc();
+    virtual void setHostName(char* name);
 };
 
 
 #endif
-

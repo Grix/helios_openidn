@@ -1,54 +1,17 @@
+// -------------------------------------------------------------------------------------------------
+//  File ODFTools.cpp
+//
+//  OpenIDN DAC Framework tools
+//
+//  04/2025 Dirk Apitz, created
+// -------------------------------------------------------------------------------------------------
 
 
 #include <stdio.h>
 #include <stdarg.h>
 
 // Module header
-#include "glue.hpp"
-
-
-
-void logError(const char *fmt, ...)
-{
-    va_list ap;
-    va_start(ap, fmt);
-
-    printf("\x1B[1;31m");
-    vprintf(fmt, ap);
-    printf("\x1B[0m");
-    printf("\n");
-    fflush(stdout);
-
-    va_end(ap);
-}
-
-
-void logWarn(const char *fmt, ...)
-{
-    va_list ap;
-    va_start(ap, fmt);
-
-    printf("\x1B[1;33m");
-    vprintf(fmt, ap);
-    printf("\x1B[0m");
-    printf("\n");
-    fflush(stdout);
-
-    va_end(ap);
-}
-
-
-void logInfo(const char *fmt, ...)
-{
-    va_list ap;
-    va_start(ap, fmt);
-
-    vprintf(fmt, ap);
-    printf("\n");
-    fflush(stdout);
-
-    va_end(ap);
-}
+#include "ODFTools.hpp"
 
 
 
@@ -61,6 +24,7 @@ void logInfo(const char *fmt, ...)
 
 TracePrinter::TracePrinter(ODF_ENV *env, const char *frameName)
 {
+    this->env = env;
 }
 
 
@@ -74,11 +38,7 @@ void TracePrinter::logError(const char *format, ...)
     va_list ap;
     va_start(ap, format);
 
-    printf("\x1B[1;31m");
-    vprintf(format, ap);
-    printf("\x1B[0m");
-    printf("\n");
-    fflush(stdout);
+    env->trace(ODF_TRACEOP_LOG_ERROR, format, ap);
 
     va_end(ap);
 }
@@ -89,11 +49,7 @@ void TracePrinter::logWarn(const char *format, ...)
     va_list ap;
     va_start(ap, format);
 
-    printf("\x1B[1;33m");
-    vprintf(format, ap);
-    printf("\x1B[0m");
-    printf("\n");
-    fflush(stdout);
+    env->trace(ODF_TRACEOP_LOG_WARN, format, ap);
 
     va_end(ap);
 }
@@ -104,9 +60,7 @@ void TracePrinter::logInfo(const char *format, ...)
     va_list ap;
     va_start(ap, format);
 
-    vprintf(format, ap);
-    printf("\n");
-    fflush(stdout);
+    env->trace(ODF_TRACEOP_LOG_INFO, format, ap);
 
     va_end(ap);
 }
@@ -117,9 +71,7 @@ void TracePrinter::logDebug(const char *format, ...)
     va_list ap;
     va_start(ap, format);
 
-    vprintf(format, ap);
-    printf("\n");
-    fflush(stdout);
+    env->trace(ODF_TRACEOP_LOG_DEBUG, format, ap);
 
     va_end(ap);
 }

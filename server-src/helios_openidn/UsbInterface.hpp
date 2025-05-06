@@ -5,6 +5,7 @@
 
 #include "ManagementInterface.hpp"
 #include "shared/types.h"
+#include "shared/idn-stream.h"
 #include "output/IdtfDecoder.hpp"
 #include <unistd.h>
 #include <cstdio>

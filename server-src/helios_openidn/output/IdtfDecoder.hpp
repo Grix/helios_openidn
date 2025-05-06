@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../shared/types.h"
+#include "../shared/ISPDB25Point.h"
 #include "RTLaproGraphOut.hpp"
 
 class IdtfDecoder : public RTLaproDecoder

@@ -1,30 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <ClCompile Include="dummy\DummyAdapter.cpp" />
-    <ClCompile Include="FilePlayer.cpp" />
-    <ClCompile Include="hardware\HeliosPro\HeliosProAdapter.cpp" />
-    <ClCompile Include="hardware\Helios\HeliosAdapter.cpp" />
-    <ClCompile Include="hardware\Helios\HeliosDac.cpp" />
-    <ClCompile Include="ManagementInterface.cpp" />
-    <ClCompile Include="output\IDNLaproDecoder.cpp" />
-    <ClCompile Include="output\IdtfDecoder.cpp" />
-    <ClCompile Include="output\RTLaproGraphOut.cpp" />
-    <ClCompile Include="output\RTOutput.cpp" />
-    <ClCompile Include="output\V1LaproGraphOut.cpp" />
-    <ClCompile Include="server\IDNLaproGraConInlet.cpp" />
-    <ClCompile Include="server\IDNLaproGraDisInlet.cpp" />
-    <ClCompile Include="server\IDNLaproService.cpp" />
-    <ClCompile Include="server\IDNServer.cpp" />
-    <ClCompile Include="server\IDNService.cpp" />
-    <ClCompile Include="server\IDNSession.cpp" />
-    <ClCompile Include="server\main.cpp" />
-    <ClCompile Include="server\openIDN.cpp" />
-    <ClCompile Include="shared\BEX.cpp" />
-    <ClCompile Include="shared\glue.cpp" />
-    <ClCompile Include="shared\HWBridge.cpp" />
-    <ClCompile Include="UsbGadget.c" />
-    <ClCompile Include="UsbInterface.cpp" />
     <ClCompile Include="thirdparty\lcdgfx\src\canvas\canvas.cpp">
       <Filter>thirdparty\lcdgfx</Filter>
     </ClCompile>
@@ -115,39 +91,33 @@
     <ClCompile Include="thirdparty\lcdgfx\src\v2\utf8.c">
       <Filter>thirdparty\lcdgfx</Filter>
     </ClCompile>
+    <ClCompile Include="FilePlayer.cpp" />
+    <ClCompile Include="ManagementInterface.cpp" />
+    <ClCompile Include="UsbGadget.c" />
+    <ClCompile Include="UsbInterface.cpp" />
+    <ClCompile Include="dummy\DummyAdapter.cpp" />
+    <ClCompile Include="hardware\Helios\HeliosAdapter.cpp" />
+    <ClCompile Include="hardware\Helios\HeliosDac.cpp" />
+    <ClCompile Include="output\IDNLaproDecoder.cpp" />
+    <ClCompile Include="output\NOPLaproGraphOut.cpp" />
+    <ClCompile Include="output\RTLaproGraphOut.cpp" />
+    <ClCompile Include="output\RTOutput.cpp" />
+    <ClCompile Include="output\V1LaproGraphOut.cpp" />
+    <ClCompile Include="server\IDNLaproGraConInlet.cpp" />
+    <ClCompile Include="server\IDNLaproGraDisInlet.cpp" />
+    <ClCompile Include="server\IDNLaproService.cpp" />
+    <ClCompile Include="server\IDNServer.cpp" />
+    <ClCompile Include="server\IDNService.cpp" />
+    <ClCompile Include="server\IDNSession.cpp" />
+    <ClCompile Include="shared\BEX.cpp" />
+    <ClCompile Include="shared\HWBridge.cpp" />
+    <ClCompile Include="shared\ODFTools.cpp" />
+    <ClCompile Include="stage\main.cpp" />
+    <ClCompile Include="stage\SockIDNServer.cpp" />
+    <ClCompile Include="hardware\HeliosPro\HeliosProAdapter.cpp" />
+    <ClCompile Include="output\IdtfDecoder.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="dummy\DummyAdapter.hpp" />
-    <ClInclude Include="FilePlayer.hpp" />
-    <ClInclude Include="hardware\HeliosPro\HeliosProAdapter.hpp" />
-    <ClInclude Include="hardware\Helios\HeliosAdapter.hpp" />
-    <ClInclude Include="hardware\Helios\HeliosDac.hpp" />
-    <ClInclude Include="hardware\Helios\libusb.h" />
-    <ClInclude Include="ini.hpp" />
-    <ClInclude Include="ManagementInterface.hpp" />
-    <ClInclude Include="output\IDNLaproDecoder.hpp" />
-    <ClInclude Include="output\IdtfDecoder.hpp" />
-    <ClInclude Include="output\RTLaproGraphOut.hpp" />
-    <ClInclude Include="output\RTOutput.hpp" />
-    <ClInclude Include="output\V1LaproGraphOut.hpp" />
-    <ClInclude Include="server\IDNLaproGraConInlet.hpp" />
-    <ClInclude Include="server\IDNLaproGraDisInlet.hpp" />
-    <ClInclude Include="server\IDNLaproService.hpp" />
-    <ClInclude Include="server\IDNServer.hpp" />
-    <ClInclude Include="server\IDNService.hpp" />
-    <ClInclude Include="server\IDNSession.hpp" />
-    <ClInclude Include="server\LLNode.hpp" />
-    <ClInclude Include="server\openIDN.hpp" />
-    <ClInclude Include="shared\BEX.hpp" />
-    <ClInclude Include="shared\DACHWInterface.hpp" />
-    <ClInclude Include="shared\glue.hpp" />
-    <ClInclude Include="shared\HWBridge.hpp" />
-    <ClInclude Include="shared\idn-hello.h" />
-    <ClInclude Include="shared\idn-stream.h" />
-    <ClInclude Include="shared\idn.h" />
-    <ClInclude Include="shared\PEVFlags.h" />
-    <ClInclude Include="shared\types.h" />
-    <ClInclude Include="UsbInterface.hpp" />
     <ClInclude Include="thirdparty\lcdgfx\src\lcdgfx.h">
       <Filter>thirdparty\lcdgfx</Filter>
     </ClInclude>
@@ -316,6 +286,42 @@
     <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\tiler.h">
       <Filter>thirdparty\lcdgfx</Filter>
     </ClInclude>
+    <ClInclude Include="FilePlayer.hpp" />
+    <ClInclude Include="ini.hpp" />
+    <ClInclude Include="ManagementInterface.hpp" />
+    <ClInclude Include="UsbInterface.hpp" />
+    <ClInclude Include="dummy\DummyAdapter.hpp" />
+    <ClInclude Include="hardware\Helios\HeliosAdapter.hpp" />
+    <ClInclude Include="hardware\Helios\HeliosDac.hpp" />
+    <ClInclude Include="hardware\Helios\libusb.h" />
+    <ClInclude Include="output\IDNLaproDecoder.hpp" />
+    <ClInclude Include="output\NOPLaproGraphOut.hpp" />
+    <ClInclude Include="output\RTLaproGraphOut.hpp" />
+    <ClInclude Include="output\RTOutput.hpp" />
+    <ClInclude Include="output\V1LaproGraphOut.hpp" />
+    <ClInclude Include="server\IDNLaproGraConInlet.hpp" />
+    <ClInclude Include="server\IDNLaproGraDisInlet.hpp" />
+    <ClInclude Include="server\IDNLaproService.hpp" />
+    <ClInclude Include="server\IDNServer.hpp" />
+    <ClInclude Include="server\IDNService.hpp" />
+    <ClInclude Include="server\IDNSession.hpp" />
+    <ClInclude Include="server\LLNode.hpp" />
+    <ClInclude Include="shared\BEX.hpp" />
+    <ClInclude Include="shared\DACHWInterface.hpp" />
+    <ClInclude Include="shared\HWBridge.hpp" />
+    <ClInclude Include="shared\idn-hello.h" />
+    <ClInclude Include="shared\idn-stream.h" />
+    <ClInclude Include="shared\idn.h" />
+    <ClInclude Include="shared\ISPDB25Point.h" />
+    <ClInclude Include="shared\ODFEnvironment.hpp" />
+    <ClInclude Include="shared\ODFTaxiBuffer.hpp" />
+    <ClInclude Include="shared\ODFTools.hpp" />
+    <ClInclude Include="shared\PEVFlags.h" />
+    <ClInclude Include="shared\types.h" />
+    <ClInclude Include="stage\SockIDNServer.hpp" />
+    <ClInclude Include="stage\SockTaxiBuffer.hpp" />
+    <ClInclude Include="hardware\HeliosPro\HeliosProAdapter.hpp" />
+    <ClInclude Include="output\IdtfDecoder.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="thirdparty">

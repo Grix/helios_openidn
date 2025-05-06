@@ -1,7 +1,7 @@
 // -------------------------------------------------------------------------------------------------
 //  File IDNServer.cpp
 //
-//  Copyright (c) 2020-2024 DexLogic, Dirk Apitz. All Rights Reserved.
+//  Copyright (c) 2020-2025 DexLogic, Dirk Apitz. All Rights Reserved.
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -25,8 +25,8 @@
 //  Change History:
 //
 //  07/2017 Dirk Apitz, created
-//  04/2019 Dirk Apitz, multithreading
 //  01/2024 Dirk Apitz, modifications and integration into OpenIDN
+//  04/2025 Dirk Apitz, independence from network layer through derived classes (Linux/LwIP support)
 // -------------------------------------------------------------------------------------------------
 
 
@@ -34,17 +34,8 @@
 #define IDN_SERVER_HPP
 
 
-// Standard libraries
-#include <memory>
-#include <vector>
-
-// Platform includes
-#include <sys/socket.h>
-#include <sys/time.h>
-
 // Project headers
 #include "../shared/idn-hello.h"
-#include "../shared/glue.hpp"
 #include "LLNode.hpp"
 #include "IDNSession.hpp"
 #include "IDNService.hpp"
@@ -53,8 +44,6 @@
 
 // Forward declarations
 class IDNServer;
-typedef struct _RECV_COOKIE RECV_COOKIE;
-typedef struct _RECV_BUFFER RECV_BUFFER;
 
 // Node types (incomplete, not declared)
 class ConnectionNode;
@@ -62,12 +51,19 @@ class SessionNode;
 
 
 // -------------------------------------------------------------------------------------------------
-//  Defines
+//  Typedefs
 // -------------------------------------------------------------------------------------------------
 
-// Shortcuts for struct field sizes
-#define UNITID_SIZE sizeof(((IDNHDR_SCAN_RESPONSE *)0)->unitID)
-#define HOST_NAME_SIZE sizeof(((IDNHDR_SCAN_RESPONSE *)0)->hostName)
+typedef struct _RECV_COOKIE
+{
+    // Diagnostics
+    char diagString[64];                            // A diagnostic string (optional)
+
+    uint8_t *getSendBuffer(ODF_ENV *env, unsigned sendBufferSize);
+    void sendResponse(unsigned sendLen);
+
+} RECV_COOKIE;
+
 
 
 // -------------------------------------------------------------------------------------------------
@@ -133,7 +129,6 @@ class IDNHelloConnection: public LLNode<ConnectionNode>
     ////////////////////////////////////////////////////////////////////////////////////////////////
     private:
 
-    struct sockaddr_storage clientAddr;             // The network address of the client
     uint8_t clientGroup;                            // The group, the client is running in
     char logIdent[64];                              // A diagnostic ident string for logging
     uint32_t inputTimeUS;                           // Last packet reception in microseconds
@@ -157,10 +152,10 @@ class IDNHelloConnection: public LLNode<ConnectionNode>
     unsigned errCntSequence;                        // The number of sequence errors
 
 
-    IDNHelloConnection(struct sockaddr_storage *clientAddr, uint8_t clientGroup, char *logIdent);
+    IDNHelloConnection(uint8_t clientGroup, char *logIdent);
     virtual ~IDNHelloConnection();
 
-    virtual int clientMatchIDNHello(struct sockaddr_storage *remoteAddr, uint8_t clientGroup);
+    virtual int clientMatchIDNHello(RECV_COOKIE *cookie, uint8_t clientGroup);
 
     virtual void handleLinkClose(ODF_ENV *env);
     virtual void handleTimeout(ODF_ENV *env, int32_t usDiffTime);
@@ -183,10 +178,7 @@ class IDNServer
     ////////////////////////////////////////////////////////////////////////////////////////////////
     private:
 
-    std::vector<std::shared_ptr<IDNService>> &services;
-
-    uint8_t unitID[UNITID_SIZE];                    // The unitID to report on scan requests
-    unsigned char mac_address[6];
+    LLNode<ServiceNode> *firstService;              // List of services
 
     LLNode<ConnectionNode> *firstConnection;        // List of client connections
     LLNode<SessionNode> *firstSession;              // List of server connections
@@ -199,30 +191,35 @@ class IDNServer
 
     void destroyConnection(IDNHelloConnection *connection);
     void destroySession(ODFSession *session);
-    void checkTeardown(ODF_ENV *env, uint32_t envTimeUS);
-    void abandonClients(ODF_ENV *env);
 
-    IDNHelloConnection *findConnection(struct sockaddr_storage *remoteAddr, uint8_t clientGroup);
+    IDNHelloConnection *findConnection(ODF_ENV *env, RECV_COOKIE *cookie, uint8_t clientGroup);
     int processRtConnection(ODF_ENV *env, RECV_COOKIE *cookie, IDNHDR_RT_ACKNOWLEDGE *ackRspHdr, int cmd, ODF_TAXI_BUFFER *taxiBuffer);
-    int checkExcluded(uint8_t flags);
-    void processCommand(ODF_ENV *env, RECV_COOKIE *cookie, ODF_TAXI_BUFFER *taxiBuffer);
 
-    void receiveUDP(ODF_ENV *env, int sd);
-    void mainNetLoop(ODF_ENV *env, int sd);
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
+    protected:
+
+    virtual IDNHelloConnection *createConnection(RECV_COOKIE *cookie, uint8_t clientGroup, char *logIdent) = 0;
+    virtual void getUnitID(uint8_t *fieldPtr, unsigned fieldSize) = 0;
+    virtual void getHostName(uint8_t *fieldPtr, unsigned fieldSize) = 0;
+
+    virtual int checkExcluded(uint8_t flags);
+    virtual void processCommand(ODF_ENV *env, RECV_COOKIE *cookie, ODF_TAXI_BUFFER *taxiBuffer);
 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     public:
 
-    uint8_t hostName[HOST_NAME_SIZE];               // The host name to report on scan requests
+    IDNServer(LLNode<ServiceNode> *firstService);
+    virtual ~IDNServer();
 
-    IDNServer(std::vector<std::shared_ptr<IDNService>> &services);
-    ~IDNServer();
+    virtual void abandonClients(ODF_ENV *env);
+    virtual void checkTeardown(ODF_ENV *env, uint32_t envTimeUS);
 
-    IDNService *getService(uint8_t serviceID);
-    IDNService *getDefaultService(uint8_t serviceMode);
+    virtual IDNService *getService(uint8_t serviceID);
+    virtual IDNService *getDefaultService(uint8_t serviceMode);
 
-    void networkThreadFunc();
+    virtual void setHostName(char* name) = 0;
 };
 
 

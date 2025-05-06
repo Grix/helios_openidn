@@ -39,11 +39,16 @@
 
 // Standard libraries
 #include <stdint.h>
-#include <string>
 
 // Project headers
-#include "../shared/glue.hpp"
+#include "../shared/ODFEnvironment.hpp"
+#include "../shared/ODFTaxiBuffer.hpp"
+#include "LLNode.hpp"
 
+
+
+// Node types (incomplete, not declared)
+class ServiceNode;
 
 
 // -------------------------------------------------------------------------------------------------
@@ -116,7 +121,7 @@ class IDNConfigInlet: public IDNInlet
 
 
 
-class IDNService
+class IDNService: public LLNode<ServiceNode>
 {
     // ------------------------------------------ Members ------------------------------------------
 

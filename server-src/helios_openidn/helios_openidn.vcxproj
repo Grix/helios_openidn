@@ -27,6 +27,7 @@
     <ClCompile Include="ManagementInterface.cpp" />
     <ClCompile Include="output\IDNLaproDecoder.cpp" />
     <ClCompile Include="output\IdtfDecoder.cpp" />
+    <ClCompile Include="output\NOPLaproGraphOut.cpp" />
     <ClCompile Include="output\RTLaproGraphOut.cpp" />
     <ClCompile Include="output\RTOutput.cpp" />
     <ClCompile Include="output\V1LaproGraphOut.cpp" />
@@ -36,11 +37,11 @@
     <ClCompile Include="server\IDNServer.cpp" />
     <ClCompile Include="server\IDNService.cpp" />
     <ClCompile Include="server\IDNSession.cpp" />
-    <ClCompile Include="server\main.cpp" />
-    <ClCompile Include="server\openIDN.cpp" />
     <ClCompile Include="shared\BEX.cpp" />
-    <ClCompile Include="shared\glue.cpp" />
     <ClCompile Include="shared\HWBridge.cpp" />
+    <ClCompile Include="shared\ODFTools.cpp" />
+    <ClCompile Include="stage\main.cpp" />
+    <ClCompile Include="stage\SockIDNServer.cpp" />
     <ClCompile Include="thirdparty\lcdgfx\src\canvas\canvas.cpp" />
     <ClCompile Include="thirdparty\lcdgfx\src\canvas\font.cpp" />
     <ClCompile Include="thirdparty\lcdgfx\src\canvas\fonts\fonts.c" />
@@ -85,6 +86,7 @@
     <ClInclude Include="ManagementInterface.hpp" />
     <ClInclude Include="output\IDNLaproDecoder.hpp" />
     <ClInclude Include="output\IdtfDecoder.hpp" />
+    <ClInclude Include="output\NOPLaproGraphOut.hpp" />
     <ClInclude Include="output\RTLaproGraphOut.hpp" />
     <ClInclude Include="output\RTOutput.hpp" />
     <ClInclude Include="output\V1LaproGraphOut.hpp" />
@@ -95,16 +97,20 @@
     <ClInclude Include="server\IDNService.hpp" />
     <ClInclude Include="server\IDNSession.hpp" />
     <ClInclude Include="server\LLNode.hpp" />
-    <ClInclude Include="server\openIDN.hpp" />
     <ClInclude Include="shared\BEX.hpp" />
     <ClInclude Include="shared\DACHWInterface.hpp" />
-    <ClInclude Include="shared\glue.hpp" />
     <ClInclude Include="shared\HWBridge.hpp" />
     <ClInclude Include="shared\idn-hello.h" />
     <ClInclude Include="shared\idn-stream.h" />
     <ClInclude Include="shared\idn.h" />
+    <ClInclude Include="shared\ISPDB25Point.h" />
+    <ClInclude Include="shared\ODFEnvironment.hpp" />
+    <ClInclude Include="shared\ODFTaxiBuffer.hpp" />
+    <ClInclude Include="shared\ODFTools.hpp" />
     <ClInclude Include="shared\PEVFlags.h" />
     <ClInclude Include="shared\types.h" />
+    <ClInclude Include="stage\SockIDNServer.hpp" />
+    <ClInclude Include="stage\SockTaxiBuffer.hpp" />
     <ClInclude Include="thirdparty\lcdgfx\src\canvas\adafruit.h" />
     <ClInclude Include="thirdparty\lcdgfx\src\canvas\canvas.h" />
     <ClInclude Include="thirdparty\lcdgfx\src\canvas\canvas_types.h" />
@@ -247,6 +253,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
+      <PreprocessorDefinitions>ODF_USE_TAXI_SOCK</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <LibraryDependencies>usb-1.0;pthread;%(LibraryDependencies)</LibraryDependencies>
@@ -255,6 +262,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
+      <PreprocessorDefinitions>ODF_USE_TAXI_SOCK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
       <LibraryDependencies>usb-1.0;pthread;%(LibraryDependencies)</LibraryDependencies>
