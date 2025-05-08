@@ -93,7 +93,7 @@ class SockIDNServer: public IDNServer
     protected:
 
     uint8_t unitID[UNITID_SIZE];                    // The unitID to report on scan requests
-    uint8_t hostName[HOST_NAME_SIZE];               // The host name to report on scan requests
+    uint8_t hostName[HOST_NAME_SIZE] = { 0 };               // The host name to report on scan requests
 
     // -- Inherited Members -------------
     virtual IDNHelloConnection *createConnection(RECV_COOKIE *cookie, uint8_t clientGroup, char *logIdent);
