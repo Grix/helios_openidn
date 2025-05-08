@@ -247,15 +247,17 @@ double HWBridge::calculateSpeedfactor(double currentSpeed, std::shared_ptr<Slice
 		//bufusage in ms = bufsize * avg slice duration
 		double bufUsageMs = (double)buffer->size()*(double)buffer->front()->durationUs / 1000.0;
 		double offCenter = (center - bufUsageMs) / center;
+		if (offCenter < 0.25 && offCenter > -0.25)
+			offCenter = 0;
 		this->accumOC += offCenter;
 
 		double newSpeed = (1.0 + 0.3*offCenter + 0.000*accumOC); // Accumulator entirely nullified for now
 		newSpeed = (newSpeed + ((sm-1)*currentSpeed))/sm;
 		
-		/*
+		
 		if (debug == DEBUGSIMPLE)
 			printf("Calculating speed factor: center %.2f, bufUsageMs %.2f, buffer->size() %.2f, buffer->front()->durationUs %.2f, accumOC %.2f, newSpeed %.2f \n", center, bufUsageMs, (double)buffer->size(), (double)buffer->front()->durationUs, this->accumOC, newSpeed);
-		*/
+		
 
 		return std::min(1.2, std::max(0.80, newSpeed));
 	} else {
