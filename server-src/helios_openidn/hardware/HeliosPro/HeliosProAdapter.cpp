@@ -89,7 +89,6 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		return 0;
 
 	isBusy = true;
-
 	//get time
 	struct timespec now, then;
 	unsigned long sdif, nsdif, tdif;
@@ -101,6 +100,22 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 	unsigned int numPoints = dataSizeBytes / bytesPerPoint();
 	uint32_t pps = numPoints * 1000000l / durationUs;
 	//printf("%d - %d - %f\n", pps, numPoints, durationUs);
+
+	// Calculate raw values for MCU timer. We do this here instead of in the MCU because the MCU doesn't handle 32-bit divisions well
+	uint16_t timerRepeats = 0;
+	if (pps > HELIOSPRO_MCU_MAXSPEED)
+	{
+		pps = HELIOSPRO_MCU_MAXSPEED;
+	}
+	else if (pps < HELIOSPRO_MCU_MINSPEED)
+	{
+		if (pps == 0)
+			pps = 1;
+		timerRepeats = HELIOSPRO_MCU_MINSPEED / pps + 1;
+		timerRepeats *= 50;
+		pps *= timerRepeats;
+	}
+	uint16_t desiredTimer = HELIOSPRO_MCU_TIMERSPEED / pps + 1;
 
 	unsigned int pointsPerFrame = numPoints;
 	unsigned int maxPointsPerFrame = HELIOSPRO_CHUNKSIZE / bytesPerPoint() - 1;
@@ -127,7 +142,10 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		writeBuffer[5] = ((dataSizeBytes + 16) >> 8) & 0xFF;
 		writeBuffer[6] = 0; // reserved
 		writeBuffer[7] = 0; // reserved
-		memcpy(&writeBuffer[8], &pps, 4);
+		writeBuffer[8] = ((desiredTimer) >> 0) & 0xFF;
+		writeBuffer[9] = ((desiredTimer) >> 8) & 0xFF;
+		writeBuffer[10] = ((timerRepeats) >> 0) & 0xFF;
+		writeBuffer[11] = ((timerRepeats) >> 8) & 0xFF;
 		writeBuffer[12] = 0; // reserved
 		writeBuffer[13] = 0; // reserved
 		writeBuffer[14] = 0; // reserved
