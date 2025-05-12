@@ -131,7 +131,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		dataSizeBytes = pointsThisFrame * bytesPerPoint();
 
 #ifndef NDEBUG
-		printf("Set helPro frame: samples %d, left %d, pps %d\n", pointsThisFrame, pointsLeft, pps);
+		printf("Set helPro frame: samples %d, left %d, pps %d, timerVal %d, repeats %d\n", pointsThisFrame, pointsLeft, pps, desiredTimer, timerRepeats);
 #endif
 
 		writeBuffer[0] = 'H';
@@ -206,12 +206,19 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		sdif = now.tv_sec - then.tv_sec;
 		nsdif = now.tv_nsec - then.tv_nsec;
 		tdif = sdif * 1000000000 + nsdif;
-		printf("Helios rdy signal recvd: %d\n", tdif / 1000);
+		unsigned long rdyReceivedTdif = tdif;
 
 		//printf("got ready\n");
 
 		//write the whole block all at once
 		int writeErr = write(this->spidevFd, writeBuffer, dataSizeBytes + 16 + 4);
+
+		clock_gettime(CLOCK_MONOTONIC, &now);
+		sdif = now.tv_sec - then.tv_sec;
+		nsdif = now.tv_nsec - then.tv_nsec;
+		tdif = sdif * 1000000000 + nsdif;
+
+		printf("Helios rdy signal recvd %d, and sent frame: %d\n", rdyReceivedTdif / 1000, tdif / 1000);
 
 		/*static uint16_t prevX = 0x8000;
 		static uint16_t prevY = 0x8000;
@@ -243,7 +250,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		//printf("wrote to HelPro size = %u\n", dataSizeBytes + 16 + 4);
 #endif
 
-		//if (durationUs > 200)
+		if (false)//durationUs > 200)
 		{
 			struct timespec then2;
 			clock_gettime(CLOCK_MONOTONIC, &then2);
@@ -254,7 +261,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 				nsdif = now.tv_nsec - then2.tv_nsec;
 				tdif = sdif * 1000000000 + nsdif;
 				//printf("no2: %d\n", tdif / 1000);
-				if (tdif > 1000000)
+				if (tdif > 100000)
 				{
 					printf("WARNING: Helios write ack NOT recvd: %d\n", tdif / 1000);
 					break;
@@ -266,7 +273,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 			sdif = now.tv_sec - then2.tv_sec;
 			nsdif = now.tv_nsec - then2.tv_nsec;
 			tdif = sdif * 1000000000 + nsdif;
-			if (tdif < 1000000)
+			if (tdif < 10000)
 				printf("Helios write ack recvd: %d\n", tdif / 1000);
 		}
 
@@ -289,7 +296,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 	isBusy = false;
 
 #ifndef NDEBUG
-	printf("Finished helPro frame\n");
+	//printf("Finished helPro frame\n");
 #endif
 
 
