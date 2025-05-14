@@ -15,7 +15,7 @@
 #define HELIOSPRO_CHUNKSIZE 0xE00
 
 // These must match the MCU firmware!
-#define HELIOSPRO_MCU_CLOCKSPEED ((uint32_t)84750000)
+#define HELIOSPRO_MCU_CLOCKSPEED ((uint32_t)96050000)
 #define HELIOSPRO_MCU_TIMERSPEED (HELIOSPRO_MCU_CLOCKSPEED/2)
 #define HELIOSPRO_MCU_MAXSPEED 100000u			// In pps
 #define HELIOSPRO_MCU_MINSPEED 647u				// In pps
@@ -57,6 +57,7 @@ private:
 	void* gpio_mem_map;
 	volatile uint32_t* gpio;
 	bool isBusy = false;
+	uint8_t txId = 1;
 
 	uint8_t writeBuffer[HELIOSPRO_CHUNKSIZE + 16 + 4];
 };
