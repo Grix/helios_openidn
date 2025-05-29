@@ -3,7 +3,7 @@
 //#include "ManagementInterface.hpp"
 #include "shared/ODFTools.hpp" //logError()
 #include "shared/types.h"
-#include "shared/idn-stream.h"
+#include "server/idn-stream.h"
 #include "output/IdtfDecoder.hpp"
 #include "output/RTLaproGraphOut.hpp"
 #include "shared/DACHWInterface.hpp"
@@ -41,7 +41,7 @@ public:
 
     typedef struct QueuedFrame
     {
-        std::vector<uint8_t> buffer; // Todo reuse buffers, avoid memory allocation
+        std::vector<uint8_t> buffer = std::vector<uint8_t>(3000); // Todo reuse buffers, avoid memory allocation
         unsigned int pps;
     } QueuedFrame;
 

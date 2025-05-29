@@ -5,7 +5,7 @@
 
 #include "ManagementInterface.hpp"
 #include "shared/types.h"
-#include "shared/idn-stream.h"
+#include "server/idn-stream.h"
 #include "output/IdtfDecoder.hpp"
 #include <unistd.h>
 #include <cstdio>
@@ -36,7 +36,7 @@ private:
     bool hasSentReadySignal = false;
     bool isBusy = false;
     IdtfDecoder decoder;
-    //std::vector<ISPDB25Point> pointBuffer;
+    std::vector<ISPDB25Point> pointBuffer = std::vector<ISPDB25Point>(5000);
     bool hasStarted = false;
 };
 

@@ -422,3 +422,24 @@ int ManagementInterface::getHardwareType()
 
 	return hardwareType;
 }
+
+bool ManagementInterface::requestOutput(int outputMode)
+{
+	if (outputMode == OUTPUT_MODE_IDN)
+	{
+		return true; // todo
+	}
+	else if (outputMode == OUTPUT_MODE_USB)
+	{
+		return true; // todo
+	}
+	else if (outputMode == OUTPUT_MODE_FILE)
+	{
+		return true; // todo
+	}
+	else if (outputMode == OUTPUT_MODE_DMX)
+	{
+
+	}
+	else return false;
+}

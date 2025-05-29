@@ -32,6 +32,11 @@ public:
 		snprintf(nameBufferPtr, nameBufferSize, "");
 	}
 
+	virtual bool getIsBusy()
+	{
+		return false;
+	}
+
 };
 
 #endif

@@ -37,11 +37,16 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
         printf("CMD RECVD: GET STATUS\n");
 
         unsigned char status = 0;
-        if (management->outputs.size() > 0)
+        if (management->devices.size() > 0)
         {
-            if (!management->outputs.front()->hasBufferedFrame())
+            if (!management->devices.front()->getIsBusy())
                 status = 1;
         }
+        /*if (management->outputs.size() > 0)
+        {
+            if (!management->outputs.front()->hasBufferedFrame()) //
+                status = 1;
+        }*/
 
         unsigned char response[52];
         response[0] = 0x83;
@@ -73,6 +78,12 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
 
 void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
 {
+    if (!management->requestOutput(OUTPUT_MODE_USB))
+    {
+        printf("Warning: Requested USB output, but was busy\n");
+        return;
+    }
+
     isBusy = true;
 
 #ifndef NDEBUG
@@ -105,12 +116,12 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
         return;
     }
 
-    if (!hasStarted)
+    /*if (!hasStarted)
     {
         management->outputs.front()->close();
         management->outputs.front()->open(RTLaproGraphicOutput::OPMODE_FRAME);
         hasStarted = true;
-    }
+    }*/
 
     //management->devices.front()->resetChunkBuffer();
     //management->devices.front()->bex->setMode(DRIVER_FRAMEMODE);
@@ -129,14 +140,14 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
     metadata.len = numOfPointBytes / 7;
     metadata.dur = (1000000 * metadata.len) / pps;*/
 
-    RTLaproGraphicOutput::CHUNKDATA chunkData;
+    /*RTLaproGraphicOutput::CHUNKDATA chunkData;
     memset(&chunkData, 0, sizeof(chunkData));
-    chunkData.chunkFlags = IDNFLG_GRAPHIC_FRAME_ONCE; // todo
+    chunkData.modFlags = RTLaproGraphicOutput::MODFLAG_SCAN_ONCE; // todo
     chunkData.chunkDuration = (1000000 * numPoints) / pps; // us
     chunkData.decoder = &decoder;
-    chunkData.sampleCount = numPoints;
+    chunkData.sampleCount = numPoints;*/
 
-    //pointBuffer.clear();
+    pointBuffer.clear();
 
     uint8_t newBuffer[numPoints * 8]; // Todo reuse buffer to avoid allocation
 
@@ -180,13 +191,13 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
     printf("Processing, bufferpos %d\n", bufferPos);
 #endif
 
-    management->outputs.front()->process(chunkData, newBuffer, bufferPos);
+    //management->outputs.front()->process(chunkData, newBuffer, bufferPos);
 
-    /*TimeSlice slice;
+    TimeSlice slice;
     slice.dataChunk = management->devices.front()->convertPoints(pointBuffer);
     slice.durationUs = (1000000 * numOfPointBytes) / pps;
 
-    management->devices.front()->writeFrame(slice, (1000000 * numOfPointBytes) / pps);*/
+    management->devices.front()->writeFrame(slice, (1000000 * numOfPointBytes) / pps);
 
     isBusy = false;
 }

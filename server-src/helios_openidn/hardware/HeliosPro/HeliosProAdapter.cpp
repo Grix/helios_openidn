@@ -316,6 +316,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 			isBusy = false;
 			perror("spi write error");
 			printf("msg size = %u\n", dataSizeBytes + 16 + 4);
+			return 0;
 		}
 #ifndef NDEBUG
 		//printf("wrote to HelPro size = %u\n", dataSizeBytes + 16 + 4);
@@ -424,4 +425,11 @@ void HeliosProAdapter::setMaxPointrate(unsigned newRate)
 {
 	this->maximumPointrate = newRate;
 }
+
+bool HeliosProAdapter::getIsBusy()
+{
+	return isBusy;
+}
+
+
 

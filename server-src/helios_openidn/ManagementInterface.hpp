@@ -50,6 +50,7 @@ public:
 	void setMode(unsigned int mode);
 	int getMode();
 	static int getHardwareType();
+	bool requestOutput(int outputMode);
 
 	std::string settingIdnHostname = "OpenIDN";
 	const char softwareVersion[10] = "0.9.8";

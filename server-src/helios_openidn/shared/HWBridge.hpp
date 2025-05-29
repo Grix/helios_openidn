@@ -58,9 +58,6 @@ public:
     // -- Inline Methods ----------------
     void setChunkLengthUs(double us) { this->usPerSlice = us; }
 
-
-	std::shared_ptr<BEX> bex;
-
 private:
 	void waveIteration();
 	void frameIteration();
@@ -72,6 +69,7 @@ private:
     std::shared_ptr<SliceBuf> db25toDevice(TransformEnv &tfEnv, std::shared_ptr<DB25ChunkQueue> db25ChunkQueue);
 
 	std::shared_ptr<DACHWInterface> device;
+	std::shared_ptr<BEX> bex;
 	double bufferTargetMs = 40;
 	double speedFactor = 1.0;
 	double accumOC = 0.0;

@@ -405,15 +405,22 @@ void FilePlayer::outputLoop()
             if (queue.empty())
                 continue;
 
-            if (!hasStarted)
+            // TODO
+            /*if (!management->requestOutput(OUTPUT_MODE_FILE))
+            {
+                printf("Warning: Requested file player output, but was busy\n");
+                return;
+            }*/
+
+            /*if (!hasStarted)
             {
                 outputs->front()->close();
                 outputs->front()->open(RTLaproGraphicOutput::OPMODE_FRAME);
                 hasStarted = true;
-            }
+            }*/
 
             // todo check timing
-            if (!outputs->front()->hasBufferedFrame())
+            if (!devices->front()->getIsBusy())//hasBufferedFrame())
             {
                 std::lock_guard<std::mutex> lock(threadLock);
                 std::shared_ptr<QueuedFrame> frame = queue.front();
@@ -422,14 +429,14 @@ void FilePlayer::outputLoop()
 
                 if (numOfPoints > 0)
                 {
-                    RTLaproGraphicOutput::CHUNKDATA chunkData;
+                    /*RTLaproGraphicOutput::CHUNKDATA chunkData;
                     memset(&chunkData, 0, sizeof(chunkData));
-                    chunkData.chunkFlags = IDNFLG_GRAPHIC_FRAME_ONCE;
+                    chunkData.modFlags = RTLaproGraphicOutput::MODFLAG_SCAN_ONCE;
                     chunkData.chunkDuration = (1000000 * numOfPoints) / frame->pps; // us
                     chunkData.decoder = &decoder;
                     chunkData.sampleCount = numOfPoints;
 
-                    outputs->front()->process(chunkData, frame->buffer.data(), frame->buffer.size());
+                    outputs->front()->process(chunkData, frame->buffer.data(), frame->buffer.size());*/
                 }
 
                 if (state != FILEPLAYER_STATE_PAUSE)
@@ -443,9 +450,11 @@ void FilePlayer::outputLoop()
                     }
                 }
 
+                TimeSlice slice;
+                slice.dataChunk = frame->buffer;
+                slice.durationUs = (1000000 * numOfPoints) / frame->pps;
 
-
-                //devices->front()->writeFrame(*slice, slice->durationUs);
+                devices->front()->writeFrame(slice, slice.durationUs);
             }
         }
 
@@ -467,3 +476,4 @@ uint16_t FilePlayer::readShort(FILE* fp)
 
     return (uint16_t)((c1 << 8) | c2);
 }
+

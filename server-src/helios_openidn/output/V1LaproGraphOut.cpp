@@ -176,8 +176,8 @@ void V1LaproGraphicOutput::process(CHUNKDATA &chunkData, ODF_TAXI_BUFFER *taxiBu
     }
 }
 
-bool V1LaproGraphicOutput::hasBufferedFrame()
+/*bool V1LaproGraphicOutput::hasBufferedFrame()
 {
     return driverPtr->bex->hasBufferedFrame();
-}
+}*/
 

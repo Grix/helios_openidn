@@ -39,7 +39,7 @@ public:
 	unsigned maxBytesPerTransmission() override;
 	unsigned maxPointrate() override;
 	void setMaxPointrate(unsigned) override;
-	//bool getIsBusy() override;
+	bool getIsBusy() override;
 	//void stop() override;
 
 	HeliosProAdapter();

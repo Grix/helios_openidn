@@ -63,6 +63,9 @@ HeliosAdapter::~HeliosAdapter() {
 }
 
 int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
+
+	isBusy = true;
+
 	// This will be left in for now, unique hotplugging 1:1 scenario, technically outdated
 	if (!getHeliosConnected())
 	{
@@ -122,13 +125,15 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 	else
 		printf("Too high helios rate, bypassing write: %d\n", framePointRate);
 
-	//busy waiting
+	isBusy = false;
+
+	//waiting, not really required normally
 	do {
 		clock_gettime(CLOCK_MONOTONIC, &now);
 		sdif = now.tv_sec - then.tv_sec;
 		nsdif = now.tv_nsec - then.tv_nsec;
 		tdif = sdif*1000000000 + nsdif ;
-	} while (tdif < ((unsigned long)duration * 1000 * 0.8) );
+	} while (tdif < ((unsigned long)duration * 1000 * 0.2) );
 
 
 	return 0;
@@ -188,6 +193,11 @@ bool HeliosAdapter::getHeliosConnected()
 {
 	return true;
 	//return helios.GetStatus(this->id);
+}
+
+bool HeliosAdapter::getIsBusy()
+{
+	return false;
 }
 
 void HeliosAdapter::checkConnection()

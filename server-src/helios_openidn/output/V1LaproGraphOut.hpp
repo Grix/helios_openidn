@@ -48,7 +48,7 @@ class V1LaproGraphicOutput: public RTLaproGraphicOutput
     virtual int open(OPMODE opMode);
     virtual void close();
     virtual void process(CHUNKDATA &chunkData, ODF_TAXI_BUFFER *taxiBuffer);
-    bool hasBufferedFrame();
+    //bool hasBufferedFrame();
 };
 
 
