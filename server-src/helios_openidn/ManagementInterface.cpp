@@ -288,7 +288,7 @@ void ManagementInterface::networkLoop(int sd) {
 							num_bytes = 22; // Can't have longer name than 20 chars
 						buffer_in[num_bytes] = '\0'; // Make sure we don't fuck up
 						settingIdnHostname = std::string((char*)&buffer_in[2]);
-						idnServer->setHostName((char*)settingIdnHostname.c_str());
+						idnServer->setHostName((uint8_t*)settingIdnHostname.c_str(), settingIdnHostname.length() + 1);
 
 						try
 						{

@@ -37,9 +37,9 @@
 #include <string.h>
 
 // Project headers
-#include "../shared/idn-stream.h"
+#include "idn-stream.h"
 #include "../shared/ODFTools.hpp"
-#include "../shared/PEVFlags.h"
+#include "PEVFlags.h"
 #include "IDNLaproGraConInlet.hpp"
 #include "IDNLaproGraDisInlet.hpp"
 
@@ -117,6 +117,8 @@ IDNLaproService::IDNLaproService(uint8_t serviceID, char *serviceName, bool defa
     IDNService(serviceID, serviceName, defaultServiceFlag),
     rtOutput(rtOutput)
 {
+
+// FIXME: Static allocation option
     graConInlet = new IDNLaproGraConInlet(rtOutput);
     graDisInlet = new IDNLaproGraDisInlet(rtOutput);
 

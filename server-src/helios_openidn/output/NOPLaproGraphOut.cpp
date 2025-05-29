@@ -45,7 +45,8 @@ void NOPLaproGraphicOutput::close()
 }
 
 
-void NOPLaproGraphicOutput::process(CHUNKDATA &chunkData, uint8_t *recvBuffer, unsigned recvLen)
+void NOPLaproGraphicOutput::process(CHUNKDATA &chunkData, ODF_TAXI_BUFFER *taxiBuffer)
 {
+    taxiBuffer->discard();
 }
 

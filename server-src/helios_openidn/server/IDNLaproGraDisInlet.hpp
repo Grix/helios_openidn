@@ -58,6 +58,15 @@ class IDNLaproGraDisInlet: public IDNLaproGraphInlet
     // ------------------------------------------ Members ------------------------------------------
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
+    private:
+
+    ODF_TAXI_BUFFER *reassemblyHead;
+    unsigned reassemblySeqNum;
+
+    ODF_TAXI_BUFFER *reassemble(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer);
+
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////
     public:
 
     IDNLaproGraDisInlet(RTLaproGraphicOutput *rtOutput);
@@ -65,6 +74,7 @@ class IDNLaproGraDisInlet: public IDNLaproGraphInlet
 
     // -- Inherited Members -------------
     virtual uint8_t getServiceMode();
+    virtual void reset();
     virtual void process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer);
 };
 

@@ -35,7 +35,7 @@
 
 
 // Project headers
-#include "../shared/idn-hello.h"
+#include "idn-hello.h"
 #include "LLNode.hpp"
 #include "IDNSession.hpp"
 #include "IDNService.hpp"
@@ -48,6 +48,15 @@ class IDNServer;
 // Node types (incomplete, not declared)
 class ConnectionNode;
 class SessionNode;
+
+
+// -------------------------------------------------------------------------------------------------
+//  Defines
+// -------------------------------------------------------------------------------------------------
+
+// Shortcuts for struct field sizes
+#define UNITID_SIZE sizeof(((IDNHDR_SCAN_RESPONSE *)0)->unitID)
+#define HOST_NAME_SIZE sizeof(((IDNHDR_SCAN_RESPONSE *)0)->hostName)
 
 
 // -------------------------------------------------------------------------------------------------
@@ -126,6 +135,8 @@ class ODFSession: public IDNSession, public LLNode<SessionNode>
 
 class IDNHelloConnection: public LLNode<ConnectionNode>
 {
+    // ------------------------------------------ Members ------------------------------------------
+
     ////////////////////////////////////////////////////////////////////////////////////////////////
     private:
 
@@ -179,6 +190,8 @@ class IDNServer
     private:
 
     LLNode<ServiceNode> *firstService;              // List of services
+    uint8_t cfgUnitID[UNITID_SIZE];                 // The unitID to report on scan requests
+    uint8_t cfgHostName[HOST_NAME_SIZE];            // The host name to report on scan requests
 
     LLNode<ConnectionNode> *firstConnection;        // List of client connections
     LLNode<SessionNode> *firstSession;              // List of server connections
@@ -200,8 +213,7 @@ class IDNServer
     protected:
 
     virtual IDNHelloConnection *createConnection(RECV_COOKIE *cookie, uint8_t clientGroup, char *logIdent) = 0;
-    virtual void getUnitID(uint8_t *fieldPtr, unsigned fieldSize) = 0;
-    virtual void getHostName(uint8_t *fieldPtr, unsigned fieldSize) = 0;
+    virtual ODFSession *createSession(char *logIdent, IDNServer *idnServer) = 0;
 
     virtual int checkExcluded(uint8_t flags);
     virtual void processCommand(ODF_ENV *env, RECV_COOKIE *cookie, ODF_TAXI_BUFFER *taxiBuffer);
@@ -213,13 +225,17 @@ class IDNServer
     IDNServer(LLNode<ServiceNode> *firstService);
     virtual ~IDNServer();
 
+    virtual void setUnitID(uint8_t *fieldPtr, unsigned fieldSize);
+    virtual void getUnitID(uint8_t *fieldPtr, unsigned fieldSize);
+
+    virtual void setHostName(uint8_t *fieldPtr, unsigned fieldSize);
+    virtual void getHostName(uint8_t *fieldPtr, unsigned fieldSize);
+
     virtual void abandonClients(ODF_ENV *env);
     virtual void checkTeardown(ODF_ENV *env, uint32_t envTimeUS);
 
     virtual IDNService *getService(uint8_t serviceID);
     virtual IDNService *getDefaultService(uint8_t serviceMode);
-
-    virtual void setHostName(char* name) = 0;
 };
 
 

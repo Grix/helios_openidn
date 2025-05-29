@@ -34,18 +34,12 @@
 #define SOCKIDNSERVER_HPP
 
 
+// Standard libraries
+#include <atomic>
+
 // Project headers
 #include "../server/IDNServer.hpp"
 
-
-
-// -------------------------------------------------------------------------------------------------
-//  Defines
-// -------------------------------------------------------------------------------------------------
-
-// Shortcuts for struct field sizes
-#define UNITID_SIZE sizeof(((IDNHDR_SCAN_RESPONSE *)0)->unitID)
-#define HOST_NAME_SIZE sizeof(((IDNHDR_SCAN_RESPONSE *)0)->hostName)
 
 
 // -------------------------------------------------------------------------------------------------
@@ -85,20 +79,18 @@ class SockIDNServer: public IDNServer
     ////////////////////////////////////////////////////////////////////////////////////////////////
     private:
 
-    void receiveUDP(ODF_ENV *env, int sd);
-    void mainNetLoop(ODF_ENV *env, int sd);
+    std::atomic<bool> threadStop;
+
+    int receiveUDP(ODF_ENV *env, int fdSocket, uint32_t usRecvTime);
+    int mainNetLoop(ODF_ENV *env, int fdSocket);
 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     protected:
 
-    uint8_t unitID[UNITID_SIZE];                    // The unitID to report on scan requests
-    uint8_t hostName[HOST_NAME_SIZE] = { 0 };               // The host name to report on scan requests
-
     // -- Inherited Members -------------
     virtual IDNHelloConnection *createConnection(RECV_COOKIE *cookie, uint8_t clientGroup, char *logIdent);
-    virtual void getUnitID(uint8_t *fieldPtr, unsigned fieldSize);
-    virtual void getHostName(uint8_t *fieldPtr, unsigned fieldSize);
+    virtual ODFSession *createSession(char *logIdent, IDNServer *idnServer);
 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -107,8 +99,8 @@ class SockIDNServer: public IDNServer
     SockIDNServer(LLNode<ServiceNode> *firstService);
     virtual ~SockIDNServer();
 
+    void stopServer();
     void networkThreadFunc();
-    virtual void setHostName(char* name);
 };
 
 

@@ -13,6 +13,7 @@
 #include <stdint.h>
 
 // Project headers
+#include "../shared/ODFTaxiBuffer.hpp"
 #include "RTOutput.hpp"
 
 
@@ -41,14 +42,16 @@ class RTLaproGraphicOutput: public RTOutput
 {
     public:
 
-    enum OPMODE { OPMODE_IDLE = 0, OPMODE_WAVE = 1, OPMODE_FRAME = 2 };
+    enum OPMODE  { OPMODE_IDLE = 0, OPMODE_WAVE = 1, OPMODE_FRAME = 2 };
+    enum MODFLAG { MODFLAG_SCAN_ONCE = 1, MODFLAG_DISCONTINUOUS = 2 };
 
     typedef struct
     {
-        uint8_t chunkFlags;
         uint32_t chunkDuration;
+        uint8_t modFlags;
 
         RTLaproDecoder *decoder;
+        unsigned sampleSize;
         unsigned sampleCount;
 
     } CHUNKDATA;
@@ -68,7 +71,7 @@ class RTLaproGraphicOutput: public RTOutput
     virtual RTLaproDecoder *createIDNDecoder(uint8_t serviceMode, void *paramPtr, unsigned paramLen);
     virtual void deleteDecoder(RTLaproDecoder *decoder);
 
-    virtual void process(CHUNKDATA &chunkData, uint8_t *recvBuffer, unsigned recvLen) = 0;
+    virtual void process(CHUNKDATA &chunkData, ODF_TAXI_BUFFER *taxiBuffer) = 0;
 };
 
 

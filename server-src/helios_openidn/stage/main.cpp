@@ -64,40 +64,11 @@ inline void debug_printf(bool critical, const char* fmt, ...) {
 
 // Signal handler function for SIGINT: Cancel and join all driver threads.
 void sig_handler(int sig) {
-    // Cancel and join each driver thread.
-    for (size_t i = 0; i < driverThreads.size(); i++) {
-        pthread_cancel(driverThreads[i]);
-        pthread_join(driverThreads[i], nullptr);
-    }
-
     char message[256]; // A buffer to hold the message with the count
-    snprintf(message, sizeof(message), "\nCaught SIGINT (Ctrl+C). Exiting gracefully. %d critical messages were generated.\n", debug_ctr);
+    snprintf(message, sizeof(message), "\nCaught SIGINT (Ctrl+C). Exiting gracefully.\n");
     write(STDOUT_FILENO, message, strlen(message));
-
-    // Clear the driver list.
-    driverObjects.clear();
-
-    // Delete outputs
-    for(auto rtOutput : rtOutputs) delete rtOutput;
-    rtOutputs.clear();
-    management->outputs.clear();
-
-    // Delete services
-    while(firstService)
-    {
-        LLNode<ServiceNode> *node = firstService;
-        IDNService *service = static_cast<IDNService *>(node);
-
-        service->linkout();
-        delete(service);
-    }
-
-    _exit(0); 
-}
-
-void* networkThreadFunction(void* args) {
-    idnServer->networkThreadFunc();
-    return nullptr;
+    if (idnServer != nullptr) 
+        idnServer->stopServer();
 }
 
 void* driverThreadFunction(void* args) {
@@ -641,7 +612,7 @@ int main(int argc, char** argv) {
         return -1;
     }
     management->idnServer = idnServer;
-    idnServer->setHostName((char*)management->settingIdnHostname.c_str());
+    idnServer->setHostName((uint8_t*)management->settingIdnHostname.c_str(), management->settingIdnHostname.length()+1);
 
     std::atomic<int> atom(1);
     printf("lockless atomics: %s\n", atom.is_lock_free() ? "true" : "false");
@@ -652,7 +623,34 @@ int main(int argc, char** argv) {
     UsbInterface* usbInterface = new UsbInterface();
 
     // Run the network thread on the main thread.
-    networkThreadFunction(nullptr);
+    idnServer->networkThreadFunc();
+
+    // Cancel and join each driver thread.
+    for (size_t i = 0; i < driverThreads.size(); i++)
+    {
+        pthread_cancel(driverThreads[i]);
+        pthread_join(driverThreads[i], nullptr);
+    }
+
+    printf("%d critical messages were generated.\n", debug_ctr);
+
+    // Clear the driver list.
+    driverObjects.clear();
+
+    // Delete outputs
+    for (auto rtOutput : rtOutputs) delete rtOutput;
+    rtOutputs.clear();
+
+    // Delete services
+    while (firstService)
+    {
+        LLNode<ServiceNode>* node = firstService;
+        IDNService* service = static_cast<IDNService*>(node);
+
+        service->linkout();
+        delete(service);
+    }
+
 
     return 0;
 }

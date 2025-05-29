@@ -34,7 +34,7 @@ class NOPLaproGraphicOutput: public RTLaproGraphicOutput
     virtual void getDeviceName(char *nameBufferPtr, unsigned nameBufferSize);
     virtual int open(OPMODE opMode);
     virtual void close();
-    virtual void process(CHUNKDATA &chunkData, uint8_t *recvBuffer, unsigned recvLen);
+    virtual void process(CHUNKDATA &chunkData, ODF_TAXI_BUFFER *taxiBuffer);
 };
 
 

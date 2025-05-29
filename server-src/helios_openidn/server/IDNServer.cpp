@@ -35,10 +35,10 @@
 #include <stdio.h>
 
 // Project headers
-#include "../shared/idn.h"
-#include "../shared/idn-stream.h"
+#include "idn.h"
+#include "idn-stream.h"
 #include "../shared/ODFTools.hpp"
-#include "../shared/PEVFlags.h"
+#include "PEVFlags.h"
 
 // Module header
 #include "IDNServer.hpp"
@@ -56,6 +56,37 @@
 #define SESSIONSTATE_ABANDONED              0           // No more in use, to be deleted
 #define SESSIONSTATE_CLOSING                -1          // No more in use, waiting for output to finish
 #define SESSIONSTATE_DETACHED               -2          // In use but not attached to a connection
+
+
+// Copy a uint8 array field into a uint8 array field, stop at '\0' and pad dst with '\0'
+#define STRCPY_FIELD_FROM_FIELD(dstPtr, dstSize, srcPtr, srcSize)                           \
+    {                                                                                       \
+        unsigned cpyCount = dstSize;                                                        \
+        if(srcSize < cpyCount) cpyCount = srcSize;                                          \
+                                                                                            \
+        unsigned i = 0;                                                                     \
+        uint8_t *dst = dstPtr;                                                              \
+        uint8_t *src = srcPtr;                                                              \
+        for(; (i < cpyCount) && (*src != 0); i++) *dst++ = *src++;                          \
+        for(; i < dstSize; i++) *dst = 0;                                                   \
+    }
+
+// Copy a unitID field
+#define UNITID_FIELD_FROM_FIELD(dstPtr, dstSize, srcPtr, srcSize)                           \
+    {                                                                                       \
+        uint8_t *dst = dstPtr;                                                              \
+        uint8_t *src = srcPtr;                                                              \
+                                                                                            \
+        unsigned idLen = src ? *src++ : 0;                                                  \
+        if(srcSize > 0) { if(idLen >= srcSize) idLen = srcSize - 1; } else idLen = 0;       \
+        if(dstSize > 0) { if(idLen >= dstSize) idLen = dstSize - 1; } else idLen = 0;       \
+                                                                                            \
+        if(dst) *dst++ = idLen;                                                             \
+        if(dst && (idLen > 0)) memcpy(dst, src, idLen);                                     \
+                                                                                            \
+        unsigned trailCount = (dstSize > (1 + idLen)) ? (dstSize - (1 + idLen)) : 0;        \
+        if(dst && (trailCount > 0)) memset(&dst[idLen], 0, trailCount);                     \
+    }
 
 
 
@@ -529,12 +560,12 @@ void IDNServer::processStreamMessage(ODF_ENV *env, IDNHelloConnection *connectio
 
         // Check message length
         uint16_t totalSize = btoh16(channelMessageHdr->totalSize);
-        if(totalSize != taxiBuffer->getPayloadLen())
+        if(totalSize != taxiBuffer->getTotalLen())
         {
             connection->inputEvents |= IDNVAL_RTACK_IEVFLG_MVERR;
 
             tpr.logWarn("%s|IDN-Stream: Payload length (%u) / message size mismatch (%u)",
-                        connection->getLogIdent(), taxiBuffer->getPayloadLen(), totalSize);
+                        connection->getLogIdent(), taxiBuffer->getTotalLen(), totalSize);
             break;
         }
 
@@ -638,7 +669,7 @@ void IDNServer::processRtPacket(ODF_ENV *env, IDNHelloConnection *connection, OD
     }
 
     // Unwarp/Process stream message
-    if(taxiBuffer->getPayloadLen() <= sizeof(IDNHDR_PACKET))
+    if(taxiBuffer->getTotalLen() <= sizeof(IDNHDR_PACKET))
     {
         // In case the packet doesn't contain a message - do not pass to the session
         taxiBuffer->discard();
@@ -700,27 +731,40 @@ int IDNServer::processRtConnection(ODF_ENV *env, RECV_COOKIE *cookie, IDNHDR_RT_
 
     // Note: Assert packetlen >= sizeof(IDNHDR_PACKET) --- already checked, would not be here
 
-    uint8_t clientGroup = ((IDNHDR_PACKET *)taxiBuffer->getPayloadPtr())->flags & IDNMSK_PKTFLAGS_GROUP;
+    // Assume success
+    int8_t result = IDNVAL_RTACK_SUCCESS;
 
     // -----------------------------------------------------
 
     // Find/Create the connection for the client
-    IDNHelloConnection *connection = findConnection(env, cookie, clientGroup);
-    if(connection == (IDNHelloConnection *)0)
+    IDNHelloConnection *connection = (IDNHelloConnection *)0;
+    do
     {
-        if((cmd == IDNCMD_RT_CNLMSG_CLOSE) && (taxiBuffer->getPayloadLen() == sizeof(IDNHDR_PACKET)))
+        // Find existing connection
+        uint8_t clientGroup = ((IDNHDR_PACKET *)taxiBuffer->getPayloadPtr())->flags & IDNMSK_PKTFLAGS_GROUP;
+        connection = findConnection(env, cookie, clientGroup);
+        if(connection != (IDNHelloConnection *)0)
         {
-            // Empty close command from unconnected client - discard with error (caller cleans up)
-            return IDNVAL_RTACK_ERR_NOT_CONNECTED;
+            // Connection exists
+            break;
         }
 
-        // Message command or close command with valid channel message payload - open connection
+        // Check for empty close command from unconnected client
+        if((cmd == IDNCMD_RT_CNLMSG_CLOSE) && (taxiBuffer->getTotalLen() == sizeof(IDNHDR_PACKET)))
+        {
+            // Discard with error
+            result = IDNVAL_RTACK_ERR_NOT_CONNECTED;
+            break;
+        }
+
+        // Message command or close command with valid channel message payload - create/open connection
         connection = createConnection(cookie, clientGroup, cookie->diagString);
         if(connection == (IDNHelloConnection *)0)
         {
-            // No memory or all connections occupied - discard with error (caller cleans up)
+            // No memory or all connections occupied - discard with error
             tpr.logError("Connection object creation failed (IDNHelloConnection)");
-            return IDNVAL_RTACK_ERR_OCCUPIED;
+            result = IDNVAL_RTACK_ERR_OCCUPIED;
+            break;
         }
 
         // Add to the list of connections. Note: Receive time initialized right before packet processing
@@ -728,8 +772,8 @@ int IDNServer::processRtConnection(ODF_ENV *env, RECV_COOKIE *cookie, IDNHDR_RT_
 
         // -----------------------------------------------------------------------------------------
 
-        // Create a session. General note: In case of limited resources, maybe use a statically allocated session
-        ODFSession *session = new ODFSession(cookie->diagString, this);
+        // Create/Open a session. Note: IDN-RT has a 1:1 correspondence of connection/session
+        ODFSession *session = createSession(cookie->diagString, this);
         if(session != (ODFSession *)0)
         {
             // Add to the list of sessions
@@ -740,18 +784,23 @@ int IDNServer::processRtConnection(ODF_ENV *env, RECV_COOKIE *cookie, IDNHDR_RT_
         // Diagnostic log
         tpr.logInfo("%s|Link: Connection open, session=%p", connection->getLogIdent(), session);
     }
+    while(0);
+
+    // In case of error (no connection): Discard the taxi buffer and return
+    if(result != IDNVAL_RTACK_SUCCESS)
+    {
+        taxiBuffer->discard();
+        return result;
+    }
 
     // -----------------------------------------------------
 
-    // Assume success
-    int8_t result = IDNVAL_RTACK_SUCCESS;
-
     // Check message payload
-    if(taxiBuffer->getPayloadLen() == sizeof(IDNHDR_PACKET))
+    if(taxiBuffer->getTotalLen() == sizeof(IDNHDR_PACKET))
     {
         // OK, empty packet
     }
-    else if(taxiBuffer->getPayloadLen() < (sizeof(IDNHDR_PACKET) + sizeof(IDNHDR_CHANNEL_MESSAGE)))
+    else if(taxiBuffer->getTotalLen() < (sizeof(IDNHDR_PACKET) + sizeof(IDNHDR_CHANNEL_MESSAGE)))
     {
         // Payload must not be less than a channel message header
         result = IDNVAL_RTACK_ERR_PAYLOAD;
@@ -765,14 +814,14 @@ int IDNServer::processRtConnection(ODF_ENV *env, RECV_COOKIE *cookie, IDNHDR_RT_
     {
         IDNHDR_PACKET *recvPacketHdr = (IDNHDR_PACKET *)taxiBuffer->getPayloadPtr();
         IDNHDR_MESSAGE *messageHdr = (IDNHDR_MESSAGE *)&recvPacketHdr[1];
-        if(taxiBuffer->getPayloadLen() < (sizeof(IDNHDR_PACKET) + btoh16(messageHdr->totalSize)))
+        if(taxiBuffer->getTotalLen() < (sizeof(IDNHDR_PACKET) + btoh16(messageHdr->totalSize)))
         {
             // Datagram length does not match total message length
             result = IDNVAL_RTACK_ERR_PAYLOAD;
         }
     }
 
-    // Prefetch channel message channelID (after packet input, header may not be valid any more)
+    // Prefetch channel message channelID (after packet input, header is not valid any more)
     int channelID = -1;
     if(result == IDNVAL_RTACK_SUCCESS)
     {
@@ -902,9 +951,9 @@ void IDNServer::processCommand(ODF_ENV *env, RECV_COOKIE *cookie, ODF_TAXI_BUFFE
     TracePrinter tpr(env, "IDNServer~processCommand");
 
     // Check minimum packet size
-    if(taxiBuffer->getPayloadLen() < sizeof(IDNHDR_PACKET))
+    if(taxiBuffer->getTotalLen() < sizeof(IDNHDR_PACKET))
     {
-        tpr.logWarn("%s|cmd: Invalid packet size %u", cookie->diagString, taxiBuffer->getPayloadLen());
+        tpr.logWarn("%s|cmd: Invalid packet size %u", cookie->diagString, taxiBuffer->getTotalLen());
         taxiBuffer->discard();
         return;
     }
@@ -919,7 +968,7 @@ void IDNServer::processCommand(ODF_ENV *env, RECV_COOKIE *cookie, ODF_TAXI_BUFFE
 
     // Get packet header and payload length
     IDNHDR_PACKET *recvPacketHdr = (IDNHDR_PACKET *)taxiBuffer->getPayloadPtr();
-    unsigned recvPayloadLen = taxiBuffer->getPayloadLen() - sizeof(IDNHDR_PACKET);
+    unsigned recvPayloadLen = taxiBuffer->getTotalLen() - sizeof(IDNHDR_PACKET);
 
     // Append client group to remote address (for diagnostics)
     uint8_t clientGroup = recvPacketHdr->flags & IDNMSK_PKTFLAGS_GROUP;
@@ -934,9 +983,9 @@ void IDNServer::processCommand(ODF_ENV *env, RECV_COOKIE *cookie, ODF_TAXI_BUFFE
         case IDNCMD_PING_REQUEST:
         {
             // Ensure for contiguous request packet
-            if(taxiBuffer->coalesce(taxiBuffer->getPayloadLen()) < 0)
+            if(taxiBuffer->coalesce(taxiBuffer->getTotalLen()) < 0)
             {
-                tpr.logError("%s|Ping: Coalesce(%u) failed", cookie->diagString, taxiBuffer->getPayloadLen());
+                tpr.logError("%s|Ping: Coalesce(%u) failed", cookie->diagString, taxiBuffer->getTotalLen());
                 break;
             }
 
@@ -967,9 +1016,9 @@ void IDNServer::processCommand(ODF_ENV *env, RECV_COOKIE *cookie, ODF_TAXI_BUFFE
         case IDNCMD_GROUP_REQUEST:
         {
             // Ensure for contiguous request packet
-            if(taxiBuffer->coalesce(taxiBuffer->getPayloadLen()) < 0)
+            if(taxiBuffer->coalesce(taxiBuffer->getTotalLen()) < 0)
             {
-                tpr.logError("%s|Group: Coalesce(%u) failed", cookie->diagString, taxiBuffer->getPayloadLen());
+                tpr.logError("%s|Group: Coalesce(%u) failed", cookie->diagString, taxiBuffer->getTotalLen());
                 break;
             }
 
@@ -1175,9 +1224,9 @@ void IDNServer::processCommand(ODF_ENV *env, RECV_COOKIE *cookie, ODF_TAXI_BUFFE
         {
             if(checkExcluded(recvPacketHdr->flags)) break;
 
-            // Process message. Note: If successful, the buffer is passed. No more access!
-            int resultCode = processRtConnection(env, cookie, (IDNHDR_RT_ACKNOWLEDGE *)0, IDNCMD_RT_CNLMSG, taxiBuffer);
-            if(resultCode == IDNVAL_RTACK_SUCCESS) taxiBuffer = (ODF_TAXI_BUFFER *)0;
+            // Process message. Note: The buffer is passed. No more access!
+            processRtConnection(env, cookie, (IDNHDR_RT_ACKNOWLEDGE *)0, IDNCMD_RT_CNLMSG, taxiBuffer);
+            taxiBuffer = (ODF_TAXI_BUFFER *)0;
         }
         break;
 
@@ -1216,9 +1265,9 @@ void IDNServer::processCommand(ODF_ENV *env, RECV_COOKIE *cookie, ODF_TAXI_BUFFE
             }
             else
             {
-                // Process message. Note: If successful, the buffer is passed. No more access!
+                // Process message. Note: The buffer is passed. No more access!
                 resultCode = processRtConnection(env, cookie, ackRspHdr, IDNCMD_RT_CNLMSG, taxiBuffer);
-                if(resultCode == IDNVAL_RTACK_SUCCESS) taxiBuffer = (ODF_TAXI_BUFFER *)0;
+                taxiBuffer = (ODF_TAXI_BUFFER *)0;
             }
 
             if(ackRspHdr != (IDNHDR_RT_ACKNOWLEDGE *)0)
@@ -1237,9 +1286,9 @@ void IDNServer::processCommand(ODF_ENV *env, RECV_COOKIE *cookie, ODF_TAXI_BUFFE
         {
             if(checkExcluded(recvPacketHdr->flags)) break;
 
-            // Process message. Note: If successful, the buffer is passed. No more access!
-            int resultCode = processRtConnection(env, cookie, (IDNHDR_RT_ACKNOWLEDGE *)0, IDNCMD_RT_CNLMSG_CLOSE, taxiBuffer);
-            if(resultCode == IDNVAL_RTACK_SUCCESS) taxiBuffer = (ODF_TAXI_BUFFER *)0;
+            // Process message. Note: The buffer is passed. No more access!
+            processRtConnection(env, cookie, (IDNHDR_RT_ACKNOWLEDGE *)0, IDNCMD_RT_CNLMSG_CLOSE, taxiBuffer);
+            taxiBuffer = (ODF_TAXI_BUFFER *)0;
         }
         break;
 
@@ -1278,9 +1327,9 @@ void IDNServer::processCommand(ODF_ENV *env, RECV_COOKIE *cookie, ODF_TAXI_BUFFE
             }
             else
             {
-                // Process message. Note: If successful, the buffer is passed. No more access!
+                // Process message. Note: The buffer is passed. No more access!
                 resultCode = processRtConnection(env, cookie, ackRspHdr, IDNCMD_RT_CNLMSG_CLOSE, taxiBuffer);
-                if(resultCode == IDNVAL_RTACK_SUCCESS) taxiBuffer = (ODF_TAXI_BUFFER *)0;
+                taxiBuffer = (ODF_TAXI_BUFFER *)0;
             }
 
             if(ackRspHdr != (IDNHDR_RT_ACKNOWLEDGE *)0)
@@ -1350,6 +1399,30 @@ IDNServer::~IDNServer()
         logError("IDNServer|dtor: Unfreed session list %p", firstSession);
     }
 */
+}
+
+
+void IDNServer::setUnitID(uint8_t *fieldPtr, unsigned fieldSize)
+{
+    UNITID_FIELD_FROM_FIELD(cfgUnitID, sizeof(cfgUnitID), fieldPtr, fieldSize);
+}
+
+
+void IDNServer::getUnitID(uint8_t *fieldPtr, unsigned fieldSize)
+{
+    UNITID_FIELD_FROM_FIELD(fieldPtr, fieldSize, cfgUnitID, sizeof(cfgUnitID));
+}
+
+
+void IDNServer::setHostName(uint8_t *fieldPtr, unsigned fieldSize)
+{
+    STRCPY_FIELD_FROM_FIELD(cfgHostName, sizeof(cfgHostName), fieldPtr, fieldSize);
+}
+
+
+void IDNServer::getHostName(uint8_t *fieldPtr, unsigned fieldSize)
+{
+    STRCPY_FIELD_FROM_FIELD(fieldPtr, fieldSize, cfgHostName, sizeof(cfgHostName));
 }
 
 

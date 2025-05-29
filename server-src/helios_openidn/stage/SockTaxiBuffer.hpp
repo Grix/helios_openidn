@@ -13,12 +13,27 @@
 
 // Standard libraries
 #include <stdint.h>
+#include <malloc.h>
 
+
+
+// Forward declarations
+struct _ODF_TAXI_BUFFER;
 
 
 // -------------------------------------------------------------------------------------------------
 //  Typedefs
 // -------------------------------------------------------------------------------------------------
+
+typedef struct _ODF_TAXI_SOURCE
+{
+    virtual ~_ODF_TAXI_SOURCE() { };
+
+    virtual struct _ODF_TAXI_BUFFER *allocTaxiBuffer(uint16_t payloadLen) = 0;
+    virtual void freeTaxiBuffer(struct _ODF_TAXI_BUFFER *taxiBuffer) = 0;
+
+} ODF_TAXI_SOURCE;
+
 
 // OpenIDN uses taxi buffers as an abstraction for the underlaying network interface. They allow for
 // dynamic allocation, passing and storage. This is necessary for reassembly and latency Queues.
@@ -30,6 +45,10 @@ typedef struct _ODF_TAXI_BUFFER
     ////////////////////////////////////////////////////////////////////////////////////////////////
     private:
 
+    ODF_TAXI_SOURCE *taxiSource;
+
+    struct _ODF_TAXI_BUFFER *next;
+
     uint16_t payloadLen;                            // Length of the payload (payloadPtr points to)
     void *payloadPtr;                               // Pointer to the message payload
 
@@ -39,8 +58,32 @@ typedef struct _ODF_TAXI_BUFFER
     ////////////////////////////////////////////////////////////////////////////////////////////////
     public:
 
+    int concat(struct _ODF_TAXI_BUFFER *taxiBuffer)
+    {
+        int totalLen = 0;
+        struct _ODF_TAXI_BUFFER *buf = this;
+        while(buf->next) { totalLen += (unsigned)(buf->payloadLen); buf = buf->next; }
+
+        buf->next = taxiBuffer;
+        while(buf) { totalLen += (unsigned)(buf->payloadLen); buf = buf->next; }
+
+        return totalLen;
+    }
+
+    struct _ODF_TAXI_BUFFER *getNext()
+    {
+        return next;
+    }
+
     void discard()
     {
+        while(next != (struct _ODF_TAXI_BUFFER *)0)
+        {
+            struct _ODF_TAXI_BUFFER *buf = next;
+            next = buf->next;
+            taxiSource->freeTaxiBuffer(buf);
+        }
+        taxiSource->freeTaxiBuffer(this);
     }
 
     int coalesce(unsigned len)
@@ -53,9 +96,18 @@ typedef struct _ODF_TAXI_BUFFER
         return payloadPtr;
     }
 
-    unsigned getPayloadLen()
+    unsigned getFragmentLen()
     {
         return payloadLen;
+    }
+
+    unsigned getTotalLen()
+    {
+        unsigned totalLen = 0;
+        struct _ODF_TAXI_BUFFER *buf = this;
+        while(buf) { totalLen += (unsigned)(buf->payloadLen); buf = buf->next; }
+
+        return totalLen;
     }
 
     void adjustFront(int offset)

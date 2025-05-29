@@ -37,9 +37,9 @@
 #include <string.h>
 
 // Project headers
-#include "../shared/idn-stream.h"
+#include "idn-stream.h"
 #include "../shared/ODFTools.hpp"
-#include "../shared/PEVFlags.h"
+#include "PEVFlags.h"
 
 // Module header
 #include "IDNLaproGraConInlet.hpp"
@@ -84,6 +84,7 @@ uint8_t IDNLaproGraConInlet::getServiceMode()
 
 void IDNLaproGraConInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
 {
+    // Get the channel message header
     IDNHDR_CHANNEL_MESSAGE *channelMessageHdr = (IDNHDR_CHANNEL_MESSAGE *)taxiBuffer->getPayloadPtr();
     uint16_t contentID = btoh16(channelMessageHdr->contentID);
     uint16_t chunkType = (contentID & IDNMSK_CONTENTID_CNKTYPE);
@@ -109,6 +110,8 @@ void IDNLaproGraConInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
                 break; 
             }
 
+            // -----------------------------------------------------------------
+
             // Unwrap data: Remove channel message header
             taxiBuffer->adjustFront(-1 * (int)sizeof(IDNHDR_CHANNEL_MESSAGE));
 
@@ -125,11 +128,12 @@ void IDNLaproGraConInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
             // Unwrap data: Remove sample chunk header
             IDNHDR_SAMPLE_CHUNK *sampleChunkHdr = (IDNHDR_SAMPLE_CHUNK *)taxiBuffer->getPayloadPtr();
             uint32_t flagsDuration = btoh32(sampleChunkHdr->flagsDuration);
+            uint8_t chunkFlags = (uint8_t)(flagsDuration >> 24);
             taxiBuffer->adjustFront(-1 * (int)sizeof(IDNHDR_SAMPLE_CHUNK));
 
             // Check for integer sample count
             unsigned sampleSize = decoder->getSampleSize();
-            if((taxiBuffer->getPayloadLen() % sampleSize) != 0)
+            if((taxiBuffer->getTotalLen() % sampleSize) != 0)
             {
                 pipelineEvents |= IDN_PEVFLG_OUTPUT_PVLERR;
                 break;
@@ -138,13 +142,15 @@ void IDNLaproGraConInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
             // Build chunk data struct
             RTLaproGraphicOutput::CHUNKDATA chunkData;
             memset(&chunkData, 0, sizeof(chunkData));
-            chunkData.chunkFlags = flagsDuration >> 24;
             chunkData.chunkDuration = flagsDuration & 0x00FFFFFF;
             chunkData.decoder = decoder;
-            chunkData.sampleCount = taxiBuffer->getPayloadLen() / sampleSize;
+            chunkData.sampleSize = sampleSize;
+            chunkData.sampleCount = taxiBuffer->getTotalLen() / sampleSize;
  
+            // -----------------------------------------------------------------
+
             // Check for match between config version and chunk data version
-            if((chunkData.chunkFlags & 0x30) != (getConfigFlags() & 0x30))
+            if((chunkFlags & 0x30) != (getConfigFlags() & 0x30))
             {
                 pipelineEvents |= IDN_PEVFLG_INLET_DCMERR;
                 //output->waveStatsVersionMismatch(getConfigFlags(), chunkFlags);
@@ -189,13 +195,15 @@ void IDNLaproGraConInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
                     pipelineEvents |= IDN_PEVFLG_INLET_CTYERR;
                     //output->waveStatsSkipped(timeDiff);
                     chronCheckErrCnt++;
+
+                    // Report to output
+                    chunkData.modFlags |= RTLaproGraphicOutput::MODFLAG_DISCONTINUOUS;
                 }
             }
 
-            // Send the buffer to the driver
-            // Note: Preliminary solution: The buffer should be passed to the output (zero copy)
-            // Instead, let the output copy and delete the buffer here.
-            rtOutput->process(chunkData, (uint8_t *)taxiBuffer->getPayloadPtr(), taxiBuffer->getPayloadLen());
+            // Pass the buffer to the driver, no access to the buffer hereafter !!!
+            rtOutput->process(chunkData, taxiBuffer);
+            taxiBuffer = (ODF_TAXI_BUFFER *)0;
         }
         else
         {

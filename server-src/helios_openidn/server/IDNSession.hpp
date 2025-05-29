@@ -38,7 +38,7 @@
 #include <stdint.h>
 
 // Project headers
-#include "../shared/idn-stream.h"
+#include "idn-stream.h"
 #include "../shared/ODFEnvironment.hpp"
 #include "../shared/ODFTaxiBuffer.hpp"
 

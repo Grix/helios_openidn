@@ -37,9 +37,9 @@
 #include <string.h>
 
 // Project headers
-#include "../shared/idn-stream.h"
+#include "idn-stream.h"
 #include "../shared/ODFTools.hpp"
-#include "../shared/PEVFlags.h"
+#include "PEVFlags.h"
 
 // Module header
 #include "IDNLaproGraDisInlet.hpp"
@@ -50,17 +50,128 @@
 //  Class IDNLaproGraDisInlet
 //
 // -------------------------------------------------------------------------------------------------
-//  scope: protected
+//  scope: private
+// -------------------------------------------------------------------------------------------------
+
+
+ODF_TAXI_BUFFER *IDNLaproGraDisInlet::reassemble(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
+{
+    IDNHDR_CHANNEL_MESSAGE *channelMessageHdr = (IDNHDR_CHANNEL_MESSAGE *)taxiBuffer->getPayloadPtr();
+    uint16_t contentID = btoh16(channelMessageHdr->contentID);
+    uint16_t chunkType = (contentID & IDNMSK_CONTENTID_CNKTYPE);
+
+    // Handle application layer fragments at input
+    if(chunkType == IDNVAL_CNKTYPE_LPGRF_FRAME_FIRST)
+    {
+        // Start of new fragment sequence - Check reassembly queue
+        if(reassemblyHead != (ODF_TAXI_BUFFER *)0)
+        {
+            // Already holds fragments - delete (incomplete) sequence
+            pipelineEvents |= IDN_PEVFLG_INLET_FRGERR;
+            //output->frameStatsReassembly();
+            reassemblyHead->discard();
+        }
+
+        // Store message as head and set next sequence number (shared with timestamp)
+        reassemblyHead = taxiBuffer;
+        reassemblySeqNum = btoh32(channelMessageHdr->timestamp) + 1;
+        return (ODF_TAXI_BUFFER *)0;
+    }
+    else if(chunkType == IDNVAL_CNKTYPE_LPGRF_FRAME_SEQUEL)
+    {
+        // Check for valid reassembly queue
+        if(reassemblyHead == (ODF_TAXI_BUFFER *)0)
+        {
+            // No head (first chunk) - discard message
+            pipelineEvents |= IDN_PEVFLG_INLET_FRGERR;
+            //output->frameStatsReassembly();
+            taxiBuffer->discard();
+            return (ODF_TAXI_BUFFER *)0;
+        }
+
+        // Check fragment sequence
+        uint32_t timestamp = btoh32(channelMessageHdr->timestamp);
+        if(timestamp != reassemblySeqNum)
+        {
+            // Not in sequence - Delete fragment and reassembly queue
+            pipelineEvents |= IDN_PEVFLG_INLET_FRGERR;
+            //output->frameStatsReassembly();
+            taxiBuffer->discard();
+            reassemblyHead->discard();
+            reassemblyHead = (ODF_TAXI_BUFFER *)0;
+            return (ODF_TAXI_BUFFER *)0;
+        }
+        reassemblySeqNum = timestamp + 1;
+
+        // Unwrap data: Remove channel message header
+        taxiBuffer->adjustFront(-1 * (int)sizeof(IDNHDR_CHANNEL_MESSAGE));
+
+        // Concat fragments
+        int totalLen = reassemblyHead->concat(taxiBuffer);
+
+        // Check new total length
+        if((totalLen < 0) || (totalLen > 200000))
+        {
+            // Too much memory occupied by the reassembly queue
+            pipelineEvents |= IDN_PEVFLG_INLET_FRGERR;
+            //output->frameStatsChunkLen();
+            reassemblyHead->discard();
+            reassemblyHead = (ODF_TAXI_BUFFER *)0;
+            return (ODF_TAXI_BUFFER *)0;
+        }
+
+        // Done in case not the last fragment (more fragments to come)
+        if((contentID & IDNFLG_CONTENTID_CONFIG_LSTFRG) == 0)
+        {
+            return (ODF_TAXI_BUFFER *)0;
+        }
+
+        // Otherwise - reassembly complete
+        taxiBuffer = reassemblyHead;
+        reassemblyHead = (ODF_TAXI_BUFFER *)0;
+
+        // Update chunk type (from IDNVAL_CNKTYPE_LPGRF_FRAME_FIRST to IDNVAL_CNKTYPE_LPGRF_FRAME)
+        channelMessageHdr = (IDNHDR_CHANNEL_MESSAGE *)taxiBuffer->getPayloadPtr();
+        contentID = btoh16(channelMessageHdr->contentID);
+        contentID = (contentID & ~IDNMSK_CONTENTID_CNKTYPE) | IDNVAL_CNKTYPE_LPGRF_FRAME;
+        channelMessageHdr->contentID = htob16(contentID);
+
+    }
+    else if(reassemblyHead != (ODF_TAXI_BUFFER *)0)
+    {
+        // Reassembly queue is in use but message doesn't contain a fragment
+        uint32_t timestamp = btoh32(channelMessageHdr->timestamp);
+        int diff = (int)((unsigned)timestamp - (unsigned)reassemblySeqNum);
+        if((diff > 0) || (chunkType != IDNVAL_CNKTYPE_VOID))
+        {
+            // Message is past queue sequence - discard reassembly queue
+            pipelineEvents |= IDN_PEVFLG_INLET_FRGERR;
+            //output->frameStatsReassembly();
+            reassemblyHead->discard();
+            reassemblyHead = (ODF_TAXI_BUFFER *)0;
+        }
+    }
+
+    return taxiBuffer;
+}
+
+
+
+// -------------------------------------------------------------------------------------------------
+//  scope: public
 // -------------------------------------------------------------------------------------------------
 
 IDNLaproGraDisInlet::IDNLaproGraDisInlet(RTLaproGraphicOutput *rtOutput):
     Inherited(rtOutput)
 {
+    reassemblyHead = (ODF_TAXI_BUFFER *)0;
+    reassemblySeqNum = 0;
 }
 
 
 IDNLaproGraDisInlet::~IDNLaproGraDisInlet()
 {
+    if(reassemblyHead != (ODF_TAXI_BUFFER *)0) reassemblyHead->discard();
 }
 
 
@@ -70,15 +181,24 @@ uint8_t IDNLaproGraDisInlet::getServiceMode()
 }
 
 
+void IDNLaproGraDisInlet::reset()
+{
+    if(reassemblyHead != (ODF_TAXI_BUFFER *)0) reassemblyHead->discard();
+    reassemblyHead = (ODF_TAXI_BUFFER *)0;
+    reassemblySeqNum = 0;
+}
+
+
 void IDNLaproGraDisInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
 {
+    // Eventually send through reassembly (of application layer fragmentation)
+    taxiBuffer = reassemble(env, taxiBuffer);
+    if(taxiBuffer == (ODF_TAXI_BUFFER *)0) return;
+
+    // Get the channel message header
     IDNHDR_CHANNEL_MESSAGE *channelMessageHdr = (IDNHDR_CHANNEL_MESSAGE *)taxiBuffer->getPayloadPtr();
     uint16_t contentID = btoh16(channelMessageHdr->contentID);
     uint16_t chunkType = (contentID & IDNMSK_CONTENTID_CNKTYPE);
-
-
-// FIXME: Reassembly queue
-
 
     // Read the configuration and build a decoder
     readConfig(env, taxiBuffer);
@@ -101,6 +221,8 @@ void IDNLaproGraDisInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
                 break; 
             }
 
+            // -----------------------------------------------------------------
+
             // Unwrap data: Remove channel message header
             taxiBuffer->adjustFront(-1 * (int)sizeof(IDNHDR_CHANNEL_MESSAGE));
 
@@ -117,11 +239,12 @@ void IDNLaproGraDisInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
             // Unwrap data: Remove sample chunk header
             IDNHDR_SAMPLE_CHUNK *sampleChunkHdr = (IDNHDR_SAMPLE_CHUNK *)taxiBuffer->getPayloadPtr();
             uint32_t flagsDuration = btoh32(sampleChunkHdr->flagsDuration);
+            uint8_t chunkFlags = (uint8_t)(flagsDuration >> 24);
             taxiBuffer->adjustFront(-1 * (int)sizeof(IDNHDR_SAMPLE_CHUNK));
 
             // Check for integer sample count
             unsigned sampleSize = decoder->getSampleSize();
-            if((taxiBuffer->getPayloadLen() % sampleSize) != 0)
+            if((taxiBuffer->getTotalLen() % sampleSize) != 0)
             {
                 pipelineEvents |= IDN_PEVFLG_OUTPUT_PVLERR;
                 break;
@@ -130,13 +253,16 @@ void IDNLaproGraDisInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
             // Build chunk data struct
             RTLaproGraphicOutput::CHUNKDATA chunkData;
             memset(&chunkData, 0, sizeof(chunkData));
-            chunkData.chunkFlags = flagsDuration >> 24;
             chunkData.chunkDuration = flagsDuration & 0x00FFFFFF;
+            if((chunkFlags & IDNFLG_GRAPHIC_FRAME_ONCE) != 0) chunkData.modFlags |= RTLaproGraphicOutput::MODFLAG_SCAN_ONCE;
             chunkData.decoder = decoder;
-            chunkData.sampleCount = taxiBuffer->getPayloadLen() / sampleSize;
+            chunkData.sampleSize = sampleSize;
+            chunkData.sampleCount = taxiBuffer->getTotalLen() / sampleSize;
+
+            // -----------------------------------------------------------------
 
             // Check for match between config version and chunk data version
-            if((chunkData.chunkFlags & 0x30) != (getConfigFlags() & 0x30))
+            if((chunkFlags & 0x30) != (getConfigFlags() & 0x30))
             {
                 pipelineEvents |= IDN_PEVFLG_INLET_DCMERR;
                 //output->waveStatsVersionMismatch(getConfigFlags(), chunkFlags);
@@ -152,10 +278,11 @@ void IDNLaproGraDisInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
                 break;
             }
 
-            // Send the buffer to the driver
+            // Pass the buffer to the driver, no access to the buffer hereafter !!!
             // Note: Preliminary solution: The buffer should be queued/appended (frames from multiple
             // inlets) and copied/passed to the output
-            rtOutput->process(chunkData, (uint8_t *)taxiBuffer->getPayloadPtr(), taxiBuffer->getPayloadLen());
+            rtOutput->process(chunkData, taxiBuffer);
+            taxiBuffer = (ODF_TAXI_BUFFER *)0;
         }
         else
         {

@@ -38,9 +38,9 @@
 #include <malloc.h>
 
 // Project headers
-#include "../shared/idn-stream.h"
+#include "idn-stream.h"
 #include "../shared/ODFTools.hpp"
-#include "../shared/PEVFlags.h"
+#include "PEVFlags.h"
 
 // Module header
 #include "IDNService.hpp"
