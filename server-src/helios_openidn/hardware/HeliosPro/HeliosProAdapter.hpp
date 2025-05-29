@@ -58,6 +58,7 @@ private:
 	volatile uint32_t* gpio;
 	bool isBusy = false;
 	uint8_t txId = 1;
+	int txNum = 0;
 
 	uint8_t writeBuffer[HELIOSPRO_CHUNKSIZE + 16 + 4];
 };

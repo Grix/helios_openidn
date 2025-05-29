@@ -45,6 +45,7 @@ HeliosProAdapter::HeliosProAdapter()
 	nanosleep(&delay, &dummy);
 	GPIO_SET(GPIOPIN_MCURESET_LED);
 	GPIO_DIR_IN(GPIOPIN_MCURESET_LED);
+	//struct timespec delay, dummy;
 
 	// Wait for ready signal from MCU after reset
 	struct timespec now, then;
@@ -68,6 +69,65 @@ HeliosProAdapter::HeliosProAdapter()
 
 		delay.tv_nsec = 500000;
 		nanosleep(&delay, &dummy);
+	}
+
+	//delay.tv_sec = 5;
+	//delay.tv_nsec = 0;
+	//nanosleep(&delay, &dummy);
+
+	/// DEBUG TEST
+	TimeSlice** frames = new TimeSlice * [5];
+	const int numPointsPerFrame = 189;
+	int x = 0;
+	int y = 0;
+	for (int i = 0; i < 5; i++)
+	{
+		frames[i] = new TimeSlice();
+		frames[i]->durationUs = 2420;
+
+		std::vector<ISPDB25Point> points;
+
+		y = i * 0xFFFF / 5;
+		for (int j = 0; j < numPointsPerFrame; j++)
+		{
+			if (j < (numPointsPerFrame / 2))
+				x = j * 0xFFFF / (numPointsPerFrame / 2);
+			else
+				x = 0xFFFF - ((j - (numPointsPerFrame / 2)) * 0xFFFF / (numPointsPerFrame / 2));
+
+			ISPDB25Point point;
+
+			point.x = x;
+			point.y = y;
+			point.r = 0xAFFF;
+			point.g = 0xFFFF;
+			point.b = 0x7FFF;
+			//frame[i][j].user1 = 0; // Use HeliosPointExt with WriteFrameExtended() if you need more channels
+			//frame[i][j].user2 = 10;
+			//frame[i][j].user3 = 20;
+			//frame[i][j].user4 = 30;
+			//frame[i][j].i = 0xFFFF;
+
+			points.push_back(point);
+		}
+
+		frames[i]->dataChunk = convertPoints(points);
+	}
+	int i = 0;
+	while (1)
+	{
+		i++;
+		if (i == 10300)
+		{
+			//break;
+			//sleep(20);
+		}
+
+		delay.tv_sec = 0;
+		delay.tv_nsec = 100000*(rand() % 12);
+		nanosleep(&delay, &dummy);
+
+		writeFrame(*frames[i % 5], frames[i % 5]->durationUs);
 	}
 
 }
@@ -137,7 +197,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		dataSizeBytes = pointsThisFrame * bytesPerPoint();
 
 //#ifndef NDEBUG
-		printf("Set helPro frame: samples %d, left %d, pps %d, timerVal %d, repeats %d, startY %d\n", pointsThisFrame, pointsLeft, pps, desiredTimer, timerRepeats, data[1]);
+		printf("Set helPro frame: samples %d, left %d, txNum %d, pps %d, timerVal %d, repeats %d, startY %d\n", pointsThisFrame, pointsLeft, txNum, pps, desiredTimer, timerRepeats, data[1]);
 //#endif
 
 		writeBuffer[0] = 'H';
@@ -164,6 +224,9 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		writeBuffer[16 + dataSizeBytes + 2] = 'R'; 
 		writeBuffer[16 + dataSizeBytes + 3] = 'X';
 
+		txId++;
+		txNum++;
+
 		// TESTING
 	/*	static int frame = 0;
 		for (int i = 0; i < numPoints; i++)
@@ -189,7 +252,8 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 			nsdif = now.tv_nsec - then.tv_nsec;
 			tdif = sdif * 1000000000 + nsdif;
 			//printf("no: %d\n", tdif / 1000);
-			if (tdif > ((unsigned long)durationUs * 1000 * 3) || (durationUs < 200 && (tdif > durationUs * 1000))) // todo use duration of previous write
+			// todo use duration of previous write instead of durationUs
+			if (durationUs < 1000000 ? (tdif > 1000000000) : (tdif > (durationUs * 1.5)))//tdif > ((unsigned long)durationUs * 1000 * 3) || (durationUs < 200 && (tdif > durationUs * 1000))) 
 			{
 				printf("WARNING: Timeout waiting for Helios buffer chip: %d\n", tdif / 1000);
 
