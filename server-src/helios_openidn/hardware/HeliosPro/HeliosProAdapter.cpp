@@ -76,7 +76,7 @@ HeliosProAdapter::HeliosProAdapter()
 	//nanosleep(&delay, &dummy);
 
 	/// DEBUG TEST
-	TimeSlice** frames = new TimeSlice * [5];
+	/*TimeSlice** frames = new TimeSlice * [5];
 	const int numPointsPerFrame = 189;
 	int x = 0;
 	int y = 0;
@@ -128,7 +128,7 @@ HeliosProAdapter::HeliosProAdapter()
 		nanosleep(&delay, &dummy);
 
 		writeFrame(*frames[i % 5], frames[i % 5]->durationUs);
-	}
+	}*/
 
 }
 
