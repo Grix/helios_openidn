@@ -1,10 +1,17 @@
 #include "./HWBridge.hpp"
 
+#include "../ManagementInterface.hpp"
+extern ManagementInterface* management;
+
 
 HWBridge::HWBridge(std::shared_ptr<DACHWInterface> hwDeviceInterface, std::shared_ptr<BEX> bufferExchange) : device(hwDeviceInterface), bex(bufferExchange) {
 }
 
 void HWBridge::outputEmptyPoint() {
+
+	if (!management->requestOutput(OUTPUT_MODE_IDN))
+		return;
+
 	ISPDB25Point point;
 	point.x = 0x8000;
 	point.y = 0x8000; 
@@ -203,6 +210,9 @@ void HWBridge::driverLoop() {
 			std::shared_ptr<TimeSlice> nextSlice = currentBuf->front();
 			currentBuf->pop_front();
 
+			if (!management->requestOutput(OUTPUT_MODE_IDN))
+				continue;
+
 			//if we're in frame mode, put the slice back
 			//wave mode just discards
 			if(bex->getMode() == DRIVER_FRAMEMODE) {
@@ -247,6 +257,8 @@ double HWBridge::calculateSpeedfactor(double currentSpeed, std::shared_ptr<Slice
 		//bufusage in ms = bufsize * avg slice duration
 		double bufUsageMs = (double)buffer->size()*(double)buffer->front()->durationUs / 1000.0;
 		double offCenter = (center - bufUsageMs) / center;
+		if (offCenter < 0.2 && offCenter > -0.2)
+			offCenter = 0;
 		this->accumOC += offCenter;
 
 		double newSpeed = (1.0 + 0.3*offCenter + 0.000*accumOC); // Accumulator entirely nullified for now

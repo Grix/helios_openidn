@@ -39,7 +39,8 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
         unsigned char status = 0;
         if (management->devices.size() > 0)
         {
-            if (!management->devices.front()->getIsBusy())
+            //if (!management->devices.front()->getIsBusy())
+            if (!isReceiveBusy)
                 status = 1;
         }
         /*if (management->outputs.size() > 0)
@@ -81,10 +82,21 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
     if (!management->requestOutput(OUTPUT_MODE_USB))
     {
         printf("Warning: Requested USB output, but was busy\n");
+        isSendBusy = false;
+        isReceiveBusy = false;
         return;
     }
 
-    isBusy = true;
+    while (isReceiveBusy)
+    {
+        struct timespec delay, dummy;
+        delay.tv_sec = 0;
+        delay.tv_nsec = 200000;
+        nanosleep(&delay, &dummy);
+    }
+
+    isReceiveBusy = true;
+    isSendBusy = true;
 
 #ifndef NDEBUG
     printf("RECEIVED BULK.\n");
@@ -93,7 +105,7 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
     if (management->outputs.size() == 0)
     {
         printf("Error: Received USB frame but no devices are available\n");
-        isBusy = false;
+        isReceiveBusy = false;
         return;
     }
 
@@ -102,7 +114,7 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
     if (numBytes < (5 + 7))
     {
         printf("Error: Received USB bulk but too short length\n");
-        isBusy = false;
+        isReceiveBusy = false;
         return;
     }
 
@@ -112,7 +124,7 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
     if (numOfPointBytes != numOfPointBytes2)
     {
         printf("Error: USB frame: length %d, expected %d\n", numOfPointBytes, numOfPointBytes2);
-        isBusy = false;
+        isReceiveBusy = false;
         return;
     }
 
@@ -149,7 +161,7 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
 
     pointBuffer.clear();
 
-    uint8_t newBuffer[numPoints * 8]; // Todo reuse buffer to avoid allocation
+    //uint8_t newBuffer[numPoints * 8]; // Todo reuse buffer to avoid allocation
 
     unsigned int bufferPos = 0;
 
@@ -158,7 +170,7 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
     {
         uint8_t* currentPoint = buffer + i;
 
-        uint16_t x = (currentPoint[0] << 8) | (currentPoint[1] & 0xF0);
+        /*uint16_t x = (currentPoint[0] << 8) | (currentPoint[1] & 0xF0);
         *((uint16_t*)&newBuffer[bufferPos + 0]) = x;
         //newBuffer[bufferPos + 0] = x & 0xFF;
         //newBuffer[bufferPos + 1] = x >> 8;
@@ -171,18 +183,18 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
         newBuffer[bufferPos + 6] = currentPoint[5];
         newBuffer[bufferPos + 7] = currentPoint[6];
 
-        bufferPos += 8;
+        bufferPos += 8;*/
 
-        /*ISPDB25Point point;
+        ISPDB25Point point;
         point.x = (currentPoint[0] << 8) | (currentPoint[1] & 0xF0);
         point.y = (((currentPoint[1] & 0x0F) << 8) | currentPoint[2]) << 4;
         point.r = currentPoint[3] * 0x101;
         point.g = currentPoint[4] * 0x101;
         point.b = currentPoint[5] * 0x101;
         point.intensity = currentPoint[6] * 0x101;
-        point.u1 = point.u2 = point.u3 = point.u4 = 0;
+        point.u1 = point.u2 = point.u3 = 0;
 
-        pointBuffer.push_back(point);*/
+        pointBuffer.push_back(point);
 
         //management->devices.front()->addPointToSlice(point, metadata);
     }
@@ -197,9 +209,23 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
     slice.dataChunk = management->devices.front()->convertPoints(pointBuffer);
     slice.durationUs = (1000000 * numOfPointBytes) / pps;
 
+    isReceiveBusy = false;
+
+    while (isSendBusy)
+    { 
+        if (slice.durationUs > 1000)
+        {
+            struct timespec delay, dummy;
+            delay.tv_sec = 0;
+            delay.tv_nsec = 200000;
+            nanosleep(&delay, &dummy);
+        }
+    }
+
     management->devices.front()->writeFrame(slice, (1000000 * numOfPointBytes) / pps);
 
-    isBusy = false;
+    isSendBusy = false;
+
 }
 
 

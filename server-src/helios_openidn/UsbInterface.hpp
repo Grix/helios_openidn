@@ -34,7 +34,8 @@ private:
 
     inline static UsbInterface* instance = nullptr;
     bool hasSentReadySignal = false;
-    bool isBusy = false;
+    int isSendBusy = false;
+    int isReceiveBusy = false;
     IdtfDecoder decoder;
     std::vector<ISPDB25Point> pointBuffer = std::vector<ISPDB25Point>(5000);
     bool hasStarted = false;

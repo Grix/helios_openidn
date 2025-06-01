@@ -1,6 +1,11 @@
 #include "FilePlayer.hpp"
 
-//extern ManagementInterface* management;
+
+//class ManagementInterface;
+
+#include "ManagementInterface.hpp"
+
+extern ManagementInterface* management;
 
 void* outputLoopThread(void* args)
 {
@@ -193,7 +198,7 @@ int FilePlayer::playFile(std::string filename)
             std::shared_ptr<QueuedFrame> frame = std::make_shared<QueuedFrame>();
 
             unsigned int pointsPerFrame = recordCnt;
-            unsigned int maxPointsPerFrame = devices->front()->maxBytesPerTransmission() / devices->front()->bytesPerPoint() - 1;
+            unsigned int maxPointsPerFrame = management->devices.front()->maxBytesPerTransmission() / management->devices.front()->bytesPerPoint() - 1;
             if (pointsPerFrame > maxPointsPerFrame)
             {
                 if (maxPointsPerFrame == 0)
@@ -205,7 +210,7 @@ int FilePlayer::playFile(std::string filename)
                     return -1;
             }
 
-            frame->buffer.reserve(pointsPerFrame * 8);
+            frame->buffer.reserve(pointsPerFrame);
             
             // Loop through all points
             unsigned int currentPointInFrame = 0;
@@ -256,16 +261,16 @@ int FilePlayer::playFile(std::string filename)
                 if (statusCode & 0x40) 
                     r = g = b = 0;
 
-                frame->buffer.push_back(x & 0xFF);
+                /*frame->buffer.push_back(x & 0xFF);
                 frame->buffer.push_back(x >> 8);
                 frame->buffer.push_back(y & 0xFF);
                 frame->buffer.push_back(y >> 8);
                 frame->buffer.push_back(r);
                 frame->buffer.push_back(g);
                 frame->buffer.push_back(b);
-                frame->buffer.push_back(0xFF);
+                frame->buffer.push_back(0xFF);*/
 
-                /*ISPDB25Point point;
+                ISPDB25Point point;
                 point.x = x;
                 point.y = y;
                 point.r = r * 0x101;
@@ -273,18 +278,18 @@ int FilePlayer::playFile(std::string filename)
                 point.b = b * 0x101;
                 point.intensity = 0xFF;
                 point.u1 = point.u2 = point.u3 = point.u4 = 0;
-                pointBuffer.push_back(point);
+                frame->buffer.push_back(point);
 
                 if (currentPointInFrame++ >= pointsPerFrame && i < recordCnt-1) //  Send partial frame, if frame is split it due to being too large for DAC.
                 {
-                    frameSlice->durationUs = (1000000 * currentPointInFrame) / 30000; // us
+                    frame->pps = 30000; // todo         //durationUs = (1000000 * currentPointInFrame) / 30000; // us
 
                     {
                         std::lock_guard<std::mutex> lock(threadLock);
-                        queue.push_back(frameSlice);
+                        queue.push_back(frame);
                     }
 
-                    std::shared_ptr<TimeSlice> frameSlice = std::make_shared<TimeSlice>();
+                    //std::shared_ptr<TimeSlice> frameSlice = std::make_shared<TimeSlice>();
 
                     currentPointInFrame = 0;
                 }
@@ -406,11 +411,11 @@ void FilePlayer::outputLoop()
                 continue;
 
             // TODO
-            /*if (!management->requestOutput(OUTPUT_MODE_FILE))
+            if (!management->requestOutput(OUTPUT_MODE_FILE))
             {
                 printf("Warning: Requested file player output, but was busy\n");
                 return;
-            }*/
+            }
 
             /*if (!hasStarted)
             {
@@ -425,7 +430,7 @@ void FilePlayer::outputLoop()
                 std::lock_guard<std::mutex> lock(threadLock);
                 std::shared_ptr<QueuedFrame> frame = queue.front();
 
-                unsigned int numOfPoints = frame->buffer.size() / 8;
+                unsigned int numOfPoints = frame->buffer.size();
 
                 if (numOfPoints > 0)
                 {
@@ -437,6 +442,12 @@ void FilePlayer::outputLoop()
                     chunkData.sampleCount = numOfPoints;
 
                     outputs->front()->process(chunkData, frame->buffer.data(), frame->buffer.size());*/
+
+                    TimeSlice slice;
+                    slice.dataChunk = management->devices.front()->convertPoints(frame->buffer);
+                    slice.durationUs = (1000000 * numOfPoints) / frame->pps;
+
+                    management->devices.front()->writeFrame(slice, (1000000 * numOfPoints) / frame->pps);
                 }
 
                 if (state != FILEPLAYER_STATE_PAUSE)
@@ -450,11 +461,11 @@ void FilePlayer::outputLoop()
                     }
                 }
 
-                TimeSlice slice;
+                /*TimeSlice slice;
                 slice.dataChunk = frame->buffer;
                 slice.durationUs = (1000000 * numOfPoints) / frame->pps;
 
-                devices->front()->writeFrame(slice, slice.durationUs);
+                devices->front()->writeFrame(slice, slice.durationUs);*/
             }
         }
 

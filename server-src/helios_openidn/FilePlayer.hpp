@@ -1,6 +1,5 @@
 #pragma once
 
-//#include "ManagementInterface.hpp"
 #include "shared/ODFTools.hpp" //logError()
 #include "shared/types.h"
 #include "server/idn-stream.h"
@@ -41,7 +40,7 @@ public:
 
     typedef struct QueuedFrame
     {
-        std::vector<uint8_t> buffer = std::vector<uint8_t>(3000); // Todo reuse buffers, avoid memory allocation
+        std::vector<ISPDB25Point> buffer;// = std::vector<ISPDB25Point>(3000); // Todo reuse buffers, avoid memory allocation
         unsigned int pps;
     } QueuedFrame;
 

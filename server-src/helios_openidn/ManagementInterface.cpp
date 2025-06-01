@@ -1,5 +1,11 @@
 #include "ManagementInterface.hpp"
 
+//class FilePlayer;
+
+#include "FilePlayer.hpp"
+
+FilePlayer filePlayer;
+
 #define UDP_MAXBUF 128
 
 
