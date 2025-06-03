@@ -10,6 +10,8 @@
 #include <unistd.h>
 #include <cstdio>
 #include <memory>
+#include <queue>
+#include <mutex>
 
 extern "C"
 {
@@ -27,17 +29,27 @@ public:
 
     static void static_interruptUsbReceived(size_t numBytes, unsigned char* buffer);
     static void static_bulkUsbReceived(size_t numBytes, unsigned char* buffer);
+    void outputLoop();
+
+    typedef struct QueuedFrame
+    {
+        std::vector<ISPDB25Point> buffer;// = std::vector<ISPDB25Point>(3000); // Todo reuse buffers, avoid memory allocation
+        unsigned int pps;
+    } QueuedFrame;
 
 private:
     void interruptUsbReceived(size_t numBytes, unsigned char* buffer);
     void bulkUsbReceived(size_t numBytes, unsigned char* buffer);
 
     inline static UsbInterface* instance = nullptr;
-    bool hasSentReadySignal = false;
-    int isSendBusy = false;
-    int isReceiveBusy = false;
-    IdtfDecoder decoder;
-    std::vector<ISPDB25Point> pointBuffer = std::vector<ISPDB25Point>(5000);
+    //bool hasSentReadySignal = false;
+    //int isSendBusy = false;
+    //int isReceiveBusy = false;
+    //IdtfDecoder decoder;
+    //std::vector<ISPDB25Point> pointBuffer = std::vector<ISPDB25Point>(5000);
+    std::deque<std::shared_ptr<QueuedFrame>> queue;
+    pthread_t outputThread = 0;
+    std::mutex threadLock;
     bool hasStarted = false;
 };
 

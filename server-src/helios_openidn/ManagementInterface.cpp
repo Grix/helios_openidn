@@ -11,8 +11,8 @@ FilePlayer filePlayer;
 
 ManagementInterface::ManagementInterface()
 {
-	filePlayer.devices = &devices;
-	filePlayer.outputs = &outputs;
+	//filePlayer.devices = &devices;
+	//filePlayer.outputs = &outputs;
 
 	if (getHardwareType() == HARDWARE_ROCKS0)
 	{
@@ -448,4 +448,10 @@ bool ManagementInterface::requestOutput(int outputMode)
 
 	}
 	else return false;
+}
+
+void ManagementInterface::stopOutput(int outputMode)
+{
+	// todo
+	return;
 }

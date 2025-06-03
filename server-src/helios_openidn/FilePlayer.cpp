@@ -47,7 +47,7 @@ int FilePlayer::playFile(std::string filename)
 {
 	currentFile = filename;
 
-    if (devices->empty())
+    if (management->devices.empty())
     {
         printf("[IDTF] Attempted to play file when no devices are connected");
         return -1;
@@ -197,14 +197,16 @@ int FilePlayer::playFile(std::string filename)
 
             std::shared_ptr<QueuedFrame> frame = std::make_shared<QueuedFrame>();
 
-            unsigned int pointsPerFrame = recordCnt;
-            unsigned int maxPointsPerFrame = management->devices.front()->maxBytesPerTransmission() / management->devices.front()->bytesPerPoint() - 1;
-            if (pointsPerFrame > maxPointsPerFrame)
+            int pointsPerFrame = recordCnt;
+            int maxPointsPerFrame = management->devices.front()->maxBytesPerTransmission() / management->devices.front()->bytesPerPoint();
+            if (recordCnt > maxPointsPerFrame)
             {
                 if (maxPointsPerFrame == 0)
                     return -1;
 
-                pointsPerFrame = recordCnt / ceil((double)maxPointsPerFrame / pointsPerFrame);
+                pointsPerFrame = (int)ceil(recordCnt / ceil((double)recordCnt / maxPointsPerFrame));
+                if (pointsPerFrame < maxPointsPerFrame)
+                    pointsPerFrame += 1;
 
                 if (pointsPerFrame == 0)
                     return -1;
@@ -280,7 +282,9 @@ int FilePlayer::playFile(std::string filename)
                 point.u1 = point.u2 = point.u3 = point.u4 = 0;
                 frame->buffer.push_back(point);
 
-                if (currentPointInFrame++ >= pointsPerFrame && i < recordCnt-1) //  Send partial frame, if frame is split it due to being too large for DAC.
+                currentPointInFrame++;
+
+                if (currentPointInFrame >= pointsPerFrame && i < recordCnt-1) //  Send partial frame, if frame is split it due to being too large for DAC.
                 {
                     frame->pps = 30000; // todo         //durationUs = (1000000 * currentPointInFrame) / 30000; // us
 
@@ -288,6 +292,9 @@ int FilePlayer::playFile(std::string filename)
                         std::lock_guard<std::mutex> lock(threadLock);
                         queue.push_back(frame);
                     }
+
+                    frame = std::make_shared<QueuedFrame>();
+                    frame->buffer.reserve(pointsPerFrame);
 
                     //std::shared_ptr<TimeSlice> frameSlice = std::make_shared<TimeSlice>();
 
@@ -397,7 +404,7 @@ void FilePlayer::outputLoop()
     {
         struct timespec delay, dummy;
         delay.tv_sec = 0;
-        delay.tv_nsec = 1000000; // 1 ms
+        delay.tv_nsec = 500000; // 500 us
 
         if (state == FILEPLAYER_STATE_STOP)
         {
@@ -407,13 +414,25 @@ void FilePlayer::outputLoop()
         }
         else if (state == FILEPLAYER_STATE_PLAY || state == FILEPLAYER_STATE_PAUSE)
         {
-            if (queue.empty())
+            bool empty = false;
+            {
+                std::lock_guard<std::mutex> lock(threadLock);
+                if (queue.empty())
+                    empty = true;
+            }
+            if (empty)
+            {
+                nanosleep(&delay, &dummy);
                 continue;
+            }
+            else
+                delay.tv_nsec = 200000; // 200 us
 
             // TODO
             if (!management->requestOutput(OUTPUT_MODE_FILE))
             {
                 printf("Warning: Requested file player output, but was busy\n");
+                state = FILEPLAYER_STATE_STOP;
                 return;
             }
 
@@ -425,10 +444,14 @@ void FilePlayer::outputLoop()
             }*/
 
             // todo check timing
-            if (!devices->front()->getIsBusy())//hasBufferedFrame())
+            //if (!devices->front()->getIsBusy())//hasBufferedFrame())
             {
-                std::lock_guard<std::mutex> lock(threadLock);
-                std::shared_ptr<QueuedFrame> frame = queue.front();
+                std::shared_ptr<QueuedFrame> frame;
+                {
+                    std::lock_guard<std::mutex> lock(threadLock);
+                    frame = queue.front();
+                    queue.pop_front();
+                }
 
                 unsigned int numOfPoints = frame->buffer.size();
 
@@ -449,14 +472,19 @@ void FilePlayer::outputLoop()
 
                     management->devices.front()->writeFrame(slice, (1000000 * numOfPoints) / frame->pps);
                 }
+                else
+                {
+                    //nanosleep(&delay, &dummy); // todo sleep if FPS timing mode
+                }
 
                 if (state != FILEPLAYER_STATE_PAUSE)
                 {
-                    queue.pop_front();
+                    std::lock_guard<std::mutex> lock(threadLock);
 
                     if (queue.empty())
                     {
                         // todo play next files according to mode
+                        management->stopOutput(OUTPUT_MODE_FILE);
                         state == FILEPLAYER_STATE_STOP;
                     }
                 }

@@ -51,8 +51,8 @@ public:
 	unsigned int frame = 0;
 	std::map<std::string, FilePlayerFileParameters> fileParameters;
 	FilePlayerFileParameters defaultParameters;
-    std::vector<std::shared_ptr<DACHWInterface>>* devices;
-    std::vector<V1LaproGraphicOutput*>* outputs;
+    //std::vector<std::shared_ptr<DACHWInterface>>* devices;
+    //std::vector<V1LaproGraphicOutput*>* outputs;
 
     FilePlayer();
 
@@ -72,7 +72,7 @@ private:
     //std::vector<ISPDB25Point> pointBuffer;
     //SliceBuf queue;
     std::deque<std::shared_ptr<QueuedFrame>> queue;
-    IdtfDecoder decoder;
+    //IdtfDecoder decoder;
     pthread_t outputThread = 0;
     std::mutex threadLock;
     bool hasStarted = false;

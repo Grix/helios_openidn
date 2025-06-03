@@ -2,12 +2,87 @@
 
 extern ManagementInterface* management;
 
+void* usbOutputLoopThread(void* args)
+{
+    UsbInterface* player = (UsbInterface*)args;
+
+    player->outputLoop();
+}
+
+
 UsbInterface::UsbInterface()
 {
     instance = this;
     init_usb_gadget();
     set_msg_received_callbacks(static_bulkUsbReceived, static_interruptUsbReceived);
+
+    if (pthread_create(&outputThread, NULL, &usbOutputLoopThread, this) != 0) {
+        printf("ERROR CREATING FILEPLAYER THREAD\n");
+    }
 }
+void UsbInterface::outputLoop()
+{
+    while (1) // todo close on exit
+    {
+        struct timespec delay, dummy;
+        delay.tv_sec = 0;
+        delay.tv_nsec = 500000; // 500 us
+
+        std::shared_ptr<QueuedFrame> frame;
+        bool empty = false;
+        {
+            std::lock_guard<std::mutex> lock(threadLock);
+
+            if (queue.empty())
+                empty = true;
+            else
+            {
+                frame = queue.front();
+                queue.pop_front();
+            }
+        }
+
+        if (empty)
+        {
+            nanosleep(&delay, &dummy);
+            continue;
+        }
+        else
+            delay.tv_nsec = 200000; // 200 us
+
+        unsigned int numOfPoints = frame->buffer.size();
+
+        if (numOfPoints > 0)
+        {
+            /*RTLaproGraphicOutput::CHUNKDATA chunkData;
+            memset(&chunkData, 0, sizeof(chunkData));
+            chunkData.modFlags = RTLaproGraphicOutput::MODFLAG_SCAN_ONCE;
+            chunkData.chunkDuration = (1000000 * numOfPoints) / frame->pps; // us
+            chunkData.decoder = &decoder;
+            chunkData.sampleCount = numOfPoints;
+
+            outputs->front()->process(chunkData, frame->buffer.data(), frame->buffer.size());*/
+
+            TimeSlice slice;
+            slice.dataChunk = management->devices.front()->convertPoints(frame->buffer);
+            slice.durationUs = (1000000 * numOfPoints) / frame->pps;
+
+            management->devices.front()->writeFrame(slice, (1000000 * numOfPoints) / frame->pps);
+
+            if (slice.durationUs > 1000)
+            {
+                nanosleep(&delay, &dummy);
+            }
+            else
+                std::this_thread::yield();
+        }
+        else
+        {
+            nanosleep(&delay, &dummy);
+        }
+    }
+}
+
 
 void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
 {
@@ -23,7 +98,12 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
             //management->devices.front()->stop();
             //management->devices.front()->setDACBusy(false);
             // Todo write empty frame
-            management->outputs.front()->close();
+            {
+                std::lock_guard<std::mutex> lock(threadLock);
+                while (!queue.empty())
+                    queue.pop_front();
+            }
+            management->stopOutput(OUTPUT_MODE_USB);
         }
         hasStarted = false;
     }
@@ -40,8 +120,21 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
         if (management->devices.size() > 0)
         {
             //if (!management->devices.front()->getIsBusy())
-            if (!isReceiveBusy)
+            std::lock_guard<std::mutex> lock(threadLock);
+            if (queue.empty()) // 20ms buffer target. Todo better queue duration calculation
+            {
+                printf("status OK, empty buffer\n");
+
                 status = 1;
+            }
+            else
+            {
+                double bufferDurationSeconds = queue.size() * queue.front()->buffer.size() / (double)queue.front()->pps;
+                if (bufferDurationSeconds < 0.02)
+                    status = 1;
+
+                printf("status %d, buffer dur %f size %d\n", status, bufferDurationSeconds, queue.size());
+            }
         }
         /*if (management->outputs.size() > 0)
         {
@@ -82,30 +175,16 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
     if (!management->requestOutput(OUTPUT_MODE_USB))
     {
         printf("Warning: Requested USB output, but was busy\n");
-        isSendBusy = false;
-        isReceiveBusy = false;
         return;
     }
-
-    while (isReceiveBusy)
-    {
-        struct timespec delay, dummy;
-        delay.tv_sec = 0;
-        delay.tv_nsec = 200000;
-        nanosleep(&delay, &dummy);
-    }
-
-    isReceiveBusy = true;
-    isSendBusy = true;
 
 #ifndef NDEBUG
     printf("RECEIVED BULK.\n");
 #endif
 
-    if (management->outputs.size() == 0)
+    if (management->devices.size() == 0)
     {
         printf("Error: Received USB frame but no devices are available\n");
-        isReceiveBusy = false;
         return;
     }
 
@@ -114,7 +193,6 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
     if (numBytes < (5 + 7))
     {
         printf("Error: Received USB bulk but too short length\n");
-        isReceiveBusy = false;
         return;
     }
 
@@ -124,7 +202,6 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
     if (numOfPointBytes != numOfPointBytes2)
     {
         printf("Error: USB frame: length %d, expected %d\n", numOfPointBytes, numOfPointBytes2);
-        isReceiveBusy = false;
         return;
     }
 
@@ -159,11 +236,28 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
     chunkData.decoder = &decoder;
     chunkData.sampleCount = numPoints;*/
 
-    pointBuffer.clear();
+    // Todo reuse buffer to avoid allocation
 
-    //uint8_t newBuffer[numPoints * 8]; // Todo reuse buffer to avoid allocation
+    int pointsPerFrame = numPoints;
+    int maxPointsPerFrame = management->devices.front()->maxBytesPerTransmission() / management->devices.front()->bytesPerPoint();
+    if (numPoints > maxPointsPerFrame)
+    {
+        if (maxPointsPerFrame == 0)
+            return;
+
+        pointsPerFrame = (int)ceil(numPoints / ceil((double)numPoints / maxPointsPerFrame));
+        if (pointsPerFrame < maxPointsPerFrame)
+            pointsPerFrame += 1;
+
+        if (pointsPerFrame <= 0)
+            return;
+    }
+
+    std::shared_ptr<QueuedFrame> frame = std::make_shared<QueuedFrame>();
+    frame->buffer.reserve(pointsPerFrame);
 
     unsigned int bufferPos = 0;
+    unsigned int currentPointInFrame = 0;
 
     size_t loopLength = numOfPointBytes;
     for (int i = 0; i < loopLength; i += 7)
@@ -193,11 +287,34 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
         point.b = currentPoint[5] * 0x101;
         point.intensity = currentPoint[6] * 0x101;
         point.u1 = point.u2 = point.u3 = 0;
+        frame->buffer.push_back(point);
 
-        pointBuffer.push_back(point);
+        currentPointInFrame++;
+
+        if (currentPointInFrame >= pointsPerFrame && i < loopLength - 7) //  Send partial frame, if frame is split it due to being too large for DAC.
+        {
+            printf("Partial frame, currentPointInFrame %d, bufsize %d\n", currentPointInFrame, frame->buffer.size());
+
+            frame->pps = pps; 
+
+            {
+                std::lock_guard<std::mutex> lock(threadLock);
+                queue.push_back(frame);
+            }
+            frame = std::make_shared<QueuedFrame>();
+            frame->buffer.reserve(pointsPerFrame);
+
+            //std::shared_ptr<TimeSlice> frameSlice = std::make_shared<TimeSlice>();
+
+            currentPointInFrame = 0;
+        }
+
+        //pointBuffer.push_back(point);
 
         //management->devices.front()->addPointToSlice(point, metadata);
     }
+
+    printf("Finished frame, currentPointInFrame %d\n", currentPointInFrame);
 
 #ifndef NDEBUG
     printf("Processing, bufferpos %d\n", bufferPos);
@@ -205,7 +322,16 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
 
     //management->outputs.front()->process(chunkData, newBuffer, bufferPos);
 
-    TimeSlice slice;
+    if (!frame->buffer.empty())
+    {
+        frame->pps = pps; // todo
+        {
+            std::lock_guard<std::mutex> lock(threadLock);
+            queue.push_back(frame);
+        }
+    }
+
+    /*TimeSlice slice;
     slice.dataChunk = management->devices.front()->convertPoints(pointBuffer);
     slice.durationUs = (1000000 * numOfPointBytes) / pps;
 
@@ -222,9 +348,11 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
         }
     }
 
+    isSendBusy = true;
+
     management->devices.front()->writeFrame(slice, (1000000 * numOfPointBytes) / pps);
 
-    isSendBusy = false;
+    isSendBusy = false;*/
 
 }
 
