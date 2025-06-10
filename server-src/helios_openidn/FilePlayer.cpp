@@ -433,7 +433,7 @@ void FilePlayer::outputLoop()
             {
                 printf("Warning: Requested file player output, but was busy\n");
                 state = FILEPLAYER_STATE_STOP;
-                return;
+                continue;
             }
 
             /*if (!hasStarted)
@@ -486,6 +486,7 @@ void FilePlayer::outputLoop()
                         // todo play next files according to mode
                         management->stopOutput(OUTPUT_MODE_FILE);
                         state == FILEPLAYER_STATE_STOP;
+                        continue;
                     }
                 }
 

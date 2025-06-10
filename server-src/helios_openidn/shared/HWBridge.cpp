@@ -194,7 +194,7 @@ void HWBridge::driverLoop() {
 				this->accumOC = 0;
 				struct timespec delay, dummy; // Prevents hogging 100% CPU use when idle
 				delay.tv_sec = 0;
-				delay.tv_nsec = 50000;
+				delay.tv_nsec = 1000000; //1ms
 				nanosleep(&delay, &dummy);
 			}
 			else
@@ -246,7 +246,7 @@ void HWBridge::driverLoop() {
 			}
 		}
 
-		std::this_thread::yield();
+		//std::this_thread::yield();
 	}
 }
 

@@ -69,12 +69,12 @@ void UsbInterface::outputLoop()
 
             management->devices.front()->writeFrame(slice, (1000000 * numOfPoints) / frame->pps);
 
-            if (slice.durationUs > 1000)
+            /*if (slice.durationUs > 1000)
             {
                 nanosleep(&delay, &dummy);
             }
             else
-                std::this_thread::yield();
+                std::this_thread::yield();*/
         }
         else
         {
@@ -121,7 +121,7 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
         {
             //if (!management->devices.front()->getIsBusy())
             std::lock_guard<std::mutex> lock(threadLock);
-            if (queue.empty()) // 20ms buffer target. Todo better queue duration calculation
+            if (queue.size() <= 1)
             {
                 printf("status OK, empty buffer\n");
 
@@ -130,7 +130,7 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
             else
             {
                 double bufferDurationSeconds = queue.size() * queue.front()->buffer.size() / (double)queue.front()->pps;
-                if (bufferDurationSeconds < 0.02)
+                if (bufferDurationSeconds < 0.02) // 20ms buffer target. Todo better queue duration calculation
                     status = 1;
 
                 printf("status %d, buffer dur %f size %d\n", status, bufferDurationSeconds, queue.size());
@@ -142,7 +142,7 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
                 status = 1;
         }*/
 
-        unsigned char response[52];
+        unsigned char response[2];
         response[0] = 0x83;
         response[1] = status;
         send_interrupt_msg_response(2, response);
@@ -172,6 +172,8 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
 
 void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
 {
+    //return; // TEST
+
     if (!management->requestOutput(OUTPUT_MODE_USB))
     {
         printf("Warning: Requested USB output, but was busy\n");

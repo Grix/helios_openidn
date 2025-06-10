@@ -38,6 +38,7 @@
 #include <linux/types.h>
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadgetfs.h>
+#include <time.h>
 
 #include <fcntl.h>
 #include <stdio.h>
@@ -171,7 +172,6 @@ size_t txSize = 0;
 char txBuffer[32];
 
 int doRxIgnore = 0;  //how many bytes to ignore 
-
 
 //--- prototypes ---
 void put_unaligned_le16(__u16 val, __u16* cp);
@@ -849,7 +849,7 @@ void* rx_int_thread(void* arg)
         FD_ZERO(&read_set);
         FD_SET(thread_args->fd_int_out, &read_set);
         timeout.tv_sec = 0;
-        timeout.tv_usec = 20000; // 20ms
+        timeout.tv_usec = 30000; // 30ms
 
         if (verbosity > 1)
             fprintf(stderr, "Starting select\n");
@@ -922,14 +922,14 @@ void* rx_bulk_thread(void* arg)
         timeout.tv_sec = 0;
         timeout.tv_usec = 20000; // 20ms
 
-        if (verbosity > 1)
-            fprintf(stderr, "Starting bulk select\n");
+        //if (verbosity > 1)
+        //    fprintf(stderr, "Starting bulk select\n");
 
         memset(buffer, 0, sizeof(buffer));
         ret = select(max_read_fd + 1, &read_set, NULL, NULL, &timeout);
 
-        if (verbosity > 1)
-            fprintf(stderr, "Select returned: %d(%m)\n", ret);
+        //if (verbosity > 1)
+        //    fprintf(stderr, "Select returned: %d(%m)\n", ret);
 
         // Timeout
         if (ret == 0)
@@ -945,12 +945,21 @@ void* rx_bulk_thread(void* arg)
         if (verbosity > 1)
             fprintf(stderr, "Starting bulk read\n");
 
+        struct timespec now, then;
+        unsigned long sdif, nsdif, tdif;
+        clock_gettime(1, &then);
+
         ret = read(thread_args->fd_bulk_out, buffer, sizeof(buffer));
+
+        clock_gettime(1, &now);
+        sdif = now.tv_sec - then.tv_sec;
+        nsdif = now.tv_nsec - then.tv_nsec;
+        tdif = sdif * 1000000000 + nsdif;
 
         if (ret >= 0)
         {
             if (verbosity > 1)
-                printf("Bulk read %d bytes\n", ret);
+                printf("Bulk read %d bytes, time %d\n", ret, tdif);
             rxcounter++;
             if (ret > 0)
             {
@@ -983,9 +992,62 @@ void* tx_int_thread(void* arg)
     {
         if (txSize == 0)
         {
-            usleep(100000);
+            struct timespec delay, dummy; // Prevents hogging 100% CPU use
+            delay.tv_sec = 0;
+            delay.tv_nsec = 200000;
+            nanosleep(&delay, &dummy);
+
             continue;
         }
+
+        fd_set write_set;
+        int max_write_fd = 0;
+        if (thread_args->fd_int_in > max_write_fd)
+            max_write_fd = thread_args->fd_int_in;
+        //in loop:
+        FD_ZERO(&write_set);
+        FD_SET(thread_args->fd_int_in, &write_set);
+
+        int ret = select(max_write_fd + 1, NULL, &write_set, NULL, NULL);
+
+        struct timespec now, then;
+        unsigned long sdif, nsdif, tdif;
+        clock_gettime(1, &then);
+
+        // Error
+        if (ret < 0)
+        {
+            if (verbosity)
+                fprintf(stderr, "select ERROR in int msg response %d!\n", ret);
+        }
+        else
+        {
+            ret = write(thread_args->fd_int_in, txBuffer, txSize);
+
+            clock_gettime(1, &now);
+            sdif = now.tv_sec - then.tv_sec;
+            nsdif = now.tv_nsec - then.tv_nsec;
+            tdif = sdif * 1000000000 + nsdif;
+
+
+            if (verbosity > 1)
+                printf("Write status %d (%m), time %d\n", ret, tdif);
+            if (ret > 0)
+            {
+                txcounter++;
+                txSize = 0;
+            }
+            else if (ret < 0)
+            {
+                //write error
+                if (verbosity > 1)
+                    printf("Write ERROR");
+                //usleep(1);
+            }
+        }
+        txSize = 0; // todo retry once if not successful
+
+        //usleep(100000);
 
         // txs moved to synchronous send_interrupt_msg_response()
 
@@ -1005,48 +1067,26 @@ void set_msg_received_callbacks(void (*bulk_msg_callback)(size_t, unsigned char*
 
 int send_interrupt_msg_response(size_t numBytes, unsigned char* buffer)
 {
-    if (txSize != 0 || numBytes == 0)
+    if (numBytes == 0)
         return -1;
+
+    int busyRetries = 1;
+    while (txSize != 0)
+    {
+        if (busyRetries-- <= 0) 
+            return -2;
+
+        struct timespec delay, dummy; // Prevents hogging 100% CPU use
+        delay.tv_sec = 0;
+        delay.tv_nsec = 100000;
+        nanosleep(&delay, &dummy);
+    }
 
     memcpy(txBuffer, buffer, numBytes);
     txSize = numBytes;
 
     // was previously in tx_int_thread: 
-    fd_set write_set;
-    int max_write_fd = 0;
-    if (thread_args.fd_int_in > max_write_fd)
-        max_write_fd = thread_args.fd_int_in;
-    //in loop:
-    FD_ZERO(&write_set);
-    FD_SET(thread_args.fd_int_in, &write_set);
-
-    int ret = select(max_write_fd + 1, NULL, &write_set, NULL, NULL);
-
-    // Error
-    if (ret < 0)
-    {
-        if (verbosity)
-            fprintf(stderr, "select ERROR in int msg response %d!\n", ret);
-    }
-    else
-    {
-        ret = write(thread_args.fd_int_in, txBuffer, txSize);
-        if (verbosity > 1)
-            printf("Write status %d (%m)\n", ret);
-        if (ret > 0)
-        {
-            txcounter++;
-            txSize = 0;
-        }
-        else if (ret < 0)
-        {
-            //write error
-            if (verbosity > 1)
-                printf("Write ERROR");
-            //usleep(1);
-        }
-    }
-    txSize = 0; // todo retry once if not successful
+    
 }
 
 //eof

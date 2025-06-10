@@ -303,7 +303,7 @@ void ManagementInterface::networkLoop(int sd) {
 							if (!file.read(ini))
 							{
 								printf("WARNING: Could not find/open main settings file when setting new name.\n");
-								return;
+								continue;
 							}
 							ini["idn_server"]["name"] = settingIdnHostname;
 							file.write(ini);
@@ -311,7 +311,7 @@ void ManagementInterface::networkLoop(int sd) {
 						catch (std::exception ex)
 						{
 							printf("WARNING: Failed to save settings file with new name.\n");
-							return;
+							continue;
 						}
 					}
 				}

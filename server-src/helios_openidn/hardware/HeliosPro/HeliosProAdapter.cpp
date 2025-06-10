@@ -270,7 +270,14 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 				isBusy = false;
 				return 0;
 			}
-			std::this_thread::yield(); //todo use sleep if RT scheduling?
+			if (durationUs > 500) // todo use duration of previous write instead of durationUs
+			{
+				struct timespec delay, dummy; // Prevents hogging 100% CPU use
+				delay.tv_sec = 0;
+				delay.tv_nsec = 100000;
+				nanosleep(&delay, &dummy);
+			}
+			//std::this_thread::yield(); //todo use sleep if RT scheduling?
 		};
 		clock_gettime(CLOCK_MONOTONIC, &now);
 		sdif = now.tv_sec - then.tv_sec;
@@ -322,7 +329,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		//printf("wrote to HelPro size = %u\n", dataSizeBytes + 16 + 4);
 #endif
 
-		if (false)//durationUs > 200)
+		/*if (false)//durationUs > 200)
 		{
 			struct timespec then2;
 			clock_gettime(CLOCK_MONOTONIC, &then2);
@@ -347,7 +354,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 			tdif = sdif * 1000000000 + nsdif;
 			if (tdif < 10000)
 				printf("Helios write ack recvd: %d\n", tdif / 1000);
-		}
+		}*/
 
 		/*do
 		{
