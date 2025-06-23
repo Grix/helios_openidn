@@ -18,8 +18,6 @@ HeliosProAdapter::HeliosProAdapter()
 	if (ret == -1)
 		perror("HeliosPRO: SPIdev: Can't set speed hz");
 
-	printf("LOADED HELIOS PRO TEST\n");
-
 	// Map GPIO2 registers for reading status
 	mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
 	if (mem_fd == -1) {
@@ -37,14 +35,14 @@ HeliosProAdapter::HeliosProAdapter()
 	GPIO_DIR_IN(GPIOPIN_STATUS);
 
 	// Reset MCU
-	GPIO_DIR_OUT(GPIOPIN_MCURESET_LED);
-	GPIO_CLR(GPIOPIN_MCURESET_LED);
+	GPIO_DIR_OUT(GPIOPIN_MCURESET);
+	GPIO_CLR(GPIOPIN_MCURESET);
 	struct timespec delay, dummy;
 	delay.tv_sec = 0;
 	delay.tv_nsec = 1000000;
 	nanosleep(&delay, &dummy);
-	GPIO_SET(GPIOPIN_MCURESET_LED);
-	GPIO_DIR_IN(GPIOPIN_MCURESET_LED);
+	GPIO_SET(GPIOPIN_MCURESET);
+	GPIO_DIR_IN(GPIOPIN_MCURESET);
 	//struct timespec delay, dummy;
 
 	// Wait for ready signal from MCU after reset
@@ -165,7 +163,6 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 
 	unsigned int numPoints = dataSizeBytes / bytesPerPoint();
 	uint32_t pps = numPoints * 1000000l / durationUs;
-	//printf("%d - %d - %f\n", pps, numPoints, durationUs);
 
 	// Calculate raw values for MCU timer. We do this here instead of in the MCU because the MCU doesn't handle 32-bit divisions well
 	uint16_t timerRepeats = 0;
@@ -185,8 +182,13 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 
 	unsigned int pointsPerFrame = numPoints;
 	unsigned int maxPointsPerFrame = HELIOSPRO_CHUNKSIZE / bytesPerPoint() - 1;
-	if (pointsPerFrame > maxPointsPerFrame)
-		pointsPerFrame = numPoints / ceil((double)maxPointsPerFrame / pointsPerFrame) + 1;
+
+	if (pointsPerFrame > maxPointsPerFrame) // This shouldn't happen because of maxBytesPerTransmission() limit, but it actually does, todo investigate
+	{
+		pointsPerFrame = (int)ceil(numPoints / ceil((double)numPoints / maxPointsPerFrame));
+		if (pointsPerFrame < maxPointsPerFrame)
+			pointsPerFrame += 1;
+	}
 
 	int pointsLeft = numPoints;
 	unsigned int offsetPoints = 0;
@@ -196,8 +198,9 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		unsigned int pointsThisFrame = pointsLeft < pointsPerFrame ? pointsLeft : pointsPerFrame;
 		dataSizeBytes = pointsThisFrame * bytesPerPoint();
 
+		// TODO REMOVE THIS PRINT
 //#ifndef NDEBUG
-		printf("Set helPro frame: samples %d, left %d, txNum %d, pps %d, timerVal %d, repeats %d, startY %d\n", pointsThisFrame, pointsLeft, txNum, pps, desiredTimer, timerRepeats, data[1]);
+		//printf("Sent helPro frame: samples %d, left %d, txNum %d, pps %d, timerVal %d, repeats %d, startY %d\n", pointsThisFrame, pointsLeft, txNum, pps, desiredTimer, timerRepeats, data[1]);
 //#endif
 
 		writeBuffer[0] = 'H';
@@ -206,8 +209,8 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		writeBuffer[3] = 0; // reserved
 		writeBuffer[4] = ((dataSizeBytes + 16) >> 0) & 0xFF;
 		writeBuffer[5] = ((dataSizeBytes + 16) >> 8) & 0xFF;
-		writeBuffer[6] = 0; // reserved
-		writeBuffer[7] = 0; // reserved
+		writeBuffer[6] = ((0xFFFF) >> 4) & 0xFF; // shutter
+		writeBuffer[7] = ((0xFFFF) >> 12) & 0xFF; // shutter
 		writeBuffer[8] = ((desiredTimer) >> 0) & 0xFF;
 		writeBuffer[9] = ((desiredTimer) >> 8) & 0xFF;
 		writeBuffer[10] = ((timerRepeats) >> 0) & 0xFF;
@@ -295,7 +298,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		nsdif = now.tv_nsec - then.tv_nsec;
 		tdif = sdif * 1000000000 + nsdif;
 
-		if (rdyReceivedTdif < 100000)
+		//if (rdyReceivedTdif < 100000)
 			printf("Helios rdy signal recvd %d, and sent frame: %d\n", rdyReceivedTdif / 1000, tdif / 1000);
 
 		/*static uint16_t prevX = 0x8000;
@@ -385,28 +388,30 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 SliceType HeliosProAdapter::convertPoints(const std::vector<ISPDB25Point>& points) 
 {
 
-	SliceType result;
+	SliceType result(points.size() * bytesPerPoint());
+
+	int index = 0;
 
 	for (const auto& point : points) 
 	{
-		result.push_back(point.y & 0xFF);
-		result.push_back((point.y >> 8) & 0xFF);
-		result.push_back((point.u3 >> 4) & 0xFF);
-		result.push_back((point.u3 >> 12) & 0xFF);
-		result.push_back((point.u2 >> 4) & 0xFF);
-		result.push_back((point.u2 >> 12) & 0xFF);
-		result.push_back((point.u1 >> 4) & 0xFF);
-		result.push_back((point.u1 >> 12) & 0xFF);
-		result.push_back((point.intensity >> 4) & 0xFF);
-		result.push_back((point.intensity >> 12) & 0xFF);
-		result.push_back((point.b >> 4) & 0xFF);
-		result.push_back((point.b >> 12) & 0xFF);
-		result.push_back((point.g >> 4) & 0xFF);
-		result.push_back((point.g >> 12) & 0xFF);
-		result.push_back(point.x & 0xFF);
-		result.push_back((point.x >> 8) & 0xFF);
-		result.push_back((point.r >> 4) & 0xFF);
-		result.push_back((point.r >> 12) & 0xFF);
+		result[index++] = (point.y & 0xFF);
+		result[index++] = ((point.y >> 8) & 0xFF);
+		result[index++] = ((point.intensity >> 4) & 0xFF);
+		result[index++] = ((point.intensity >> 12) & 0xFF);
+		result[index++] = ((point.u3 >> 4) & 0xFF);
+		result[index++] = ((point.u3 >> 12) & 0xFF);
+		result[index++] = ((point.u2 >> 4) & 0xFF);
+		result[index++] = ((point.u2 >> 12) & 0xFF);
+		result[index++] = ((point.u1 >> 4) & 0xFF);
+		result[index++] = ((point.u1 >> 12) & 0xFF);
+		result[index++] = ((point.b >> 4) & 0xFF);
+		result[index++] = ((point.b >> 12) & 0xFF);
+		result[index++] = ((point.g >> 4) & 0xFF);
+		result[index++] = ((point.g >> 12) & 0xFF);
+		result[index++] = (point.x & 0xFF);
+		result[index++] = ((point.x >> 8) & 0xFF);
+		result[index++] = ((point.r >> 4) & 0xFF);
+		result[index++] = ((point.r >> 12) & 0xFF);
 	}
 
 	return result;
@@ -437,6 +442,11 @@ bool HeliosProAdapter::getIsBusy()
 {
 	return isBusy;
 }
+
+void HeliosProAdapter::getName(char* nameBufferPtr, unsigned nameBufferSize) {
+	snprintf(nameBufferPtr, nameBufferSize, "Main");
+}
+
 
 
 

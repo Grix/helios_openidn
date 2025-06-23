@@ -116,6 +116,7 @@
     <ClCompile Include="stage\SockIDNServer.cpp" />
     <ClCompile Include="hardware\HeliosPro\HeliosProAdapter.cpp" />
     <ClCompile Include="output\IdtfDecoder.cpp" />
+    <ClCompile Include="OlaDmxInterface.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="thirdparty\lcdgfx\src\lcdgfx.h">
@@ -322,6 +323,7 @@
     <ClInclude Include="server\PEVFlags.h" />
     <ClInclude Include="server\idn.h" />
     <ClInclude Include="server\idn-hello.h" />
+    <ClInclude Include="OlaDmxInterface.hpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="thirdparty">

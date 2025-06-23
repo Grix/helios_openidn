@@ -25,6 +25,7 @@
     <ClCompile Include="hardware\Helios\HeliosAdapter.cpp" />
     <ClCompile Include="hardware\Helios\HeliosDac.cpp" />
     <ClCompile Include="ManagementInterface.cpp" />
+    <ClCompile Include="OlaDmxInterface.cpp" />
     <ClCompile Include="output\IDNLaproDecoder.cpp" />
     <ClCompile Include="output\IdtfDecoder.cpp" />
     <ClCompile Include="output\NOPLaproGraphOut.cpp" />
@@ -84,6 +85,7 @@
     <ClInclude Include="hardware\Helios\libusb.h" />
     <ClInclude Include="ini.hpp" />
     <ClInclude Include="ManagementInterface.hpp" />
+    <ClInclude Include="OlaDmxInterface.hpp" />
     <ClInclude Include="output\IDNLaproDecoder.hpp" />
     <ClInclude Include="output\IdtfDecoder.hpp" />
     <ClInclude Include="output\NOPLaproGraphOut.hpp" />
@@ -256,7 +258,7 @@
       <PreprocessorDefinitions>ODF_USE_TAXI_SOCK</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <LibraryDependencies>usb-1.0;pthread;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>usb-1.0;ola;olacommon;protobuf;pthread;%(LibraryDependencies)</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -265,7 +267,7 @@
       <PreprocessorDefinitions>ODF_USE_TAXI_SOCK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <LibraryDependencies>usb-1.0;pthread;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>usb-1.0;ola;olacommon;protobuf;pthread;%(LibraryDependencies)</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

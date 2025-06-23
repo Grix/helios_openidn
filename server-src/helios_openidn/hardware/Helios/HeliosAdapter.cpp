@@ -140,10 +140,15 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 }
 
 SliceType HeliosAdapter::convertPoints(const std::vector<ISPDB25Point>& points) {
-	SliceType result;
-	HeliosPoint currentPoint;
+
+	SliceType result(points.size()* bytesPerPoint());
+
+	int index = 0;
 
 	for(const auto& point : points) {
+
+		HeliosPoint currentPoint;
+
 		currentPoint.x = (std::uint16_t)(point.x >> 4); //12 bit (from 0 to 0xFFF)
 		currentPoint.y = (std::uint16_t)(point.y >> 4); //12 bit (from 0 to 0xFFF)
 		currentPoint.r = (std::uint8_t) (point.r >> 8);	//8 bit	(from 0 to 0xFF)
@@ -152,7 +157,7 @@ SliceType HeliosAdapter::convertPoints(const std::vector<ISPDB25Point>& points) 
 		currentPoint.i = (std::uint8_t) (point.intensity >> 8);	//8 bit (from 0 to 0xFF)
 
 		for(int i = 0; i < bytesPerPoint(); i++) {
-			result.push_back(*((uint8_t*)&currentPoint + i));
+			result[index++] = (*((uint8_t*)&currentPoint + i));
 		}
 	}
 

@@ -49,9 +49,10 @@ void HWBridge::commitChunk(TransformEnv &tfEnv, std::shared_ptr<SliceBuf> &slice
         std::shared_ptr<TimeSlice> newSlice(new TimeSlice);
         newSlice->dataChunk = device->convertPoints(tfEnv.db25Accu);
         newSlice->durationUs = usPerSlice - tfEnv.currentSliceTime;
-        sliceBuf->push_back(newSlice);
+        sliceBuf->push_back(newSlice); 
         tfEnv.db25Accu.clear();
         tfEnv.currentSliceTime = usPerSlice;
+
     }
 }
 
@@ -211,7 +212,14 @@ void HWBridge::driverLoop() {
 			currentBuf->pop_front();
 
 			if (!management->requestOutput(OUTPUT_MODE_IDN))
+			{
+				struct timespec delay, dummy; // Prevents hogging 100% CPU use when idle
+				delay.tv_sec = 0;
+				delay.tv_nsec = 1000000; //1ms
+				nanosleep(&delay, &dummy);
+
 				continue;
+			}
 
 			//if we're in frame mode, put the slice back
 			//wave mode just discards
@@ -264,12 +272,12 @@ double HWBridge::calculateSpeedfactor(double currentSpeed, std::shared_ptr<Slice
 		double newSpeed = (1.0 + 0.3*offCenter + 0.000*accumOC); // Accumulator entirely nullified for now
 		newSpeed = (newSpeed + ((sm-1)*currentSpeed))/sm;
 		
-		/*
+		
 		if (debug == DEBUGSIMPLE)
-			printf("Calculating speed factor: center %.2f, bufUsageMs %.2f, buffer->size() %.2f, buffer->front()->durationUs %.2f, accumOC %.2f, newSpeed %.2f \n", center, bufUsageMs, (double)buffer->size(), (double)buffer->front()->durationUs, this->accumOC, newSpeed);
-		*/
+			printf("Calculating speed factor: center %.2f, bufUsageMs %.2f, buffer->size() %.2f, buffer->front()->durationUs %.2f, newSpeed %.2f \n", center, bufUsageMs, (double)buffer->size(), (double)buffer->front()->durationUs, newSpeed);
+		
 
-		return std::min(1.2, std::max(0.80, newSpeed));
+		return std::min(1.2, std::max(0.83, newSpeed));
 	} else {
 		return 1.0;
 	}
