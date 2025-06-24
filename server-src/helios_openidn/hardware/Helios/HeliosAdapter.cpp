@@ -200,10 +200,10 @@ bool HeliosAdapter::getHeliosConnected()
 	//return helios.GetStatus(this->id);
 }
 
-bool HeliosAdapter::getIsBusy()
+/*bool HeliosAdapter::getIsBusy()
 {
 	return false;
-}
+}*/
 
 void HeliosAdapter::checkConnection()
 {

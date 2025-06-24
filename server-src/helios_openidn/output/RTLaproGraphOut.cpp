@@ -63,6 +63,6 @@ RTLaproDecoder *RTLaproGraphicOutput::createIDNDecoder(uint8_t serviceMode, void
 
 void RTLaproGraphicOutput::deleteDecoder(RTLaproDecoder *decoder)
 {
-    delete decoder;
+    decoder->refDec();
 }
 

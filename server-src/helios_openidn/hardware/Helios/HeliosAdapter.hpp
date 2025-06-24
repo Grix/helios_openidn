@@ -20,7 +20,7 @@ public:
 	void setMaxPointrate(unsigned) override;
 	void getName(char *nameBufferPtr, unsigned nameBufferSize) override;
 	bool getHeliosConnected();
-	bool getIsBusy() override;
+	//bool getIsBusy() override;
 
 	HeliosAdapter(int id);
 	~HeliosAdapter();

@@ -1,5 +1,5 @@
 // -------------------------------------------------------------------------------------------------
-//  File NOPLaproGraphOut.hpp
+//  File NOPLaproGraphOut.cpp
 //
 //  No OPeration Laser Projector Graphic Output
 //
@@ -34,19 +34,19 @@ void NOPLaproGraphicOutput::getDeviceName(char *nameBufferPtr, unsigned nameBuff
 }
 
 
-int NOPLaproGraphicOutput::open(OPMODE opMode)
+int NOPLaproGraphicOutput::open(ODF_ENV *env, OPMODE opMode)
 {
     return 0;
 }
 
 
-void NOPLaproGraphicOutput::close()
+void NOPLaproGraphicOutput::close(ODF_ENV *env)
 {
 }
 
 
-void NOPLaproGraphicOutput::process(CHUNKDATA &chunkData, ODF_TAXI_BUFFER *taxiBuffer)
+void NOPLaproGraphicOutput::process(ODF_ENV *env, CHUNKDATA &chunkData, ODF_TAXI_BUFFER *taxiBuffer)
 {
-    taxiBuffer->discard();
+    if(taxiBuffer != (ODF_TAXI_BUFFER *)0) taxiBuffer->discard();
 }
 

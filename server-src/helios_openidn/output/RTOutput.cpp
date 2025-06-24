@@ -47,3 +47,8 @@ unsigned RTOutput::clearPipelineEvents()
     return result;
 }
 
+
+void RTOutput::housekeeping(ODF_ENV *env, bool shutdownFlag)
+{
+}
+

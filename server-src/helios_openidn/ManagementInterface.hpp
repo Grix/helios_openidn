@@ -3,6 +3,7 @@
 #include "ini.hpp"
 #include "server/IDNServer.hpp"
 #include "output/V1LaproGraphOut.hpp"
+#include "shared/DACHWInterface.hpp"
 #include "thirdparty/lcdgfx/src/lcdgfx.h"
 #include <string>
 #include <cstdint>
@@ -57,7 +58,7 @@ public:
 	std::shared_ptr<IDNServer> idnServer;
 	int modePriority[OUTPUT_MODE_MAX + 1] = { 3, 4, 1, 2 }; // If <=0, disable entirely
 	std::vector<std::shared_ptr<DACHWInterface>> devices;
-	std::vector<V1LaproGraphicOutput*> outputs;
+	std::vector<V1LaproGraphicOutput*> outputs; // not used right now
 
 
 private:

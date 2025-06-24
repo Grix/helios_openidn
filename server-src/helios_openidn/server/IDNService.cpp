@@ -236,3 +236,8 @@ bool IDNService::handlesMode(uint8_t serviceMode)
     return false;
 }
 
+
+void IDNService::housekeeping(ODF_ENV *env, bool shutdownFlag)
+{
+}
+

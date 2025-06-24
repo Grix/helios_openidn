@@ -141,6 +141,7 @@ void IDNSession::closeChannel(ODF_ENV *env, IDN_CHANNEL *channel, bool abortFlag
 IDNSession::~IDNSession()
 {
     // Check for open channels - just issue an error. Session shall be reset before destruction!
+/*
     bool openChannels = false;
     for(unsigned i = 0; i < IDNVAL_CHANNEL_COUNT; i++)
     {
@@ -152,6 +153,7 @@ IDNSession::~IDNSession()
     }
 // FIXME
 //    if(openChannels) logError("IDNSession|dtor: Allocated channels");
+*/
 }
 
 

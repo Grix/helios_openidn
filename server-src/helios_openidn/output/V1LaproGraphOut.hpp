@@ -12,43 +12,32 @@
 
 
 // Standard libraries
-#include <vector>
+#include <memory>
 
 // Project headers
-#include "../shared/types.h"
-#include "../shared/HWBridge.hpp"
-#include "../shared/BEX.hpp"
-#include "RTLaproGraphOut.hpp"
+#include "STDLaproGraphOut.hpp"
+
 
 
 // -------------------------------------------------------------------------------------------------
 //  Classes
 // -------------------------------------------------------------------------------------------------
 
-class V1LaproGraphicOutput: public RTLaproGraphicOutput
+class V1LaproGraphicOutput: public STDLaproGraphicOutput
 {
     // ------------------------------------------ Members ------------------------------------------
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     private:
 
-    std::shared_ptr<HWBridge> driverPtr = nullptr;
-
-    OPMODE opMode;
+    std::shared_ptr<LaproAdapter> adapterPtr = nullptr;
 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     public:
 
-    V1LaproGraphicOutput(std::shared_ptr<HWBridge> driver);
-    ~V1LaproGraphicOutput();
-
-    // -- Inherited Members -------------
-    virtual void getDeviceName(char *nameBufferPtr, unsigned nameBufferSize);
-    virtual int open(OPMODE opMode);
-    virtual void close();
-    virtual void process(CHUNKDATA &chunkData, ODF_TAXI_BUFFER *taxiBuffer);
-    //bool hasBufferedFrame();
+    V1LaproGraphicOutput(std::shared_ptr<LaproAdapter> adapter);
+    virtual ~V1LaproGraphicOutput();
 };
 
 

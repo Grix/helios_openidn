@@ -1426,56 +1426,6 @@ void IDNServer::getHostName(uint8_t *fieldPtr, unsigned fieldSize)
 }
 
 
-void IDNServer::abandonClients(ODF_ENV *env)
-{
-    // Unconditionally abandon all connections
-    while(firstConnection)
-    {
-        LLNode<ConnectionNode> *node = firstConnection;
-        IDNHelloConnection *connection = static_cast<IDNHelloConnection *>(node);
-
-        // Immediate connection stop, linkout and delete the connection
-        connection->handleAbort(env);
-        destroyConnection(connection);
-    }
-
-    // Unconditionally abandon all sessions
-    while(firstSession)
-    {
-        LLNode<SessionNode> *node = firstSession;
-        ODFSession *session = static_cast<ODFSession *>(node);
-
-        // Immediate session stop, linkout and delete the session
-/*        if(session->getSessionState() != SESSIONSTATE_ABANDONED)*/ session->cancelImmediately(env);
-        destroySession(session);
-    }
-}
-
-
-void IDNServer::checkTeardown(ODF_ENV *env, uint32_t envTimeUS)
-{
-    // First, check all connections. Teardown may leave orphan sessions
-    for(LLNode<ConnectionNode> *node = firstConnection; node != (LLNode<ConnectionNode> *)0; )
-    {
-        IDNHelloConnection *connection = static_cast<IDNHelloConnection *>(node);
-        node = node->getNextNode();
-
-        // Check for destruction
-        if(connection->checkTeardown(env, envTimeUS)) destroyConnection(connection);
-    }
-
-    // Check all sessions
-    for(LLNode<SessionNode> *node = firstSession; node != (LLNode<SessionNode> *)0; )
-    {
-        ODFSession *session = static_cast<ODFSession *>(node);
-        node = node->getNextNode();
-
-        // Check for destruction
-        if(session->checkTeardown(env, envTimeUS)) destroySession(session);
-    }
-}
-
-
 IDNService *IDNServer::getService(uint8_t serviceID)
 {
     for(LLNode<ServiceNode> *node = firstService; node != (LLNode<ServiceNode> *)0; node = node->getNextNode())
@@ -1500,5 +1450,76 @@ IDNService *IDNServer::getDefaultService(uint8_t serviceMode)
     }
 
     return (IDNService *)0;
+}
+
+
+void IDNServer::housekeeping(ODF_ENV *env, uint32_t envTimeUS)
+{
+    // Note: Shutdown in case envTimeUS == 0 !!
+
+    if(envTimeUS == 0)
+    {
+        // Unconditionally abandon all connections
+        while(firstConnection)
+        {
+            LLNode<ConnectionNode> *node = firstConnection;
+            IDNHelloConnection *connection = static_cast<IDNHelloConnection *>(node);
+
+            // Immediate connection stop, linkout and delete the connection
+            connection->handleAbort(env);
+            destroyConnection(connection);
+        }
+
+        // Unconditionally abandon all sessions
+        while(firstSession)
+        {
+            LLNode<SessionNode> *node = firstSession;
+            ODFSession *session = static_cast<ODFSession *>(node);
+
+            // Immediate session stop, linkout and delete the session
+/*            if(session->getSessionState() != SESSIONSTATE_ABANDONED)*/ session->cancelImmediately(env);
+            destroySession(session);
+        }
+
+        // Housekeeping for all services (and outputs/adapters)
+        for(LLNode<ServiceNode> *node = firstService; node != (LLNode<ServiceNode> *)0; )
+        {
+            IDNService *service = static_cast<IDNService *>(node);
+            node = node->getNextNode();
+
+            service->housekeeping(env, true);
+        }
+    }
+    else
+    {
+        // First, check all connections. Teardown may leave orphan sessions
+        for(LLNode<ConnectionNode> *node = firstConnection; node != (LLNode<ConnectionNode> *)0; )
+        {
+            IDNHelloConnection *connection = static_cast<IDNHelloConnection *>(node);
+            node = node->getNextNode();
+
+            // Check for destruction
+            if(connection->checkTeardown(env, envTimeUS)) destroyConnection(connection);
+        }
+
+        // Check all sessions
+        for(LLNode<SessionNode> *node = firstSession; node != (LLNode<SessionNode> *)0; )
+        {
+            ODFSession *session = static_cast<ODFSession *>(node);
+            node = node->getNextNode();
+
+            // Check for destruction
+            if(session->checkTeardown(env, envTimeUS)) destroySession(session);
+        }
+
+        // Housekeeping for all services (and outputs/adapters)
+        for(LLNode<ServiceNode> *node = firstService; node != (LLNode<ServiceNode> *)0; )
+        {
+            IDNService *service = static_cast<IDNService *>(node);
+            node = node->getNextNode();
+
+            service->housekeeping(env, false);
+        }
+    }
 }
 

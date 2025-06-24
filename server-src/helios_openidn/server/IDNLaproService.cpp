@@ -165,7 +165,7 @@ IDNInlet *IDNLaproService::requestInlet(ODF_ENV *env, uint8_t serviceMode)
     if(serviceMode == IDNVAL_SMOD_LPGRF_CONTINUOUS)
     {
         // Open the hardware output in continuous mode
-        if(rtOutput->open(RTLaproGraphicOutput::OPMODE_WAVE) == 0)
+        if(rtOutput->open(env, RTLaproGraphicOutput::OPMODE_WAVE) == 0)
         {
             currentInlet = graConInlet;
         }
@@ -173,7 +173,7 @@ IDNInlet *IDNLaproService::requestInlet(ODF_ENV *env, uint8_t serviceMode)
     else if(serviceMode == IDNVAL_SMOD_LPGRF_DISCRETE)
     {
         // Open the hardware output in discrete mode
-        if(rtOutput->open(RTLaproGraphicOutput::OPMODE_FRAME) == 0)
+        if(rtOutput->open(env, RTLaproGraphicOutput::OPMODE_FRAME) == 0)
         {
             currentInlet = graDisInlet;
         }
@@ -203,6 +203,12 @@ void IDNLaproService::releaseInlet(ODF_ENV *env, IDNInlet *inlet)
     currentInlet = (IDNInlet *)0;
 
     // Close the hardware output
-    rtOutput->close();
+    rtOutput->close(env);
+}
+
+
+void IDNLaproService::housekeeping(ODF_ENV *env, bool shutdownFlag)
+{
+    rtOutput->housekeeping(env, shutdownFlag);
 }
 

@@ -142,11 +142,10 @@ void IDNLaproGraConInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
             // Build chunk data struct
             RTLaproGraphicOutput::CHUNKDATA chunkData;
             memset(&chunkData, 0, sizeof(chunkData));
-            chunkData.chunkDuration = flagsDuration & 0x00FFFFFF;
             chunkData.decoder = decoder;
-            chunkData.sampleSize = sampleSize;
+            chunkData.chunkDuration = flagsDuration & 0x00FFFFFF;
             chunkData.sampleCount = taxiBuffer->getTotalLen() / sampleSize;
- 
+
             // -----------------------------------------------------------------
 
             // Check for match between config version and chunk data version
@@ -202,7 +201,7 @@ void IDNLaproGraConInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
             }
 
             // Pass the buffer to the driver, no access to the buffer hereafter !!!
-            rtOutput->process(chunkData, taxiBuffer);
+            rtOutput->process(env, chunkData, taxiBuffer);
             taxiBuffer = (ODF_TAXI_BUFFER *)0;
         }
         else

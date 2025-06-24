@@ -2,10 +2,33 @@
 #define DACADAPTER_H_
 
 #include "types.h"
+
 #include "ISPDB25Point.h"
 
-class DACHWInterface {
-public:
+#include "LaproAdapter.hpp"
+
+
+#include <mutex>
+
+
+class TransformEnv
+{
+    public:
+
+    double usPerSlice;
+
+    double currentSliceTime;
+
+    std::vector<ISPDB25Point> db25Accu;
+    double skipCounter = 0;
+};
+
+
+
+class DACHWInterface: public LaproAdapter
+{
+    public:
+
 	//writes byte data to a hardware interface
 	virtual int writeFrame(const TimeSlice& slice, double duration) = 0;
 
@@ -25,18 +48,29 @@ public:
 	//in pps
 	virtual unsigned maxPointrate() = 0;
 	virtual void setMaxPointrate(unsigned) = 0;
-	
-	// name of connected DAC
-	virtual void getName(char *nameBufferPtr, unsigned nameBufferSize)
-	{
-		snprintf(nameBufferPtr, nameBufferSize, "");
-	}
 
-	virtual bool getIsBusy()
-	{
-		return false;
-	}
+    /*virtual bool getIsBusy()
+    {
+        return true;
+    }*/
 
+
+    // -----------------------------------------------------
+
+
+    private:
+    typedef LaproAdapter Inherited;
+    std::mutex cmdMutex;
+    bool enabledFlag = false;
+    void commitChunk(TransformEnv &tfEnv, std::shared_ptr<SliceBuf> &sliceBuf);
+
+    protected:
+    virtual int enable();
+    virtual void disable();
+
+    public:
+    virtual int putBuffer(ODF_TAXI_BUFFER *taxiBuffer);
+    virtual std::shared_ptr<SliceBuf> getNextBuffer(TransformEnv &tfEnv, unsigned &driverMode);
 };
 
 #endif

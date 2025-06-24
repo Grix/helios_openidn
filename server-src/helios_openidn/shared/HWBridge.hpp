@@ -21,7 +21,6 @@
 
 #include "types.h"
 #include "DACHWInterface.hpp"
-#include "BEX.hpp"
 
 #define NODEBUG 0
 #define DEBUG 1
@@ -29,60 +28,40 @@
 #define DEBUGSIMPLE 3
 
 
-class TransformEnv
+
+class HWBridge
 {
-public:
-    double currentSliceTime;
+    private:
 
-    std::vector<ISPDB25Point> db25Accu;
-    double skipCounter = 0;
-    
-};
+    std::shared_ptr<DACHWInterface> device;
+    double usPerSlice = 10000;
+    double bufferTargetMs = 40;
+    double accumOC = 0.0;
+
+    //stats
+    int debug = NODEBUG;
+    bool sendStats = false;
+    std::vector<unsigned> writeTimingMeasurements, writeDuration, numberOfPoints;
+    std::vector<double> speedFactors, waveBufUsage;
+
+    double calculateSpeedfactor(double currentSpeed, std::shared_ptr<SliceBuf> buf);
+    void clearStats();
 
 
-class HWBridge {
-public:
-	HWBridge(std::shared_ptr<DACHWInterface> hwDeviceInterface, std::shared_ptr<BEX> bex);
-	void driverLoop();
-	void setDebugging(int debug);
-	int getDebugging();
-	void setBufferTargetMs(double targetMs);
-	std::shared_ptr<DACHWInterface> getDevice();
-	void printStats();
-	void outputEmptyPoint();
+    public:
 
-    void bexSetMode(int mode);
-    void bexPublishReset();
-    void bexNetworkAppendSlice(std::shared_ptr<DB25Chunk> db25Chunk);
+    HWBridge(std::shared_ptr<DACHWInterface> hwDeviceInterface);
+    void outputEmptyPoint();
+
+    void driverLoop();
+    void printStats();
 
     // -- Inline Methods ----------------
+    std::shared_ptr<DACHWInterface> getDevice() { return this->device; }
     void setChunkLengthUs(double us) { this->usPerSlice = us; }
-
-private:
-	void waveIteration();
-	void frameIteration();
-	double calculateSpeedfactor(double currentSpeed, std::shared_ptr<SliceBuf> buf);
-	void resetInternals();
-
-    double usPerSlice = 10000;
-    void commitChunk(TransformEnv &tfEnv, std::shared_ptr<SliceBuf> &sliceBuf);
-    std::shared_ptr<SliceBuf> db25toDevice(TransformEnv &tfEnv, std::shared_ptr<DB25ChunkQueue> db25ChunkQueue);
-
-	std::shared_ptr<DACHWInterface> device;
-	std::shared_ptr<BEX> bex;
-	double bufferTargetMs = 40;
-	double speedFactor = 1.0;
-	double accumOC = 0.0;
-	std::shared_ptr<SliceBuf> ringBuffer;
-
-	//stats
-	int debug = NODEBUG;
-	bool sendStats = false;
-	std::vector<unsigned> writeTimingMeasurements, writeDuration, numberOfPoints;
-	std::vector<double> speedFactors, waveBufUsage;
-	void clearStats();
-
-	void trimBuffer(std::shared_ptr<SliceBuf> buf, unsigned n);
+    void setBufferTargetMs(double targetMs) { this->bufferTargetMs = targetMs; }
+    void setDebugging(int debug) { this->debug = debug; }
+    int getDebugging() { return this->debug; }
 };
 
 #endif

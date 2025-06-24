@@ -11,7 +11,7 @@ HeliosProAdapter::HeliosProAdapter()
 		exit(1);
 	}
 
-	this->maximumPointrate = 100000;
+	this->maximumPointrate = 80000;
 
 	unsigned int speed = 50000000;
 	int ret = ioctl(this->spidevFd, SPI_IOC_WR_MAX_SPEED_HZ, &speed); // Max speed, in practice around 27 MHz
@@ -298,7 +298,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		nsdif = now.tv_nsec - then.tv_nsec;
 		tdif = sdif * 1000000000 + nsdif;
 
-		//if (rdyReceivedTdif < 100000)
+		if (rdyReceivedTdif < 150000)
 			printf("Helios rdy signal recvd %d, and sent frame: %d\n", rdyReceivedTdif / 1000, tdif / 1000);
 
 		/*static uint16_t prevX = 0x8000;
@@ -438,10 +438,10 @@ void HeliosProAdapter::setMaxPointrate(unsigned newRate)
 	this->maximumPointrate = newRate;
 }
 
-bool HeliosProAdapter::getIsBusy()
+/*bool HeliosProAdapter::getIsBusy()
 {
 	return isBusy;
-}
+}*/
 
 void HeliosProAdapter::getName(char* nameBufferPtr, unsigned nameBufferSize) {
 	snprintf(nameBufferPtr, nameBufferSize, "Main");

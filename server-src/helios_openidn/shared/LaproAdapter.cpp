@@ -1,31 +1,28 @@
 // -------------------------------------------------------------------------------------------------
-//  File V1LaproGraphOut.cpp
+//  File LaproAdapter.cpp
 //
-//  Version 1 compatibility layer
-//
-//  01/2025 Dirk Apitz, moved to new output architecture
+//  05/2025 Dirk Apitz, created
 // -------------------------------------------------------------------------------------------------
 
 
 // Module header
-#include "V1LaproGraphOut.hpp"
+#include "LaproAdapter.hpp"
 
 
 
 // =================================================================================================
-//  Class V1LaproGraphicOutput
+//  Class LaproAdapter
 //
 // -------------------------------------------------------------------------------------------------
 //  scope: public
 // -------------------------------------------------------------------------------------------------
 
-V1LaproGraphicOutput::V1LaproGraphicOutput(std::shared_ptr<LaproAdapter> adapter):
-    STDLaproGraphicOutput(adapter.get())
+LaproAdapter::LaproAdapter()
 {
 }
 
 
-V1LaproGraphicOutput::~V1LaproGraphicOutput()
+LaproAdapter::~LaproAdapter()
 {
 }
 

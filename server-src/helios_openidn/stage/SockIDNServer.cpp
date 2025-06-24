@@ -516,7 +516,9 @@ int SockIDNServer::mainNetLoop(ODF_ENV *env, int fdSocket)
         }
 
         // Check connections and sessions for timeouts or cleanup (after graceful close)
-        checkTeardown(env, usRecvTime);
+        // Note: For housekeeping, usTime == 0 issues a shutdown !!
+        if(usRecvTime == 0) usRecvTime++;
+        housekeeping(env, usRecvTime);
     }
 
     return result;
@@ -698,7 +700,8 @@ void SockIDNServer::networkThreadFunc()
     // ---------------------------------------------------------------------------------------------
 
     // Abandon remaining clients
-    abandonClients(env);
+    // Note: For housekeeping, usRecvTime == 0 issues a shutdown !!
+    housekeeping(env, 0);
 
     // Close network Socket
     close(fdSocket);

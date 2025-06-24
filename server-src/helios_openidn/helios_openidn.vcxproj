@@ -31,6 +31,7 @@
     <ClCompile Include="output\NOPLaproGraphOut.cpp" />
     <ClCompile Include="output\RTLaproGraphOut.cpp" />
     <ClCompile Include="output\RTOutput.cpp" />
+    <ClCompile Include="output\STDLaproGraphOut.cpp" />
     <ClCompile Include="output\V1LaproGraphOut.cpp" />
     <ClCompile Include="server\IDNLaproGraConInlet.cpp" />
     <ClCompile Include="server\IDNLaproGraDisInlet.cpp" />
@@ -38,8 +39,11 @@
     <ClCompile Include="server\IDNServer.cpp" />
     <ClCompile Include="server\IDNService.cpp" />
     <ClCompile Include="server\IDNSession.cpp" />
-    <ClCompile Include="shared\BEX.cpp" />
+    <ClCompile Include="shared\AdapterBase.cpp" />
+    <ClCompile Include="shared\DACHWInterface.cpp" />
+    <ClCompile Include="shared\DecoderBase.cpp" />
     <ClCompile Include="shared\HWBridge.cpp" />
+    <ClCompile Include="shared\LaproAdapter.cpp" />
     <ClCompile Include="shared\ODFTools.cpp" />
     <ClCompile Include="stage\main.cpp" />
     <ClCompile Include="stage\SockIDNServer.cpp" />
@@ -91,6 +95,7 @@
     <ClInclude Include="output\NOPLaproGraphOut.hpp" />
     <ClInclude Include="output\RTLaproGraphOut.hpp" />
     <ClInclude Include="output\RTOutput.hpp" />
+    <ClInclude Include="output\STDLaproGraphOut.hpp" />
     <ClInclude Include="output\V1LaproGraphOut.hpp" />
     <ClInclude Include="server\idn-hello.h" />
     <ClInclude Include="server\idn-stream.h" />
@@ -103,10 +108,12 @@
     <ClInclude Include="server\IDNSession.hpp" />
     <ClInclude Include="server\LLNode.hpp" />
     <ClInclude Include="server\PEVFlags.h" />
-    <ClInclude Include="shared\BEX.hpp" />
+    <ClInclude Include="shared\AdapterBase.hpp" />
     <ClInclude Include="shared\DACHWInterface.hpp" />
+    <ClInclude Include="shared\DecoderBase.hpp" />
     <ClInclude Include="shared\HWBridge.hpp" />
     <ClInclude Include="shared\ISPDB25Point.h" />
+    <ClInclude Include="shared\LaproAdapter.hpp" />
     <ClInclude Include="shared\ODFEnvironment.hpp" />
     <ClInclude Include="shared\ODFTaxiBuffer.hpp" />
     <ClInclude Include="shared\ODFTools.hpp" />

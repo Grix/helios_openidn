@@ -4,14 +4,47 @@
 extern ManagementInterface* management;
 
 
-HWBridge::HWBridge(std::shared_ptr<DACHWInterface> hwDeviceInterface, std::shared_ptr<BEX> bufferExchange) : device(hwDeviceInterface), bex(bufferExchange) {
+double HWBridge::calculateSpeedfactor(double currentSpeed, std::shared_ptr<SliceBuf> buffer) {
+	double sm = 5;
+	if(buffer->size() != 0) {
+		double center = this->bufferTargetMs;
+		//bufusage in ms = bufsize * avg slice duration
+		double bufUsageMs = (double)buffer->size()*(double)buffer->front()->durationUs / 1000.0;
+		double offCenter = (center - bufUsageMs) / center;
+		if (offCenter < 0.2 && offCenter > -0.2)
+			offCenter = 0;
+		this->accumOC += offCenter;
+
+		double newSpeed = (1.0 + 0.3*offCenter + 0.000*accumOC); // Accumulator entirely nullified for now
+		newSpeed = (newSpeed + ((sm-1)*currentSpeed))/sm;
+
+		/*
+		if (debug == DEBUGSIMPLE)
+			printf("Calculating speed factor: center %.2f, bufUsageMs %.2f, buffer->size() %.2f, buffer->front()->durationUs %.2f, accumOC %.2f, newSpeed %.2f \n", center, bufUsageMs, (double)buffer->size(), (double)buffer->front()->durationUs, this->accumOC, newSpeed);
+		*/
+
+		return std::min(1.2, std::max(0.83, newSpeed));
+	} else {
+		return 1.0;
+	}
 }
 
-void HWBridge::outputEmptyPoint() {
 
-	if (!management->requestOutput(OUTPUT_MODE_IDN))
-		return;
+void HWBridge::clearStats() {
+	writeTimingMeasurements.clear();
+	writeDuration.clear();
+	numberOfPoints.clear();
+	waveBufUsage.clear();
+	speedFactors.clear();
+}
 
+
+HWBridge::HWBridge(std::shared_ptr<DACHWInterface> hwDeviceInterface) : device(hwDeviceInterface)
+{
+}
+
+void HWBridge::outputEmptyPoint()
+{
 	ISPDB25Point point;
 	point.x = 0x8000;
 	point.y = 0x8000; 
@@ -34,116 +67,33 @@ void HWBridge::outputEmptyPoint() {
 	this->device->writeFrame(emptySlice, emptySlice.durationUs);
 }
 
-void HWBridge::trimBuffer(std::shared_ptr<SliceBuf> buf, unsigned n)
+void HWBridge::driverLoop()
 {
-	while (buf->size() > n) {
-		buf->pop_front();
-	}
-}
+    unsigned driverMode = DRIVER_INACTIVE;
+    unsigned sliceCounter = 0;
 
-
-void HWBridge::commitChunk(TransformEnv &tfEnv, std::shared_ptr<SliceBuf> &sliceBuf)
-{
-    if(tfEnv.db25Accu.size() != 0) {
-        //if current slice is full, convert it to bytes, reset and reset the currentSliceTime
-        std::shared_ptr<TimeSlice> newSlice(new TimeSlice);
-        newSlice->dataChunk = device->convertPoints(tfEnv.db25Accu);
-        newSlice->durationUs = usPerSlice - tfEnv.currentSliceTime;
-        sliceBuf->push_back(newSlice); 
-        tfEnv.db25Accu.clear();
-        tfEnv.currentSliceTime = usPerSlice;
-
-    }
-}
-
-std::shared_ptr<SliceBuf> HWBridge::db25toDevice(TransformEnv &tfEnv, std::shared_ptr<DB25ChunkQueue> db25ChunkQueue)
-{
-    std::shared_ptr<SliceBuf> sliceBuf(new SliceBuf);
-    double maxDevicePointRate = device->maxPointrate();
-
-    for(auto& db25Chunk : *db25ChunkQueue)
-    {
-        unsigned sampleCount = db25Chunk->db25Samples.size();
-        tfEnv.db25Accu.reserve(tfEnv.db25Accu.size() + sampleCount);
-
-        double pointDuration = (double)db25Chunk->duration / sampleCount;
-        double targetPointRate = ((1000000.0 * (double)sampleCount) / (double)db25Chunk->duration);
-        double rateRatio = maxDevicePointRate / targetPointRate;
-
-        for(auto& sample : db25Chunk->db25Samples)
-        {
-            //start downsampling if the maximum device pointrate is exceeded
-            if(rateRatio < 1.0) {
-                //skip point, but act like it was added
-                //this keeps rateRatio% of points
-                if(tfEnv.skipCounter >= rateRatio) {
-                    tfEnv.skipCounter += rateRatio;
-                    tfEnv.skipCounter -= (int)tfEnv.skipCounter;
-                    tfEnv.currentSliceTime -= pointDuration;
-                    continue;
-                }
-                tfEnv.skipCounter += rateRatio;
-                tfEnv.skipCounter -= (int)tfEnv.skipCounter;
-            }
-
-            //here the current slice has enough space,
-            //so append the point and decrease
-            //the currentSliceTime by the point duration
-            tfEnv.db25Accu.push_back(sample);
-            tfEnv.currentSliceTime -= pointDuration;
-
-            //chunk the points
-            if(db25Chunk->isWave) {
-                //wave mode chunks into chunks of x ms that don't exceed the maximum amount of
-                //bytes that the adapter accepts
-                if(tfEnv.currentSliceTime < 0 ||
-                        device->bytesPerPoint()*(tfEnv.db25Accu.size()+1) > device->maxBytesPerTransmission()) {
-                    commitChunk(tfEnv, sliceBuf);
-                }
-            } else if(!db25Chunk->isWave && device->maxBytesPerTransmission() != -1) {
-                //frame mode does not need to chunk based on duration, but it still needs evenly sized chunks if
-                //the device has a point limit, so it tries to equalize them
-                unsigned numChunksOfBlockSize = ceil(((double)sampleCount * (double)device->bytesPerPoint())/ (double)device->maxBytesPerTransmission());
-                unsigned equalizedSize = ceil((double)sampleCount / (double)numChunksOfBlockSize);
-
-                if(tfEnv.db25Accu.size()+1 > equalizedSize) {
-                    commitChunk(tfEnv, sliceBuf);
-                }
-            }
-        }
-
-        if (!db25Chunk->isWave)
-        {
-            commitChunk(tfEnv, sliceBuf);
-        }
-    }
-
-    return sliceBuf;
-}
-
-void HWBridge::driverLoop() {
-	struct timespec now, then;
-	struct timespec lastDebugTime;
-	unsigned sdif, nsdif, tdif;
-	std::shared_ptr<SliceBuf> currentBuf(new SliceBuf);
-	unsigned sliceCounter = 0;
+    std::shared_ptr<SliceBuf> currentBufPtr(new SliceBuf);
+    double speedFactor = 1.0;
 
     TransformEnv tfEnv;
+    tfEnv.usPerSlice = usPerSlice;
     tfEnv.currentSliceTime = usPerSlice;
 
+    struct timespec lastDebugTime;
 	clock_gettime(CLOCK_MONOTONIC, &lastDebugTime);
 
 	while (true) {
 		//before anything else, output some simple debugging if requested
 		if(debug == DEBUGSIMPLE) {
+            struct timespec now;
 			clock_gettime(CLOCK_MONOTONIC, &now);
 			if(now.tv_sec - lastDebugTime.tv_sec) {
 				printf("SIMPLE DEBUG: ");
-				if(bex->getMode() == DRIVER_INACTIVE)
+				if(driverMode == DRIVER_INACTIVE)
 					printf("Idle ");
-				else if(bex->getMode() == DRIVER_FRAMEMODE)
+				else if(driverMode == DRIVER_FRAMEMODE)
 					printf("Frame Mode ");
-				else if(bex->getMode() == DRIVER_WAVEMODE)
+				else if(driverMode == DRIVER_WAVEMODE)
 					printf("Wave Mode ");
 
 				//calculate the average point speed of the previous second
@@ -151,7 +101,7 @@ void HWBridge::driverLoop() {
 					printf("%.2f kpps ", 1000.0*(double)numberOfPoints.front()/(double)writeDuration.front());
 
 				//calculate the average wave buffer usage of the previous second
-				if(bex->getMode() == DRIVER_WAVEMODE) {
+				if(driverMode == DRIVER_WAVEMODE) {
 					double waveBufStatSize = waveBufUsage.size();
 					double sum = 0;
 					if(waveBufStatSize > 0) {
@@ -169,33 +119,33 @@ void HWBridge::driverLoop() {
 			}
 		}
 
-        std::shared_ptr<DB25ChunkQueue> db25ChunkQueue = bex->driverSwapRequest();
-        //if the new buffer was not ready yet, continue with the old one
-		if(db25ChunkQueue) {
-			//if there is something new, play that
-			currentBuf = db25toDevice(tfEnv, db25ChunkQueue);
-            db25ChunkQueue.reset();
+		std::shared_ptr<SliceBuf> nextBufPtr = device->getNextBuffer(tfEnv, driverMode);
+		if((nextBufPtr.get() != nullptr) && (nextBufPtr->size() > 0))
+		{
+			currentBufPtr = nextBufPtr;
 
 			//only trim and adjust speed in wave mode
-			if(bex->getMode() == DRIVER_WAVEMODE) {
-				speedFactor = calculateSpeedfactor(speedFactor, currentBuf);
-			} else if (bex->getMode() == DRIVER_FRAMEMODE) {
+			if(driverMode == DRIVER_WAVEMODE) {
+				speedFactor = calculateSpeedfactor(speedFactor, currentBufPtr);
+			} else if (driverMode == DRIVER_FRAMEMODE) {
 				speedFactor = 1.0;
-            }
-		} else if(bex->getMode() == DRIVER_WAVEMODE || bex->getMode() == DRIVER_INACTIVE) {
+			}
+		}
+		else if(driverMode == DRIVER_WAVEMODE || driverMode == DRIVER_INACTIVE)
+		{
 			//write an empty point if there is a buffer underrun in wave mode or
 			//the driver is set to inactive
 			//printf("I am printing empty frames because I am annoying");
 			//soutputEmptyPoint();
-			
-			if (bex->getMode() == DRIVER_INACTIVE)
+
+			if (driverMode == DRIVER_INACTIVE)
 			{
 				//outputEmptyPoint();
-				bex->resetBuffers();
+				//device->bexResetBuffers();
 				this->accumOC = 0;
 				struct timespec delay, dummy; // Prevents hogging 100% CPU use when idle
 				delay.tv_sec = 0;
-				delay.tv_nsec = 1000000; //1ms
+				delay.tv_nsec = 2000000; //2ms
 				nanosleep(&delay, &dummy);
 			}
 			else
@@ -203,19 +153,25 @@ void HWBridge::driverLoop() {
 
 			continue;
 		}
+		//else
+		//	std::this_thread::yield();
 
-        //rotate through the buffer once
-		unsigned currentBufSize = currentBuf->size();
-		for(int i = 0; i < currentBufSize; i++) {
+		//rotate through the buffer once
+		unsigned currentBufSize = currentBufPtr->size();
+		for(int i = 0; i < currentBufSize; i++)
+		{
+			struct timespec then;
 			clock_gettime(CLOCK_MONOTONIC, &then);
-			std::shared_ptr<TimeSlice> nextSlice = currentBuf->front();
-			currentBuf->pop_front();
+
+
+			std::shared_ptr<TimeSlice> nextSlice = currentBufPtr->front();
+			currentBufPtr->pop_front();
 
 			if (!management->requestOutput(OUTPUT_MODE_IDN))
 			{
-				struct timespec delay, dummy; // Prevents hogging 100% CPU use when idle
+				struct timespec delay, dummy; // Prevents hogging 100% CPU
 				delay.tv_sec = 0;
-				delay.tv_nsec = 1000000; //1ms
+				delay.tv_nsec = 2000000; //2ms
 				nanosleep(&delay, &dummy);
 
 				continue;
@@ -223,18 +179,20 @@ void HWBridge::driverLoop() {
 
 			//if we're in frame mode, put the slice back
 			//wave mode just discards
-			if(bex->getMode() == DRIVER_FRAMEMODE) {
-				currentBuf->push_back(nextSlice);
+			if(driverMode == DRIVER_FRAMEMODE) {
+				currentBufPtr->push_back(nextSlice);
 			}
 
 			this->device->writeFrame(*nextSlice, speedFactor*nextSlice->durationUs);
 
-			//measure timing
-			clock_gettime(CLOCK_MONOTONIC, &now);
-			sdif = now.tv_sec - then.tv_sec;
-			nsdif = now.tv_nsec - then.tv_nsec;
-			tdif = sdif * 1000000000 + nsdif;
 
+			//measure timing
+			struct timespec now;
+			clock_gettime(CLOCK_MONOTONIC, &now);
+
+			unsigned sdif = now.tv_sec - then.tv_sec;
+			unsigned nsdif = now.tv_nsec - then.tv_nsec;
+			unsigned tdif = sdif * 1000000000 + nsdif;
 
 			if(debug != NODEBUG) {
 				//add stats
@@ -253,51 +211,9 @@ void HWBridge::driverLoop() {
 				}
 			}
 		}
-
-		//std::this_thread::yield();
 	}
 }
 
-double HWBridge::calculateSpeedfactor(double currentSpeed, std::shared_ptr<SliceBuf> buffer) {
-	double sm = 5;
-	if(buffer->size() != 0) {
-		double center = this->bufferTargetMs;
-		//bufusage in ms = bufsize * avg slice duration
-		double bufUsageMs = (double)buffer->size()*(double)buffer->front()->durationUs / 1000.0;
-		double offCenter = (center - bufUsageMs) / center;
-		if (offCenter < 0.2 && offCenter > -0.2)
-			offCenter = 0;
-		this->accumOC += offCenter;
-
-		double newSpeed = (1.0 + 0.3*offCenter + 0.000*accumOC); // Accumulator entirely nullified for now
-		newSpeed = (newSpeed + ((sm-1)*currentSpeed))/sm;
-		
-		
-		if (debug == DEBUGSIMPLE)
-			printf("Calculating speed factor: center %.2f, bufUsageMs %.2f, buffer->size() %.2f, buffer->front()->durationUs %.2f, newSpeed %.2f \n", center, bufUsageMs, (double)buffer->size(), (double)buffer->front()->durationUs, newSpeed);
-		
-
-		return std::min(1.2, std::max(0.83, newSpeed));
-	} else {
-		return 1.0;
-	}
-}
-
-std::shared_ptr<DACHWInterface> HWBridge::getDevice() {
-	return this->device;
-}
-
-void HWBridge::setBufferTargetMs(double targetMs) {
-	this->bufferTargetMs = targetMs;
-}
-
-void HWBridge::setDebugging(int debug) {
-	this->debug = debug;
-}
-
-int HWBridge::getDebugging() {
-	return this->debug;
-}
 
 void HWBridge::printStats() {
 	fprintf(stderr, "writeTimingMeasurements ");
@@ -324,31 +240,5 @@ void HWBridge::printStats() {
 	for(const auto& elem : speedFactors)
 		fprintf(stderr, "%f ", elem);
 	fprintf(stderr, "\n");
-}
-
-void HWBridge::clearStats() {
-	writeTimingMeasurements.clear();
-	writeDuration.clear();
-	numberOfPoints.clear();
-	waveBufUsage.clear();
-	speedFactors.clear();
-}
-
-
-void HWBridge::bexSetMode(int mode)
-{
-    bex->setMode(mode);
-}
-
-
-void HWBridge::bexPublishReset()
-{
-    bex->publishReset();
-}
-
-
-void HWBridge::bexNetworkAppendSlice(std::shared_ptr<DB25Chunk> db25Chunk)
-{
-    bex->networkAppendSlice(db25Chunk);
 }
 

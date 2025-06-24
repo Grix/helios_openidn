@@ -146,6 +146,8 @@ class IDNService: public LLNode<ServiceNode>
     virtual IDNInlet *requestInlet(ODF_ENV *env, uint8_t serviceMode) = 0;
     virtual void releaseInlet(ODF_ENV *env, IDNInlet *inlet) = 0;
 
+    virtual void housekeeping(ODF_ENV *env, bool shutdownFlag);
+
     // -- Inline Methods ----------------
     uint8_t getServiceID() { return serviceID; }
     bool isDefaultService() { return defaultServiceFlag; }

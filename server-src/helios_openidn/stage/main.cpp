@@ -73,6 +73,18 @@ void sig_handler(int sig) {
 
 void* driverThreadFunction(void* args) {
     HWBridge* driver = static_cast<HWBridge*>(args);
+
+    // Make all writes in other threads visible in the current thread (process cache invalidate queue)
+    #if __cplusplus >= 201103L
+        atomic_thread_fence(std::memory_order_acquire);
+    #endif
+
+    // Real time driver thread
+    struct sched_param sp;
+    memset(&sp, 0, sizeof(sp));
+    sp.sched_priority = sched_get_priority_max(SCHED_FIFO);
+    sched_setscheduler(0, SCHED_FIFO, &sp);
+
     driver->driverLoop();
 
     return nullptr;
@@ -80,6 +92,11 @@ void* driverThreadFunction(void* args) {
 
 void createDriverThreads() {
     driverThreads.clear();
+
+    // Make all writes in the current thread visible in other threads
+    #if __cplusplus >= 201103L
+        atomic_thread_fence(std::memory_order_release);
+    #endif
 
     debug_printf(false, "Starting %d drivers", driverObjects.size());
     for (size_t i = 0; i < driverObjects.size(); ++i) {
@@ -181,14 +198,13 @@ std::map<std::string, ServiceConfig> readServicesIni(const std::string& filename
 
 void createLaProService(std::shared_ptr<DACHWInterface> adapter, const std::string& name, const int id,
 std::optional<int> maxPointRate = std::nullopt, std::optional<int> bufferTargetMs = std::nullopt, std::optional<int> chunkLengthUs = std::nullopt) {
-    std::shared_ptr<BEX> bex = std::make_shared<BEX>();
 
     if(maxPointRate) {
         adapter->setMaxPointrate(maxPointRate.value());
         printf("[Service %d]: Starting with changed Point Rate: %d \n", id, maxPointRate.value());
     }
 
-    auto driverObj = std::make_shared<HWBridge>(adapter, bex);
+    auto driverObj = std::make_shared<HWBridge>(adapter);
 
     if(bufferTargetMs) {
         driverObj->setBufferTargetMs(bufferTargetMs.value());
@@ -202,7 +218,7 @@ std::optional<int> maxPointRate = std::nullopt, std::optional<int> bufferTargetM
 
     driverObjects.push_back(driverObj);
 
-    auto laproGraphicOut = new V1LaproGraphicOutput(driverObj);
+    auto laproGraphicOut = new V1LaproGraphicOutput(adapter);
 
     rtOutputs.push_back(laproGraphicOut);
 
@@ -217,6 +233,7 @@ std::optional<int> maxPointRate = std::nullopt, std::optional<int> bufferTargetM
 }
 
 void* managementThreadFunction(void* args) {
+
     management->networkThreadEntry();
     return nullptr;
 }
@@ -411,7 +428,7 @@ int parseArguments(int argc, char** argv) {
                 if(dummyHelios) {
                     printf("maxPointRate = %d\n", dummyHelios.value().maxPointrate());
                 }
-                // TODO: Extract these values from HWBridge.hpp / V1LaproGraphOut.hpp
+                // TODO: Extract these values from HWBridge.hpp / DACHWInterface.hpp
                 printf("bufferTargetMs = %d\n", 40);
                 printf("chunkLengthUs = %d\n", 10000);
                 printf("\n");
@@ -622,6 +639,12 @@ int main(int argc, char** argv) {
     createDriverThreads();
 
     UsbInterface* usbInterface = new UsbInterface();
+
+    // Real time thread
+    struct sched_param sp;
+    memset(&sp, 0, sizeof(sp));
+    sp.sched_priority = sched_get_priority_max(SCHED_FIFO) - 1;
+    sched_setscheduler(0, SCHED_FIFO, &sp);
 
     // Run the network thread on the main thread.
     idnServer->networkThreadFunc();

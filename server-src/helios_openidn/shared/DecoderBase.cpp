@@ -1,31 +1,56 @@
 // -------------------------------------------------------------------------------------------------
-//  File V1LaproGraphOut.cpp
+//  File DecoderBase.cpp
 //
-//  Version 1 compatibility layer
-//
-//  01/2025 Dirk Apitz, moved to new output architecture
+//  05/2025 Dirk Apitz, created
 // -------------------------------------------------------------------------------------------------
 
 
 // Module header
-#include "V1LaproGraphOut.hpp"
+#include "DecoderBase.hpp"
 
 
 
 // =================================================================================================
-//  Class V1LaproGraphicOutput
+//  Class DecoderBase
 //
 // -------------------------------------------------------------------------------------------------
 //  scope: public
 // -------------------------------------------------------------------------------------------------
 
-V1LaproGraphicOutput::V1LaproGraphicOutput(std::shared_ptr<LaproAdapter> adapter):
-    STDLaproGraphicOutput(adapter.get())
+DecoderBase::DecoderBase()
+{
+    refCount = 1;
+}
+
+
+DecoderBase::~DecoderBase()
 {
 }
 
 
-V1LaproGraphicOutput::~V1LaproGraphicOutput()
+void DecoderBase::refInc()
 {
+    if(refCount < 0xFFFFFFFF)
+    {
+        refCount++;
+    }
+    else
+    {
+        // Error: Overrun
+    }
+}
+
+
+void DecoderBase::refDec()
+{
+    if(refCount > 1)
+    {
+        refCount--;
+    }
+    else
+    {
+        // Last reference - delete the instance
+        delete this;
+    }
 }
 

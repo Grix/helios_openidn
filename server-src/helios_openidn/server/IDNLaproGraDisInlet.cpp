@@ -253,11 +253,10 @@ void IDNLaproGraDisInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
             // Build chunk data struct
             RTLaproGraphicOutput::CHUNKDATA chunkData;
             memset(&chunkData, 0, sizeof(chunkData));
-            chunkData.chunkDuration = flagsDuration & 0x00FFFFFF;
-            if((chunkFlags & IDNFLG_GRAPHIC_FRAME_ONCE) != 0) chunkData.modFlags |= RTLaproGraphicOutput::MODFLAG_SCAN_ONCE;
             chunkData.decoder = decoder;
-            chunkData.sampleSize = sampleSize;
+            chunkData.chunkDuration = flagsDuration & 0x00FFFFFF;
             chunkData.sampleCount = taxiBuffer->getTotalLen() / sampleSize;
+            if((chunkFlags & IDNFLG_GRAPHIC_FRAME_ONCE) != 0) chunkData.modFlags |= RTLaproGraphicOutput::MODFLAG_SCAN_ONCE;
 
             // -----------------------------------------------------------------
 
@@ -281,7 +280,7 @@ void IDNLaproGraDisInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
             // Pass the buffer to the driver, no access to the buffer hereafter !!!
             // Note: Preliminary solution: The buffer should be queued/appended (frames from multiple
             // inlets) and copied/passed to the output
-            rtOutput->process(chunkData, taxiBuffer);
+            rtOutput->process(env, chunkData, taxiBuffer);
             taxiBuffer = (ODF_TAXI_BUFFER *)0;
         }
         else

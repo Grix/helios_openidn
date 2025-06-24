@@ -231,11 +231,10 @@ class IDNServer
     virtual void setHostName(uint8_t *fieldPtr, unsigned fieldSize);
     virtual void getHostName(uint8_t *fieldPtr, unsigned fieldSize);
 
-    virtual void abandonClients(ODF_ENV *env);
-    virtual void checkTeardown(ODF_ENV *env, uint32_t envTimeUS);
-
     virtual IDNService *getService(uint8_t serviceID);
     virtual IDNService *getDefaultService(uint8_t serviceMode);
+
+    virtual void housekeeping(ODF_ENV *env, uint32_t envTimeUS);
 };
 
 

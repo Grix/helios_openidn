@@ -1,16 +1,16 @@
 // -------------------------------------------------------------------------------------------------
-//  File RTOutput.hpp
+//  File DecoderBase.hpp
 //
-//  01/2025 Dirk Apitz, created
+//  05/2025 Dirk Apitz, created
 // -------------------------------------------------------------------------------------------------
 
 
-#ifndef RT_OUTPUT_HPP
-#define RT_OUTPUT_HPP
+#ifndef DECODER_BASE_HPP
+#define DECODER_BASE_HPP
 
 
-// Project headers
-#include "../shared/ODFEnvironment.hpp"
+// Standard libraries
+#include <stdint.h>
 
 
 
@@ -18,29 +18,26 @@
 //  Classes
 // -------------------------------------------------------------------------------------------------
 
-class RTOutput
+class DecoderBase
 {
     // ------------------------------------------ Members ------------------------------------------
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
-    protected:
+    private:
 
-    unsigned pipelineEvents;
-
-    virtual void reset();
+    uint32_t refCount;
 
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     public:
 
-    RTOutput();
-    virtual ~RTOutput();
+    DecoderBase();
+    virtual ~DecoderBase();
 
-    virtual void getDeviceName(char *nameBufferPtr, unsigned nameBufferSize) = 0;
-    virtual unsigned clearPipelineEvents();
-
-    virtual void housekeeping(ODF_ENV *env, bool shutdownFlag);
+    virtual void refInc();
+    virtual void refDec();
 };
 
 
 #endif
+

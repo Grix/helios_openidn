@@ -112,6 +112,7 @@ class IDNLaproService: public IDNService
     virtual bool handlesMode(uint8_t serviceMode);
     virtual IDNInlet *requestInlet(ODF_ENV *env, uint8_t serviceMode);
     virtual void releaseInlet(ODF_ENV *env, IDNInlet *inlet);
+    virtual void housekeeping(ODF_ENV *env, bool shutdownFlag);
 };
 
 

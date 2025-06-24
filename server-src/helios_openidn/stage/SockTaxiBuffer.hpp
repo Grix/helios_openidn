@@ -54,6 +54,8 @@ typedef struct _ODF_TAXI_BUFFER
 
     uint32_t sourceRefTime;                         // Reference time of being sourced/created
 
+    void *memoBuffer[10];                           // Memo area. Note: Keep pointer alignment
+
 
     ////////////////////////////////////////////////////////////////////////////////////////////////
     public:
@@ -120,6 +122,16 @@ typedef struct _ODF_TAXI_BUFFER
     void cropPayload(unsigned len)
     {
         payloadLen = len;
+    }
+
+    unsigned getMemoSize()
+    {
+        return sizeof(memoBuffer);
+    }
+
+    void *getMemoPtr()
+    {
+        return (void *)memoBuffer;
     }
 
     uint32_t getSourceRefTime()
