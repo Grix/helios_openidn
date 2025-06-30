@@ -80,10 +80,10 @@ void* driverThreadFunction(void* args) {
     #endif
 
     // Real time driver thread
-    struct sched_param sp;
+    /*struct sched_param sp;
     memset(&sp, 0, sizeof(sp));
     sp.sched_priority = sched_get_priority_max(SCHED_FIFO);
-    sched_setscheduler(0, SCHED_FIFO, &sp);
+    sched_setscheduler(0, SCHED_FIFO, &sp);*/
 
     driver->driverLoop();
 
@@ -641,10 +641,10 @@ int main(int argc, char** argv) {
     UsbInterface* usbInterface = new UsbInterface();
 
     // Real time thread
-    struct sched_param sp;
+    /*struct sched_param sp;
     memset(&sp, 0, sizeof(sp));
     sp.sched_priority = sched_get_priority_max(SCHED_FIFO) - 1;
-    sched_setscheduler(0, SCHED_FIFO, &sp);
+    sched_setscheduler(0, SCHED_FIFO, &sp);*/
 
     // Run the network thread on the main thread.
     idnServer->networkThreadFunc();

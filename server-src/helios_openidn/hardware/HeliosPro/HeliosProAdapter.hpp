@@ -17,7 +17,7 @@
 // These must match the MCU firmware!
 #define HELIOSPRO_MCU_CLOCKSPEED ((uint32_t)96050000)
 #define HELIOSPRO_MCU_TIMERSPEED (HELIOSPRO_MCU_CLOCKSPEED/2)
-#define HELIOSPRO_MCU_MAXSPEED 100000u			// In pps
+#define HELIOSPRO_MCU_MAXSPEED 110000u			// In pps
 #define HELIOSPRO_MCU_MINSPEED 733u				// In pps
 
 #define GPIO_DIR_IN(g)		*(gpio + (0x04 / 4)) &= ~(1 << (g & 0xFF))

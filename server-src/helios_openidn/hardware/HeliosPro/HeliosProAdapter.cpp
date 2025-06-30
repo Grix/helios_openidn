@@ -4,19 +4,19 @@
 
 HeliosProAdapter::HeliosProAdapter() 
 {
-	this->spidevFd = open("/dev/spidev2.0", O_WRONLY | O_NONBLOCK);
+	this->spidevFd = open("/dev/heliospro-spi", O_WRONLY);
 	if (!this->spidevFd)
 	{
-		printf("HeliosPRO: Couldn't open spidev2.0: %s", strerror(errno));
+		printf("HeliosPRO: Couldn't open /dev/heliospro-spi: %s", strerror(errno));
 		exit(1);
 	}
 
-	this->maximumPointrate = 80000;
+	this->maximumPointrate = HELIOSPRO_MCU_MAXSPEED;
 
-	unsigned int speed = 50000000;
+	/*unsigned int speed = 50000000;
 	int ret = ioctl(this->spidevFd, SPI_IOC_WR_MAX_SPEED_HZ, &speed); // Max speed, in practice around 27 MHz
 	if (ret == -1)
-		perror("HeliosPRO: SPIdev: Can't set speed hz");
+		perror("HeliosPRO: SPIdev: Can't set speed hz");*/
 
 	// Map GPIO2 registers for reading status
 	mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
@@ -75,13 +75,13 @@ HeliosProAdapter::HeliosProAdapter()
 
 	/// DEBUG TEST
 	/*TimeSlice** frames = new TimeSlice * [5];
-	const int numPointsPerFrame = 189;
+	const int numPointsPerFrame = 200;
 	int x = 0;
 	int y = 0;
 	for (int i = 0; i < 5; i++)
 	{
 		frames[i] = new TimeSlice();
-		frames[i]->durationUs = 2420;
+		frames[i]->durationUs = 1690;
 
 		std::vector<ISPDB25Point> points;
 
@@ -100,11 +100,11 @@ HeliosProAdapter::HeliosProAdapter()
 			point.r = 0xAFFF;
 			point.g = 0xFFFF;
 			point.b = 0x7FFF;
-			//frame[i][j].user1 = 0; // Use HeliosPointExt with WriteFrameExtended() if you need more channels
-			//frame[i][j].user2 = 10;
-			//frame[i][j].user3 = 20;
-			//frame[i][j].user4 = 30;
-			//frame[i][j].i = 0xFFFF;
+			point.intensity = 0x2FFF;
+			point.u1 = 0x3FFF;
+			point.u2 = 0x4FFF;
+			point.u3 = 0x5FFF;
+			point.u4 = 0x6FFF;
 
 			points.push_back(point);
 		}
@@ -200,7 +200,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 
 		// TODO REMOVE THIS PRINT
 //#ifndef NDEBUG
-		//printf("Sent helPro frame: samples %d, left %d, txNum %d, pps %d, timerVal %d, repeats %d, startY %d\n", pointsThisFrame, pointsLeft, txNum, pps, desiredTimer, timerRepeats, data[1]);
+		printf("Sent helPro frame: samples %d, left %d, txNum %d, pps %d, timerVal %d, repeats %d, startY %d\n", pointsThisFrame, pointsLeft, txNum, pps, desiredTimer, timerRepeats, data[1]);
 //#endif
 
 		writeBuffer[0] = 'H';
@@ -248,7 +248,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 
 		//printf("busy status: %d\n", GPIO_LEV(GPIOPIN_STATUS));
 
-		while (!GPIO_LEV(GPIOPIN_STATUS)) // Wait for free space in buffer chip
+		/*while (!GPIO_LEV(GPIOPIN_STATUS)) // Wait for free space in buffer chip
 		{
 			clock_gettime(CLOCK_MONOTONIC, &now);
 			sdif = now.tv_sec - then.tv_sec;
@@ -281,7 +281,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 				nanosleep(&delay, &dummy);
 			}
 			//std::this_thread::yield(); //todo use sleep if RT scheduling?
-		};
+		};*/
 		clock_gettime(CLOCK_MONOTONIC, &now);
 		sdif = now.tv_sec - then.tv_sec;
 		nsdif = now.tv_nsec - then.tv_nsec;
@@ -298,8 +298,8 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		nsdif = now.tv_nsec - then.tv_nsec;
 		tdif = sdif * 1000000000 + nsdif;
 
-		if (rdyReceivedTdif < 150000)
-			printf("Helios rdy signal recvd %d, and sent frame: %d\n", rdyReceivedTdif / 1000, tdif / 1000);
+		//if (rdyReceivedTdif < 100000)
+			printf("Helios sent frame: %d\n", tdif / 1000);
 
 		/*static uint16_t prevX = 0x8000;
 		static uint16_t prevY = 0x8000;

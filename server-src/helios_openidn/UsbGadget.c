@@ -830,10 +830,10 @@ end:
 void* rx_int_thread(void* arg)
 {
     // Real time driver thread
-    struct sched_param sp;
+    /*struct sched_param sp;
     memset(&sp, 0, sizeof(sp));
     sp.sched_priority = sched_get_priority_max(SCHED_FIFO) - 2;
-    sched_setscheduler(0, SCHED_FIFO, &sp);
+    sched_setscheduler(0, SCHED_FIFO, &sp);*/
 
 
     struct io_thread_args* thread_args = (struct io_thread_args*)arg;
@@ -910,10 +910,10 @@ void* rx_bulk_thread(void* arg)
 {
 
     // Real time driver thread
-    struct sched_param sp;
+    /*struct sched_param sp;
     memset(&sp, 0, sizeof(sp));
     sp.sched_priority = sched_get_priority_max(SCHED_FIFO) - 2;
-    sched_setscheduler(0, SCHED_FIFO, &sp);
+    sched_setscheduler(0, SCHED_FIFO, &sp);*/
 
 
     struct io_thread_args* thread_args = (struct io_thread_args*)arg;
@@ -997,10 +997,10 @@ void* rx_bulk_thread(void* arg)
 void* tx_int_thread(void* arg)
 {
     // Real time driver thread
-    struct sched_param sp;
+    /*struct sched_param sp;
     memset(&sp, 0, sizeof(sp));
     sp.sched_priority = sched_get_priority_max(SCHED_FIFO) - 2;
-    sched_setscheduler(0, SCHED_FIFO, &sp);
+    sched_setscheduler(0, SCHED_FIFO, &sp);*/
 
     struct io_thread_args* thread_args = (struct io_thread_args*)arg;
 
