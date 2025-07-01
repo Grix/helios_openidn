@@ -33,6 +33,10 @@ void UsbInterface::outputLoop()
         {
             std::lock_guard<std::mutex> lock(threadLock);
 
+#if __cplusplus >= 201103L
+            atomic_thread_fence(std::memory_order_acquire);
+#endif
+
             if (queue.empty())
                 empty = true;
             else
@@ -130,7 +134,7 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
             else
             {
                 double bufferDurationSeconds = queue.size() * queue.front()->buffer.size() / (double)queue.front()->pps;
-                if (bufferDurationSeconds < 0.02) // 20ms buffer target. Todo better queue duration calculation
+                if (bufferDurationSeconds < 0.03) // 30ms buffer target. Todo better queue duration calculation
                     status = 1;
 
                 printf("status %d, buffer dur %f size %d\n", status, bufferDurationSeconds, queue.size());
@@ -295,7 +299,7 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
 
         if (currentPointInFrame >= pointsPerFrame && i < loopLength - 7) //  Send partial frame, if frame is split it due to being too large for DAC.
         {
-            printf("Partial frame, currentPointInFrame %d, bufsize %d\n", currentPointInFrame, frame->buffer.size());
+            //printf("Partial frame, currentPointInFrame %d, bufsize %d\n", currentPointInFrame, frame->buffer.size());
 
             frame->pps = pps; 
 

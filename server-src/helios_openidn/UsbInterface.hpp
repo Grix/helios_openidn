@@ -34,7 +34,7 @@ public:
 
     typedef struct QueuedFrame
     {
-        std::vector<ISPDB25Point> buffer;// = std::vector<ISPDB25Point>(3000); // Todo reuse buffers, avoid memory allocation
+        std::vector<ISPDB25Point> buffer;
         unsigned int pps;
     } QueuedFrame;
 

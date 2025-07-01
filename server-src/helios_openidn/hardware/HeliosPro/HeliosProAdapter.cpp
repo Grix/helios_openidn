@@ -75,7 +75,7 @@ HeliosProAdapter::HeliosProAdapter()
 
 	/// DEBUG TEST
 	/*TimeSlice** frames = new TimeSlice * [5];
-	const int numPointsPerFrame = 200;
+	const int numPointsPerFrame = 208;
 	int x = 0;
 	int y = 0;
 	for (int i = 0; i < 5; i++)
@@ -181,7 +181,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 	uint16_t desiredTimer = HELIOSPRO_MCU_TIMERSPEED / pps + 1;
 
 	unsigned int pointsPerFrame = numPoints;
-	unsigned int maxPointsPerFrame = HELIOSPRO_CHUNKSIZE / bytesPerPoint() - 1;
+	unsigned int maxPointsPerFrame = HELIOSPRO_CHUNKSIZE / bytesPerPoint();
 
 	if (pointsPerFrame > maxPointsPerFrame) // This shouldn't happen because of maxBytesPerTransmission() limit, but it actually does, todo investigate
 	{
@@ -198,10 +198,6 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		unsigned int pointsThisFrame = pointsLeft < pointsPerFrame ? pointsLeft : pointsPerFrame;
 		dataSizeBytes = pointsThisFrame * bytesPerPoint();
 
-		// TODO REMOVE THIS PRINT
-//#ifndef NDEBUG
-		printf("Sent helPro frame: samples %d, left %d, txNum %d, pps %d, timerVal %d, repeats %d, startY %d\n", pointsThisFrame, pointsLeft, txNum, pps, desiredTimer, timerRepeats, data[1]);
-//#endif
 
 		writeBuffer[0] = 'H';
 		writeBuffer[1] = 'P';
@@ -299,7 +295,12 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		tdif = sdif * 1000000000 + nsdif;
 
 		//if (rdyReceivedTdif < 100000)
-			printf("Helios sent frame: %d\n", tdif / 1000);
+		//	printf("Helios sent frame: %d\n", tdif / 1000);
+
+		// TODO REMOVE THIS PRINT
+		//#ifndef NDEBUG
+				printf("Sent helPro frame: samples %d, left %d, txNum %d, pps %d, time %d, timerVal %d, repeats %d, startY %d\n", pointsThisFrame, pointsLeft, txNum, pps, tdif / 1000, desiredTimer, timerRepeats, data[1]);
+		//#endif
 
 		/*static uint16_t prevX = 0x8000;
 		static uint16_t prevY = 0x8000;
@@ -321,11 +322,11 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		//	test[i] = 0xE5000000 + i;
 		//}
 		//int writeErr = write(this->spidevFd, test, 128 * 4);
-		if (writeErr == -1)
+		if (writeErr != (dataSizeBytes + 16 + 4))
 		{
 			isBusy = false;
 			perror("spi write error");
-			printf("msg size = %u\n", dataSizeBytes + 16 + 4);
+			printf("msg size = %u, err %d\n", dataSizeBytes + 16 + 4, writeErr);
 			return 0;
 		}
 #ifndef NDEBUG

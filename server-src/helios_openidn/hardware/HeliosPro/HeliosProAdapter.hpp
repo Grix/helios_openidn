@@ -12,7 +12,7 @@
 #include <thread>
 #include <cmath>
 
-#define HELIOSPRO_CHUNKSIZE 3778
+#define HELIOSPRO_CHUNKSIZE 3780
 
 // These must match the MCU firmware!
 #define HELIOSPRO_MCU_CLOCKSPEED ((uint32_t)96050000)

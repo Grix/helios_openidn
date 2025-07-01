@@ -72,7 +72,9 @@ static int spi_worker(void *data)
 		atomic_set(&newFrameReady, 0);
         //mutex_unlock(&lock);
 		wake_up_interruptible(&newFrameWaitQueue);
-		spi_write(spi, frameBuffer->data, frameBuffer->size);
+		int ret = spi_write(spi, frameBuffer->data, frameBuffer->size);
+		if (ret)
+			pr_warn("Failed to write SPI message: %d\n", ret);
 
     }
     return 0;
