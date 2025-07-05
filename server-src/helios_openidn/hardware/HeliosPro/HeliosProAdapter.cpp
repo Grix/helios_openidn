@@ -4,7 +4,7 @@
 
 HeliosProAdapter::HeliosProAdapter() 
 {
-	this->spidevFd = open("/dev/heliospro-spi", O_WRONLY);
+	this->spidevFd = open("/dev/heliospro-spi", O_RDWR);
 	if (!this->spidevFd)
 	{
 		printf("HeliosPRO: Couldn't open /dev/heliospro-spi: %s", strerror(errno));
@@ -19,7 +19,7 @@ HeliosProAdapter::HeliosProAdapter()
 		perror("HeliosPRO: SPIdev: Can't set speed hz");*/
 
 	// Map GPIO2 registers for reading status
-	mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
+	/*mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
 	if (mem_fd == -1) {
 		perror("HeliosPRO: Cannot open /dev/mem");
 		exit(1);
@@ -43,10 +43,27 @@ HeliosProAdapter::HeliosProAdapter()
 	nanosleep(&delay, &dummy);
 	GPIO_SET(GPIOPIN_MCURESET);
 	GPIO_DIR_IN(GPIOPIN_MCURESET);
-	//struct timespec delay, dummy;
+	//struct timespec delay, dummy;*/
+
+	// Check if MCU is available
+	uint8_t status[10];
+	int ret = read(this->spidevFd, status, 10);
+	if (ret == 10)
+	{
+		if (status[0] != 'G' && status[1] != 1)
+		{
+			printf("HeliosPRO: No response from buffer MCU, is it flashed? %d %d", status[0], status[1]);
+			exit(1);
+		}
+	}
+	else
+	{
+		printf("HeliosPRO: No response from buffer MCU, is it flashed? %d", ret);
+		exit(1);
+	}
 
 	// Wait for ready signal from MCU after reset
-	struct timespec now, then;
+	/*struct timespec now, then;
 	unsigned long sdif, nsdif, tdif;
 	clock_gettime(CLOCK_MONOTONIC, &then);
 	delay.tv_sec = 0;
@@ -67,7 +84,9 @@ HeliosProAdapter::HeliosProAdapter()
 
 		delay.tv_nsec = 500000;
 		nanosleep(&delay, &dummy);
-	}
+	}*/
+
+
 
 	//delay.tv_sec = 5;
 	//delay.tv_nsec = 0;
@@ -132,24 +151,24 @@ HeliosProAdapter::HeliosProAdapter()
 
 HeliosProAdapter::~HeliosProAdapter() 
 {
-	/* munmap GPIO */
-	int ret = munmap(gpio_mem_map, 0x80);
+	// munmap GPIO
+	/*int ret = munmap(gpio_mem_map, 0x80);
 	if (ret == -1) {
 		perror("munmap() failed");
 		exit(1);
 	}
 
-	/* close /dev/mem */
+	// close /dev/mem 
 	ret = close(mem_fd);
 	if (ret == -1) {
 		perror("Cannot close /dev/mem");
 		exit(1);
-	}
+	}*/
 }
 
 int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs) 
 {
-	if (durationUs <= 0)
+	if (durationUs <= 0 || durationUs > 2000000)
 		return 0;
 
 	isBusy = true;
@@ -201,7 +220,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 
 		writeBuffer[0] = 'H';
 		writeBuffer[1] = 'P';
-		writeBuffer[2] = txId; // data
+		writeBuffer[2] = txId;
 		writeBuffer[3] = 0; // reserved
 		writeBuffer[4] = ((dataSizeBytes + 16) >> 0) & 0xFF;
 		writeBuffer[5] = ((dataSizeBytes + 16) >> 8) & 0xFF;

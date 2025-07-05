@@ -51,6 +51,8 @@ public:
 	unsigned int frame = 0;
 	std::map<std::string, FilePlayerFileParameters> fileParameters;
 	FilePlayerFileParameters defaultParameters;
+    std::string localFileDirectory = std::string("/home/laser/library/");
+    std::string usbFileDirectory = std::string("/media/usbdrive/");
     //std::vector<std::shared_ptr<DACHWInterface>>* devices;
     //std::vector<V1LaproGraphicOutput*>* outputs;
 

@@ -20,7 +20,7 @@
 #define HELIOSPRO_MCU_MAXSPEED 110000u			// In pps
 #define HELIOSPRO_MCU_MINSPEED 733u				// In pps
 
-#define GPIO_DIR_IN(g)		*(gpio + (0x04 / 4)) &= ~(1 << (g & 0xFF))
+/*#define GPIO_DIR_IN(g)		*(gpio + (0x04 / 4)) &= ~(1 << (g & 0xFF))
 #define GPIO_DIR_OUT(g)		*(gpio + (0x04 / 4)) |= (1 << (g & 0xFF))
 #define GPIO_SET(g)		*(gpio + (0x00 / 4)) |= (1 << (g & 0xFF))
 #define GPIO_CLR(g)		*(gpio + (0x00 / 4)) &= ~(1 << (g & 0xFF))
@@ -30,7 +30,7 @@
 #define GPIOPIN_GREEN_LED 11	// B3
 #define GPIOPIN_ON_LED    12    // B4
 #define GPIOPIN_MCURESET    14    // B6
-#define GPIOPIN_STOP		3    // A3
+#define GPIOPIN_STOP		3    // A3*/
 
 class HeliosProAdapter : public DACHWInterface {
 public:
@@ -51,13 +51,13 @@ private:
 	int spidevFd;
 	unsigned maximumPointrate;
 
-	int	mem_fd;
+	//int	mem_fd;
 	//void* spi2_ctrl_mem_map;
 	//volatile uint32_t* spi2_ctrl;
 	//void* spi2_tx_mem_map;
 	//volatile uint32_t* spi2_tx;
-	void* gpio_mem_map;
-	volatile uint32_t* gpio;
+	//void* gpio_mem_map;
+	//volatile uint32_t* gpio;
 	bool isBusy = false;
 	uint8_t txId = 1;
 	int txNum = 0;

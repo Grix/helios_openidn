@@ -16,8 +16,9 @@
 #define HELIOS_BYTESPERFRAME 18
 #define HELIOS_FRAMEHEADER_SIZE 16
 #define HELIOS_FRAMEFOOTER_SIZE 4
-
 #define BUF_SIZE  (HELIOS_MAXFRAMESIZE * HELIOS_BYTESPERFRAME + HELIOS_FRAMEHEADER_SIZE + HELIOS_FRAMEFOOTER_SIZE)
+
+#define COMMAND_RESET_MCU 5
 
 struct heliospro_buffer {
 	uint8_t* data;
@@ -27,6 +28,7 @@ struct heliospro_buffer {
 static atomic_t stop = ATOMIC_INIT(0);
 static struct task_struct* spi_thread;
 static struct gpio_desc* bufferstatus_gpiod;
+static struct gpio_desc* mcureset_gpiod;
 static struct spi_device* spi;
 
 static struct heliospro_buffer frameBuffer1;
@@ -37,12 +39,9 @@ static volatile struct heliospro_buffer* newFrameBuffer;
 
 DECLARE_WAIT_QUEUE_HEAD(newFrameWaitQueue);
 DECLARE_WAIT_QUEUE_HEAD(statusSignalWaitQueue);
-//static wait_queue_head_t newFrameWaitQueue;
-//static wait_queue_head_t statusSignalWaitQueue;
 
-static DEFINE_MUTEX(lock);
+//static DEFINE_MUTEX(lock);
 static atomic_t newFrameReady = ATOMIC_INIT(0);
-//static atomic_t bufferStatusReady = ATOMIC_INIT(0);
 
 static int bufferstatus_irq;
 
@@ -64,6 +63,9 @@ static int spi_worker(void *data)
 		
 		if (atomic_read(&stop) || kthread_should_stop())
             break;
+		
+		if (!atomic_read(&newFrameReady))
+			continue;
 
         //mutex_lock(&lock);
 		volatile struct heliospro_buffer* previousFrameBuffer = frameBuffer;
@@ -80,18 +82,59 @@ static int spi_worker(void *data)
     return 0;
 }
 
+static ssize_t reset_mcu(void)
+{
+	int ret = gpiod_direction_output(mcureset_gpiod, 0);
+	if (!ret)
+		return ret;
+	fsleep(50000);
+	gpiod_direction_input(mcureset_gpiod);
+	bool ok = false;
+	for (int i = 0; i < 15; i++)
+	{
+		int status = gpiod_get_value(bufferstatus_gpiod);
+		if (status == 1)
+		{
+			ok = true;
+			break;
+		}
+		fsleep(200000);
+	}
+	if (!ok)
+	{
+		pr_err("Failed to read status from MCU afte reset");
+		return -ETIME;
+	}
+	else
+		return 2;
+}
+
 static ssize_t heliospro_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 {
-	if (count > BUF_SIZE)
+	if (count > BUF_SIZE || count < 2)
         return -EINVAL;
 	
-	wait_event_interruptible(newFrameWaitQueue,  !atomic_read(&newFrameReady) || atomic_read(&stop));
+	if (count == 2 && buf[0] == 'C')
+	{
+		// Command write, do not forward to SPI
+		if (atomic_read(&stop))
+			return -ESHUTDOWN;
+		
+		if (buf[1] == COMMAND_RESET_MCU)
+		{
+			atomic_set(&newFrameReady, 0);
+			int ret = reset_mcu();
+			wake_up_interruptible(&newFrameWaitQueue);
+			return ret;
+		}
+		
+		return -EBADMSG;
+	}
+	
+	wait_event_interruptible(newFrameWaitQueue, !atomic_read(&newFrameReady) || atomic_read(&stop));
 	
 	if (atomic_read(&stop))
 		return -ESHUTDOWN;
-	
-	//if (!lock.)
-	//	return -EINVAL;
 	
 	//mutex_lock(&lock);
 	
@@ -108,10 +151,39 @@ static ssize_t heliospro_write(struct file *file, const char __user *buf, size_t
     return count;
 }
 
+#define READ_BUFSIZE 10
+
+static ssize_t heliospro_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
+{
+	uint8_t data[READ_BUFSIZE];
+	int i;
+
+	// Only support reads at offset 0, exactly READ_BUFSIZE bytes
+	if (*ppos != 0)
+		return 0; // No more data to read (mimic EOF after first successful read)
+
+	if (count != READ_BUFSIZE)
+		return -EINVAL; // Only allow reads of exactly 10 bytes
+
+	for (i = 0; i < READ_BUFSIZE; i++)
+		data[i] = 0;
+	
+	data[0] = 'G';
+	data[1] = gpiod_get_value(bufferstatus_gpiod);
+	data[2] = atomic_read(&newFrameReady);
+
+	if (copy_to_user(buf, data, READ_BUFSIZE))
+		return -EFAULT;
+
+    *ppos += READ_BUFSIZE;
+
+    return READ_BUFSIZE;
+}
+
 static const struct file_operations myspi_fileops = {
     .owner  = THIS_MODULE,
     .write  = heliospro_write,
-    // .read, .ioctl, etc., as needed...
+	.read 	= heliospro_read
 };
 
 static struct miscdevice heliospro_miscdev = {
@@ -131,15 +203,19 @@ static int my_spi_probe(struct spi_device *_spi)
 {
 	spi = _spi;
     dev_info(&spi->dev, "HeliosPRO SPI device probed\n");
-    // Initialization, buffer allocations, etc.
 
-    // Get the GPIO per my DT property in the node ("bufferstatus-gpio")
+    // Get the GPIO from device tree
     bufferstatus_gpiod = devm_gpiod_get(&spi->dev, "bufferstatus", GPIOD_IN);
     if (IS_ERR(bufferstatus_gpiod)) 
 	{
         dev_err(&spi->dev, "Failed to get bufferstatus GPIO: %ld\n", PTR_ERR(bufferstatus_gpiod));
-        // You can ignore or abort, up to you:
         return PTR_ERR(bufferstatus_gpiod);
+    }
+    mcureset_gpiod = devm_gpiod_get(&spi->dev, "mcureset", GPIOD_IN);
+    if (IS_ERR(mcureset_gpiod)) 
+	{
+        dev_err(&spi->dev, "Failed to get mcu reset GPIO: %ld\n", PTR_ERR(mcureset_gpiod));
+        return PTR_ERR(mcureset_gpiod);
     }
 	
 	bufferstatus_irq = gpiod_to_irq(bufferstatus_gpiod);
@@ -156,8 +232,8 @@ static int my_spi_probe(struct spi_device *_spi)
         pr_err("Failed to request IRQ %d\n", bufferstatus_irq);
         return ret;
     }
-
-    // Example: read its value
+	
+	ret = gpiod_direction_input(bufferstatus_gpiod);
     int value = gpiod_get_value(bufferstatus_gpiod);
     dev_info(&spi->dev, "Buffer status input initial value: %d\n", value);
 	
