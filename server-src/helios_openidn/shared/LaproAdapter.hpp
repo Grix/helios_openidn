@@ -37,6 +37,8 @@ typedef struct
 
     uint8_t type;
 
+    bool isDiscontinuous;
+
 } LAPRO_CHUNK_MEMO;
 
 

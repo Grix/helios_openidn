@@ -183,6 +183,10 @@ void STDLaproGraphicOutput::process(ODF_ENV *env, CHUNKDATA &chunkData, ODF_TAXI
         if(opMode == OPMODE_WAVE)
         {
             memo->type = LAPRO_CHUNK_TYPE_WAVE;
+
+            if (chunkData.modFlags & MODFLAG_DISCONTINUOUS)
+                memo->isDiscontinuous = true;
+            
         }
         else if(opMode == OPMODE_FRAME)
         {

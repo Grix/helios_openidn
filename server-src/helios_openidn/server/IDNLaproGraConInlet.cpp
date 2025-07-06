@@ -198,6 +198,11 @@ void IDNLaproGraConInlet::process(ODF_ENV *env, ODF_TAXI_BUFFER *taxiBuffer)
                     // Report to output
                     chunkData.modFlags |= RTLaproGraphicOutput::MODFLAG_DISCONTINUOUS;
                 }
+                else
+                {
+                    if (chronCheckErrCnt > 0)
+                        chronCheckErrCnt--;
+                }
             }
 
             // Pass the buffer to the driver, no access to the buffer hereafter !!!

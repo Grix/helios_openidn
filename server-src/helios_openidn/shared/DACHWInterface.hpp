@@ -64,6 +64,10 @@ class DACHWInterface: public LaproAdapter
     bool enabledFlag = false;
     void commitChunk(TransformEnv &tfEnv, std::shared_ptr<SliceBuf> &sliceBuf);
 
+    // For repairing discontinuities
+    uint16_t previousX;
+    uint16_t previousY;
+
     protected:
     virtual int enable();
     virtual void disable();

@@ -75,6 +75,7 @@ std::shared_ptr<SliceBuf> DACHWInterface::getNextBuffer(TransformEnv &tfEnv, uns
         uint32_t duration;
         bool isWave = false;
         bool scanOnce = false;
+        bool isDiscontinuous = false;
 
         // Get the next taxi buffer. Keep the mutex for as long as the pointer is valid !
         cmdMutex.lock();
@@ -97,6 +98,7 @@ std::shared_ptr<SliceBuf> DACHWInterface::getNextBuffer(TransformEnv &tfEnv, uns
             duration = memo->duration;
             isWave = (memo->type == LAPRO_CHUNK_TYPE_WAVE);
             scanOnce = (memo->type == LAPRO_CHUNK_TYPE_FRAME_ONCE);
+            isDiscontinuous = memo->isDiscontinuous;
 
             // Decode the input samples into the internally used struct
             unsigned sampleSize = decoder->getSampleSize();
@@ -171,7 +173,9 @@ std::shared_ptr<SliceBuf> DACHWInterface::getNextBuffer(TransformEnv &tfEnv, uns
         cmdMutex.unlock();
 
         // Done in case of no more input buffers
-        if(db25Samples.empty()) break;
+        //printf("Found %d samples\n", db25Samples.size());
+        if (db25Samples.empty())
+            break;
 
         // -----------------------------------------------------------------------------------------
         // There are samples and the input chunk is in DB25 format in vector db25Samples now
@@ -188,57 +192,96 @@ std::shared_ptr<SliceBuf> DACHWInterface::getNextBuffer(TransformEnv &tfEnv, uns
         }
 
         unsigned sampleCount = db25Samples.size();
+
+        // Repair any discontinuity
+        std::vector<ISPDB25Point> repairDb25Samples;
+        if (sampleCount > 1 && isWave)
+        {
+            if (isDiscontinuous)
+            {
+                uint32_t timeskip = duration * 0.9; // A guess, since chunks should be roughly uniformly sized
+                if (timeskip > 10 && timeskip < 500000)
+                {
+                    uint16_t newX = db25Samples.front().x;
+                    uint16_t newY = db25Samples.front().y;
+
+                    if (newX != previousX && newY != previousY)
+                    {
+                        unsigned int numInterpolatedPoints = sampleCount * timeskip / duration;
+                        if (numInterpolatedPoints == 0)
+                            numInterpolatedPoints = 1;
+                        repairDb25Samples.reserve(numInterpolatedPoints);
+                        for (unsigned int i = 1; i < numInterpolatedPoints; i++)
+                        {
+                            ISPDB25Point point;
+                            memset(&point, 0, sizeof(point));
+                            point.x = previousX + (newX - previousX) * (i / (double)numInterpolatedPoints);
+                            point.y = previousY + (newY - previousY) * (i / (double)numInterpolatedPoints);
+                            repairDb25Samples.push_back(point);
+                            sampleCount++;
+                        }
+                        printf("[WAR] wave timestamp mismatch. inserting %u points, %u us\n", numInterpolatedPoints, timeskip);
+                    }
+                }
+            }
+            previousX = db25Samples.back().x;
+            previousY = db25Samples.back().y;
+        }
+
         tfEnv.db25Accu.reserve(tfEnv.db25Accu.size() + sampleCount);
 
         double pointDuration = (double)duration / sampleCount;
         double targetPointRate = ((1000000.0 * (double)sampleCount) / (double)duration);
         double rateRatio = maxPointrate() / targetPointRate;
 
-        for(auto& sample : db25Samples)
+        for (auto combinedVector : { &repairDb25Samples, &db25Samples })
         {
-            //start downsampling if the maximum device pointrate is exceeded
-            if(rateRatio < 1.0)
+            for (auto& sample : *combinedVector)
             {
-                //skip point, but act like it was added
-                //this keeps rateRatio% of points
-                if(tfEnv.skipCounter >= rateRatio)
+                //start downsampling if the maximum device pointrate is exceeded
+                if (rateRatio < 1.0)
                 {
+                    //skip point, but act like it was added
+                    //this keeps rateRatio% of points
+                    if (tfEnv.skipCounter >= rateRatio)
+                    {
+                        tfEnv.skipCounter += rateRatio;
+                        tfEnv.skipCounter -= (int)tfEnv.skipCounter;
+                        tfEnv.currentSliceTime -= pointDuration;
+                        continue;
+                    }
                     tfEnv.skipCounter += rateRatio;
                     tfEnv.skipCounter -= (int)tfEnv.skipCounter;
-                    tfEnv.currentSliceTime -= pointDuration;
-                    continue;
                 }
-                tfEnv.skipCounter += rateRatio;
-                tfEnv.skipCounter -= (int)tfEnv.skipCounter;
-            }
 
-            //here the current slice has enough space,
-            //so append the point and decrease
-            //the currentSliceTime by the point duration
-            tfEnv.db25Accu.push_back(sample);
-            tfEnv.currentSliceTime -= pointDuration;
+                //here the current slice has enough space,
+                //so append the point and decrease
+                //the currentSliceTime by the point duration
+                tfEnv.db25Accu.push_back(sample);
+                tfEnv.currentSliceTime -= pointDuration;
 
-            //chunk the points
-            if(isWave)
-            {
-                //wave mode chunks into chunks of x ms that don't exceed the maximum amount of
-                //bytes that the adapter accepts
-                if(tfEnv.currentSliceTime < 0 ||
-                        bytesPerPoint()*(tfEnv.db25Accu.size()+1) > maxBytesPerTransmission())
+                //chunk the points
+                if (isWave)
                 {
-                    commitChunk(tfEnv, sliceBuf);
+                    //wave mode chunks into chunks of x ms that don't exceed the maximum amount of
+                    //bytes that the adapter accepts
+                    if (tfEnv.currentSliceTime < 0 ||
+                        bytesPerPoint() * (tfEnv.db25Accu.size() + 1) > maxBytesPerTransmission())
+                    {
+                        commitChunk(tfEnv, sliceBuf);
+                    }
                 }
-            }
-            else if(!isWave && maxBytesPerTransmission() != -1)
-            {
-                //frame mode does not need to chunk based on duration, but it still needs evenly sized chunks if
-                //the device has a point limit, so it tries to equalize them
-                unsigned numChunksOfBlockSize = ceil(((double)sampleCount * (double)bytesPerPoint())/ (double)maxBytesPerTransmission());
-                unsigned equalizedSize = ceil((double)sampleCount / (double)numChunksOfBlockSize);
-
-                if(tfEnv.db25Accu.size()+1 > equalizedSize)
+                else if (!isWave && maxBytesPerTransmission() != -1)
                 {
-                    commitChunk(tfEnv, sliceBuf);
+                    //frame mode does not need to chunk based on duration, but it still needs evenly sized chunks if
+                    //the device has a point limit, so it tries to equalize them
+                    unsigned numChunksOfBlockSize = ceil(((double)sampleCount * (double)bytesPerPoint()) / (double)maxBytesPerTransmission());
+                    unsigned equalizedSize = ceil((double)sampleCount / (double)numChunksOfBlockSize);
+
+                    if (tfEnv.db25Accu.size() + 1 > equalizedSize)
+                    {
+                        commitChunk(tfEnv, sliceBuf);
+                    }
                 }
             }
         }
