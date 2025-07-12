@@ -628,9 +628,11 @@ int main(int argc, char** argv) {
         printf("ERROR CREATING MANAGEMENT THREAD\n");
         return -1;
     }
+
     management->idnServer = idnServer;
-    idnServer->setHostName((uint8_t*)management->settingIdnHostname.c_str(), management->settingIdnHostname.length()+1);
+    idnServer->setHostName((uint8_t*)management->settingIdnHostname.c_str(), management->settingIdnHostname.length() + 1);
     printf("Hostname is: %s\n", management->settingIdnHostname.c_str());
+
 
     std::atomic<int> atom(1);
     printf("lockless atomics: %s\n", atom.is_lock_free() ? "true" : "false");

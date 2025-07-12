@@ -16,6 +16,7 @@
 	mv helios_openidn_v0.9.1.bin openidn/helios_openidn
 	chmod +x openidn/helios_openidn
 	touch openidn/settings.ini
+	mkdir library
 	```
 	
 4. Make autostart service

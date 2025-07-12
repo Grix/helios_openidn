@@ -45,7 +45,7 @@ public:
     } QueuedFrame;
 
 	bool autoplay = false;
-	std::string currentFile = "";
+	std::string currentFile = std::string("");
 	int mode = FILEPLAYER_MODE_REPEAT;
 	int state = FILEPLAYER_STATE_STOP;
 	unsigned int frame = 0;

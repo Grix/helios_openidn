@@ -35,8 +35,13 @@ ManagementInterface::ManagementInterface()
 		//graphicsEngine->getCanvas().write("Hello");
 		graphicsEngine->refresh();*/
 
+		// TODO: this is a stupid way of doing this:
 		system("echo 'none' > /sys/class/leds/rock-s0:green:power/trigger"); // manual blue LED control, stops heartbeat blinking
 		system("echo 0 > /sys/class/leds/rock-s0:green:power/brightness"); // turn LED off
+
+		system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness"); // turn LED off.
+		system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness"); // turn LED off
+		system("echo 0 > /sys/class/leds/rock-s0:orange:user5/brightness"); // turn LED off
 	}
 	else if (getHardwareType() == HARDWARE_ROCKPIS)
 	{
@@ -431,27 +436,55 @@ int ManagementInterface::getHardwareType()
 
 bool ManagementInterface::requestOutput(int outputMode)
 {
+	if (currentMode != outputMode)
+	{
+		int currentPriority = modePriority[currentMode];
+		int newPriority = modePriority[outputMode];
+		if (currentPriority >= newPriority)
+			return false;
+	}
+	else
+		return true;
+
 	if (outputMode == OUTPUT_MODE_IDN)
 	{
-		return true; // todo
+		system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
+		system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness");
+		system("echo 1 > /sys/class/leds/rock-s0:orange:user5/brightness");
+		currentMode = outputMode;
+		return true;
 	}
 	else if (outputMode == OUTPUT_MODE_USB)
 	{
-		return true; // todo
+		system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness");
+		system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
+		system("echo 1 > /sys/class/leds/rock-s0:orange:user5/brightness");
+		currentMode = outputMode;
+		return true;
 	}
 	else if (outputMode == OUTPUT_MODE_FILE)
 	{
-		return true; // todo
+		system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
+		system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
+		system("echo 1 > /sys/class/leds/rock-s0:orange:user5/brightness");
+		currentMode = outputMode;
+		return true;
 	}
 	else if (outputMode == OUTPUT_MODE_DMX)
 	{
-
+		system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
+		system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
+		system("echo 1 > /sys/class/leds/rock-s0:orange:user5/brightness");
+		currentMode = outputMode;
+		return true;
 	}
 	else return false;
 }
 
 void ManagementInterface::stopOutput(int outputMode)
 {
-	// todo
+	system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness");
+	system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness");
+	currentMode = -1;
 	return;
 }

@@ -147,6 +147,8 @@ void HWBridge::driverLoop()
 				delay.tv_sec = 0;
 				delay.tv_nsec = 2000000; //2ms
 				nanosleep(&delay, &dummy);
+
+				management->stopOutput(OUTPUT_MODE_IDN);
 			}
 			else
 				std::this_thread::yield();

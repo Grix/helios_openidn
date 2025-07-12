@@ -52,11 +52,12 @@ public:
 	bool requestOutput(int outputMode);
 	void stopOutput(int outputMode);
 
-	std::string settingIdnHostname = "OpenIDN";
+	std::string settingIdnHostname = "HeliosPRO";
 	const char softwareVersion[10] = "0.9.8";
 	const unsigned char softwareVersionUsb = 98;
 	std::shared_ptr<IDNServer> idnServer;
 	int modePriority[OUTPUT_MODE_MAX + 1] = { 3, 4, 1, 2 }; // If <=0, disable entirely
+	int currentMode = -1;
 	std::vector<std::shared_ptr<DACHWInterface>> devices;
 	std::vector<V1LaproGraphicOutput*> outputs; // not used right now
 
