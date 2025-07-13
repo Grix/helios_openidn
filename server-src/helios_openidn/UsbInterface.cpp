@@ -17,17 +17,16 @@ UsbInterface::UsbInterface()
     set_msg_received_callbacks(static_bulkUsbReceived, static_interruptUsbReceived);
 
     if (pthread_create(&outputThread, NULL, &usbOutputLoopThread, this) != 0) {
-        printf("ERROR CREATING FILEPLAYER THREAD\n");
+        printf("ERROR CREATING USB OUTPUT THREAD\n");
     }
 }
 void UsbInterface::outputLoop()
 {
+    struct timespec delay, dummy, now, difference;
+    delay.tv_sec = 0;
+    delay.tv_nsec = 200000; // 200 us
     while (1) // todo close on exit
     {
-        struct timespec delay, dummy;
-        delay.tv_sec = 0;
-        delay.tv_nsec = 500000; // 500 us
-
         std::shared_ptr<QueuedFrame> frame;
         bool empty = false;
         {
@@ -48,6 +47,16 @@ void UsbInterface::outputLoop()
 
         if (empty)
         {
+            clock_gettime(CLOCK_MONOTONIC, &now);
+            unsigned long sdif = now.tv_sec - lastReception.tv_sec;
+            unsigned long nsdif = now.tv_nsec - lastReception.tv_nsec;
+            unsigned long tdif = sdif * 1000000000 + nsdif;
+            if (tdif > 500000000) // 500ms timeout
+            {
+                delay.tv_nsec = 2000000; // 2 ms
+                management->stopOutput(OUTPUT_MODE_USB);
+            }
+
             nanosleep(&delay, &dummy);
             continue;
         }
@@ -210,6 +219,8 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
         printf("Error: USB frame: length %d, expected %d\n", numOfPointBytes, numOfPointBytes2);
         return;
     }
+
+    clock_gettime(CLOCK_MONOTONIC, &lastReception);
 
     /*if (!hasStarted)
     {

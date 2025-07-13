@@ -46,8 +46,8 @@ public:
 	void readAndStoreNewSettingsFile();
 	void readSettingsFile();
 	void* networkThreadEntry();
-	void setMode(unsigned int mode);
-	int getMode();
+	//void setMode(unsigned int mode);
+	//int getMode();
 	static int getHardwareType();
 	bool requestOutput(int outputMode);
 	void stopOutput(int outputMode);
@@ -57,7 +57,6 @@ public:
 	const unsigned char softwareVersionUsb = 98;
 	std::shared_ptr<IDNServer> idnServer;
 	int modePriority[OUTPUT_MODE_MAX + 1] = { 3, 4, 1, 2 }; // If <=0, disable entirely
-	int currentMode = -1;
 	std::vector<std::shared_ptr<DACHWInterface>> devices;
 	std::vector<V1LaproGraphicOutput*> outputs; // not used right now
 
@@ -67,12 +66,13 @@ private:
 	void mountUsbDrive();
 	void unmountUsbDrive();
 
+	int writeTo(char* file, char* data, size_t numBytes);
+
 	const std::string newSettingsPath = "/media/usbdrive/settings.ini";
 	const std::string settingsPath = "/home/laser/openidn/settings.ini";
 
-	int mode = OUTPUT_MODE_IDN;
-
 	static int hardwareType;
+	int currentMode = -1;
 
 	GraphicsDisplay* display = nullptr;
 	GraphicsEngine* graphicsEngine = nullptr;

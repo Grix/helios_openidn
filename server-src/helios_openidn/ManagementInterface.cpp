@@ -36,7 +36,7 @@ ManagementInterface::ManagementInterface()
 		graphicsEngine->refresh();*/
 
 		// TODO: this is a stupid way of doing this:
-		system("echo 'none' > /sys/class/leds/rock-s0:green:power/trigger"); // manual blue LED control, stops heartbeat blinking
+		system("echo 'none' > /sys/class/leds/rock-s0:green:power/trigger"); // manual internal LED control, stops heartbeat blinking
 		system("echo 0 > /sys/class/leds/rock-s0:green:power/brightness"); // turn LED off
 
 		system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness"); // turn LED off.
@@ -252,6 +252,9 @@ void ManagementInterface::readSettingsFile()
 		display->printFixed(10, 40, "InitFin");
 		//graphicsEngine->getCanvas().printFixed(10, 40, "InitFin");
 		//graphicsEngine->display();
+
+		printf("Wrote 1 to brightness user5\n");
+		system("echo 1 > /sys/class/leds/rock-s0:orange:user5/brightness");
 	}
 }
 
@@ -347,6 +350,25 @@ void ManagementInterface::unmountUsbDrive()
 	system(command);
 }
 
+int ManagementInterface::writeTo(char* file, char* data, size_t numBytes)
+{
+	int fd = open(file, O_WRONLY);
+	if (fd < 0)
+		return -1;
+
+	ssize_t written = write(fd, data, numBytes);
+	if (written == numBytes)
+	{
+		close(fd);
+		return 0;
+	}
+	else
+	{
+		close(fd);
+		return -1;
+	}
+}
+
 /// <summary>
 /// Starts a thread which listens to commands over UDP, such as ping requests.
 /// </summary>
@@ -396,7 +418,7 @@ void* ManagementInterface::networkThreadEntry() {
 	return NULL;
 }
 
-void ManagementInterface::setMode(unsigned int _mode)
+/*void ManagementInterface::setMode(unsigned int _mode)
 {
 	if (mode == _mode || _mode > OUTPUT_MODE_MAX)
 		return;
@@ -409,7 +431,7 @@ void ManagementInterface::setMode(unsigned int _mode)
 int ManagementInterface::getMode()
 {
 	return mode;
-}
+}*/
 
 int ManagementInterface::hardwareType = -1;
 
@@ -436,9 +458,12 @@ int ManagementInterface::getHardwareType()
 
 bool ManagementInterface::requestOutput(int outputMode)
 {
+	if (outputMode < 0 || outputMode > OUTPUT_MODE_MAX)
+		return false;
+
 	if (currentMode != outputMode)
 	{
-		int currentPriority = modePriority[currentMode];
+		int currentPriority = (currentMode >= 0) ? modePriority[currentMode] : -1;
 		int newPriority = modePriority[outputMode];
 		if (currentPriority >= newPriority)
 			return false;
@@ -446,11 +471,12 @@ bool ManagementInterface::requestOutput(int outputMode)
 	else
 		return true;
 
+	printf("Switching output to mode %d\n", outputMode);
+
 	if (outputMode == OUTPUT_MODE_IDN)
 	{
 		system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
 		system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness");
-		system("echo 1 > /sys/class/leds/rock-s0:orange:user5/brightness");
 		currentMode = outputMode;
 		return true;
 	}
@@ -458,7 +484,6 @@ bool ManagementInterface::requestOutput(int outputMode)
 	{
 		system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness");
 		system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
-		system("echo 1 > /sys/class/leds/rock-s0:orange:user5/brightness");
 		currentMode = outputMode;
 		return true;
 	}
@@ -466,7 +491,6 @@ bool ManagementInterface::requestOutput(int outputMode)
 	{
 		system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
 		system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
-		system("echo 1 > /sys/class/leds/rock-s0:orange:user5/brightness");
 		currentMode = outputMode;
 		return true;
 	}
@@ -474,7 +498,6 @@ bool ManagementInterface::requestOutput(int outputMode)
 	{
 		system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
 		system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
-		system("echo 1 > /sys/class/leds/rock-s0:orange:user5/brightness");
 		currentMode = outputMode;
 		return true;
 	}
@@ -483,6 +506,10 @@ bool ManagementInterface::requestOutput(int outputMode)
 
 void ManagementInterface::stopOutput(int outputMode)
 {
+	if (currentMode != outputMode)
+		return;
+
+	printf("Stopping output in mode %d\n", currentMode);
 	system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness");
 	system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness");
 	currentMode = -1;

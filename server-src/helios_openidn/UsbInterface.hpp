@@ -52,5 +52,6 @@ private:
     pthread_t outputThread = 0;
     std::mutex threadLock;
     bool hasStarted = false;
+    struct timespec lastReception;
 };
 
