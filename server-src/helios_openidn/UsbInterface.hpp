@@ -32,6 +32,8 @@ public:
     static void static_bulkUsbReceived(size_t numBytes, unsigned char* buffer);
     void outputLoop();
 
+    double bufferTargetDurationSeconds = 0.025; 
+
     typedef struct QueuedFrame
     {
         std::vector<ISPDB25Point> buffer;

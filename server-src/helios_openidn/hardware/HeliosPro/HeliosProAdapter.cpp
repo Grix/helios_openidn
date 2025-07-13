@@ -306,7 +306,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		//printf("got ready\n");
 
 		//write the whole block all at once
-		int writeErr = write(this->spidevFd, writeBuffer, dataSizeBytes + 16 + 4);
+		int writeRet = write(this->spidevFd, writeBuffer, dataSizeBytes + 16 + 4);
 
 		clock_gettime(CLOCK_MONOTONIC, &now);
 		sdif = now.tv_sec - then.tv_sec;
@@ -318,7 +318,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 
 		// TODO REMOVE THIS PRINT
 		//#ifndef NDEBUG
-				printf("Sent helPro frame: samples %d, left %d, txNum %d, pps %d, time %d, timerVal %d, repeats %d, startY %d\n", pointsThisFrame, pointsLeft, txNum, pps, tdif / 1000, desiredTimer, timerRepeats, data[1]);
+				//printf("Sent helPro frame: samples %d, left %d, txNum %d, pps %d, time %d, timerVal %d, repeats %d, startY %d\n", pointsThisFrame, pointsLeft, txNum, pps, tdif / 1000, desiredTimer, timerRepeats, data[1]);
 		//#endif
 
 		/*static uint16_t prevX = 0x8000;
@@ -341,11 +341,11 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		//	test[i] = 0xE5000000 + i;
 		//}
 		//int writeErr = write(this->spidevFd, test, 128 * 4);
-		if (writeErr != (dataSizeBytes + 16 + 4))
+		if (writeRet != (dataSizeBytes + 16 + 4))
 		{
 			isBusy = false;
 			perror("spi write error");
-			printf("msg size = %u, err %d\n", dataSizeBytes + 16 + 4, writeErr);
+			printf("msg size = %u, err %d\n", dataSizeBytes + 16 + 4, writeRet);
 			return 0;
 		}
 #ifndef NDEBUG

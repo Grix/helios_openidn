@@ -99,10 +99,6 @@ void UsbInterface::outputLoop()
 
 void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
 {
-#ifndef NDEBUG
-    printf("RECEIVED INT.\n");
-#endif
-
     if (buffer[1] == 0x01)
     {
         printf("CMD RECVD: STOP\n");
@@ -127,7 +123,7 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
     }
     else if (buffer[0] == 0x03)
     {
-        printf("CMD RECVD: GET STATUS\n");
+        //printf("CMD RECVD: GET STATUS\n");
 
         unsigned char status = 0;
         if (management->devices.size() > 0)
@@ -136,17 +132,17 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
             std::lock_guard<std::mutex> lock(threadLock);
             if (queue.size() <= 1)
             {
-                printf("status OK, empty buffer\n");
+                //printf("status OK, empty buffer\n");
 
                 status = 1;
             }
             else
             {
                 double bufferDurationSeconds = queue.size() * queue.front()->buffer.size() / (double)queue.front()->pps;
-                if (bufferDurationSeconds < 0.03) // 30ms buffer target. Todo better queue duration calculation
+                if (bufferDurationSeconds < bufferTargetDurationSeconds) // buffer target size. Todo better queue duration calculation
                     status = 1;
 
-                printf("status %d, buffer dur %f size %d\n", status, bufferDurationSeconds, queue.size());
+                //printf("status %d, buffer dur %f size %d\n", status, bufferDurationSeconds, queue.size());
             }
         }
         /*if (management->outputs.size() > 0)
@@ -162,7 +158,7 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
     }
     else if (buffer[0] == 0x04)
     {
-        printf("CMD RECVD: GET FW VERSION\n");
+        //printf("CMD RECVD: GET FW VERSION\n");
         unsigned char response[5];
         response[0] = 0x84;
         response[1] = management->softwareVersionUsb; // todo make same format as network response
@@ -331,7 +327,7 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
         //management->devices.front()->addPointToSlice(point, metadata);
     }
 
-    printf("Finished frame, currentPointInFrame %d\n", currentPointInFrame);
+    //printf("Finished frame, currentPointInFrame %d\n", currentPointInFrame);
 
 #ifndef NDEBUG
     printf("Processing, bufferpos %d\n", bufferPos);

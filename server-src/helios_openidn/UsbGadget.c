@@ -160,7 +160,7 @@ const __u8 u8Usb_os_str_desc[] =
 struct usb_endpoint_descriptor ep_descriptor_int_in;
 struct usb_endpoint_descriptor ep_descriptor_int_out;
 struct usb_endpoint_descriptor ep_descriptor_bulk_out;
-int verbosity = 2;   //make it configurable
+int verbosity = 1;   //make it configurable
 int txamount = 100;
 int txcounter = 0;
 int rxcounter = 0;
@@ -873,7 +873,7 @@ void* rx_int_thread(void* arg)
         // Error
         if (ret < 0)
         {
-            fprintf(stderr, "Select ERROR");
+            fprintf(stderr, "Select ERROR in rx_int_thread\n");
             break;
         }
 
@@ -981,7 +981,7 @@ void* rx_bulk_thread(void* arg)
         }
         else
         {
-            fprintf(stderr, "Read ERROR %d(%m)\n", ret);
+            fprintf(stderr, "Read ERROR in rx_bulk_thread, %d(%m)\n", ret);
             //todo: put a sleep here
         }
     }
