@@ -313,6 +313,7 @@ void IDNLaproDecoder::decode(uint8_t *dstPtr, uint8_t *srcPtr)
     unsigned offset = 0;
 
     ISPDB25Point *dstPoint = (ISPDB25Point *)dstPtr;
+    dstPoint->intensity = 0xFFFF; // Default lit, otherwise might not work if frame only specifies RGB
 
     uint8_t point_cscl = 0;
     uint8_t point_iscl = 0;

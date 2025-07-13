@@ -278,7 +278,7 @@ int FilePlayer::playFile(std::string filename)
                 point.r = r * 0x101;
                 point.g = g * 0x101;
                 point.b = b * 0x101;
-                point.intensity = 0xFF;
+                point.intensity = 0xFFFF;
                 point.u1 = point.u2 = point.u3 = point.u4 = 0;
                 frame->buffer.push_back(point);
 
