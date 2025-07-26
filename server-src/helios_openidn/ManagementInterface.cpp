@@ -3,10 +3,12 @@
 //class FilePlayer;
 
 #include "FilePlayer.hpp"
+#include <v2/gui/menu.h>
 
 FilePlayer filePlayer;
 
 #define UDP_MAXBUF 128
+
 
 
 ManagementInterface::ManagementInterface()
@@ -16,13 +18,6 @@ ManagementInterface::ManagementInterface()
 
 	if (getHardwareType() == HARDWARE_ROCKS0)
 	{
-		// todo check if screen is available
-		display = new GraphicsDisplay(-1, { 1, 0x3C, -1, -1, 0 });
-		display->begin();
-		display->clear();
-		display->setFixedFont(ssd1306xled_font8x16);
-		display->printFixed(10, 10, "HelloWorld");
-		display->drawLine(10, 30, 110, 30);
 		//graphicsEngine = new GraphicsEngine(*display);
 		/*graphicsEngine->begin();
 		graphicsEngine->setFrameRate(20);
@@ -247,15 +242,8 @@ void ManagementInterface::readSettingsFile()
 
 	printf("Finished reading main settings.\n");
 
-	if (display)
-	{
-		display->printFixed(10, 40, "InitFin");
-		//graphicsEngine->getCanvas().printFixed(10, 40, "InitFin");
-		//graphicsEngine->display();
-
-		printf("Wrote 1 to brightness user5\n");
-		system("echo 1 > /sys/class/leds/rock-s0:orange:user5/brightness");
-	}
+	display.FinishInitialization();
+	system("echo 1 > /sys/class/leds/rock-s0:orange:user5/brightness");
 }
 
 void ManagementInterface::networkLoop(int sd) {

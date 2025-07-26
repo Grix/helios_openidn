@@ -34,9 +34,10 @@ class HWBridge
     private:
 
     std::shared_ptr<DACHWInterface> device;
-    double usPerSlice = 10000;
+    double usPerSlice = 15000;
     double bufferTargetMs = 40;
     double accumOC = 0.0;
+    bool hasUnderrun = false;
 
     //stats
     int debug = NODEBUG;
@@ -59,7 +60,7 @@ class HWBridge
     // -- Inline Methods ----------------
     std::shared_ptr<DACHWInterface> getDevice() { return this->device; }
     void setChunkLengthUs(double us) { this->usPerSlice = us; }
-    void setBufferTargetMs(double targetMs) { this->bufferTargetMs = targetMs; }
+    void setBufferTargetMs(double targetMs) { if (targetMs >= 1) this->bufferTargetMs = targetMs; else this->bufferTargetMs = 1; }
     void setDebugging(int debug) { this->debug = debug; }
     int getDebugging() { return this->debug; }
 };

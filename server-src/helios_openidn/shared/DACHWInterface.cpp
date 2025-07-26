@@ -200,7 +200,7 @@ std::shared_ptr<SliceBuf> DACHWInterface::getNextBuffer(TransformEnv &tfEnv, uns
             if (isDiscontinuous)
             {
                 uint32_t timeskip = duration * 0.9; // A guess, since chunks should be roughly uniformly sized
-                if (timeskip > 10 && timeskip < 500000)
+                if (timeskip > 10 && timeskip < 1000000)
                 {
                     uint16_t newX = db25Samples.front().x;
                     uint16_t newY = db25Samples.front().y;
@@ -291,7 +291,6 @@ std::shared_ptr<SliceBuf> DACHWInterface::getNextBuffer(TransformEnv &tfEnv, uns
             commitChunk(tfEnv, sliceBuf);
         }
     }
-
     return sliceBuf;
 }
 

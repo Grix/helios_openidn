@@ -4,7 +4,7 @@
 #include "server/IDNServer.hpp"
 #include "output/V1LaproGraphOut.hpp"
 #include "shared/DACHWInterface.hpp"
-#include "thirdparty/lcdgfx/src/lcdgfx.h"
+#include "Display.hpp"
 #include <string>
 #include <cstdint>
 #include <sys/socket.h>
@@ -25,15 +25,6 @@
 #define HARDWARE_ROCKPIS 1
 #define HARDWARE_ROCKS0 2
 
-// Uncomment the line you need for your display
-//typedef DisplaySSD1331_96x64x8_SPI GraphicsDisplay;
-typedef DisplaySSD1306_128x64_I2C GraphicsDisplay;
-//typedef DisplaySSD1306_128x64_SPI GraphicsDisplay;
-//typedef DisplayPCD8544_84x48_SPI GraphicsDisplay;
-//typedef DisplayST7735_128x160_SPI GraphicsDisplay;
-//typedef DisplayIL9163_128x160_SPI GraphicsDisplay;
-
-typedef NanoEngine<NanoCanvas<32, 32, 1U>, GraphicsDisplay> GraphicsEngine;
 
 /// <summary>
 /// Class that exposes network and file system interfaces for managing the OpenIDN system, such as pinging, reading config files from USB drive, etc.
@@ -74,6 +65,5 @@ private:
 	static int hardwareType;
 	int currentMode = -1;
 
-	GraphicsDisplay* display = nullptr;
-	GraphicsEngine* graphicsEngine = nullptr;
+	Display display;
 };
