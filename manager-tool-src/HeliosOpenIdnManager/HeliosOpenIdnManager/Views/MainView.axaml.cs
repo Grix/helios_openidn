@@ -45,5 +45,23 @@ namespace HeliosOpenIdnManager.Views
                 }
             }
         }
+
+        private async void SelectAndUpdateMcuFirmwareButton_Click(object sender, RoutedEventArgs e)
+        {
+            var files = await TopLevel.GetTopLevel(this)!.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { Title = "Server MCU firmware"/*, FileTypeFilter = new List<FilePickerFileType>() { new FilePickerFileType("") }*/ });
+
+            if (files is not null && files.Count == 1)
+            {
+                var path = files[0].Path.LocalPath;
+                if (!path.Contains("heliospro_bufferchip") || !path.Contains(".hex"))
+                    (DataContext as MainViewModel)!.ErrorMessage = "MCU firmware filename should contain 'heliospro_bufferchip' and be of type .hex, are you sure this is a valid MCU firmware file?";
+                else
+                {
+                    (DataContext as MainViewModel)!.McuFirmwareUpdatePath = path;
+                    (DataContext as MainViewModel)!.ErrorMessage = null;
+                    (DataContext as MainViewModel)!.UpdateMcuFirmware();
+                }
+            }
+        }
     }
 }

@@ -8,7 +8,9 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
@@ -86,8 +88,32 @@ namespace HeliosOpenIdnManager.ViewModels
         private string? _currentServerVersion;
 
         [ObservableProperty]
+        private int _networkModePriority = 4;
+
+        [ObservableProperty]
+        private int _usbModePriority = 3;
+
+        [ObservableProperty]
+        private int _dmxModePriority = 2;
+
+        [ObservableProperty]
+        private int _fileModePriority = 1;
+
+        [ObservableProperty]
+        private string? _filePlayerStartingFilename;
+
+        [ObservableProperty]
+        private bool _filePlayerAutoplay;
+
+        [ObservableProperty]
+        private int _filePlayerModeIndex = 3;
+
+        [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ShortServerSoftwareUpdatePath))]
         private string? _serverSoftwareUpdatePath;
+
+        [ObservableProperty]
+        private string? _mcuFirmwareUpdatePath;
 
         public string? ShortServerSoftwareUpdatePath => Path.GetFileName(ServerSoftwareUpdatePath);
 
@@ -99,6 +125,8 @@ namespace HeliosOpenIdnManager.ViewModels
             CurrentManagerVersion = Assembly.GetExecutingAssembly().GetName().Version!.ToString().Split('-')[0][0..^2];
             CheckForManagerUpdates();
             CheckForServerUpdates();
+
+            LoadDefaultConfig();
         }
 
         [RelayCommand]
@@ -137,6 +165,8 @@ namespace HeliosOpenIdnManager.ViewModels
         [RelayCommand]
         public void LoadCurrentConfig()
         {
+            LoadDefaultConfig();
+
             var server = Servers[SelectedServerIndex];
 
             try
@@ -161,6 +191,13 @@ namespace HeliosOpenIdnManager.ViewModels
                     EthernetIsDhcp = false;
                     EthernetIpAddress = ethernetIpAddr;
                 }
+
+                WifiPassword = rawSettings["network"]["wifi_password"] ?? "";
+                WifiSsid = rawSettings["network"]["wifi_ssid"] ?? "";
+
+                var wifiEnable = rawSettings["network"]["wifi_enable"] ?? ((WifiSsid != "" && WifiPassword != "") ? "true" : "false");
+                WifiIsEnabled = (wifiEnable.ToLower() == bool.TrueString.ToLower());
+
                 var wifiIpAddr = rawSettings["network"]["wifi_ip_addresses"] ?? "";
                 if (wifiIpAddr == "auto")
                 {
@@ -172,10 +209,23 @@ namespace HeliosOpenIdnManager.ViewModels
                     WifiIsDhcp = false;
                     WifiIpAddress = wifiIpAddr;
                 }
-                WifiSsid = rawSettings["network"]["wifi_ssid"] ?? "";
-                WifiPassword = rawSettings["network"]["wifi_password"] ?? "";
                 var name = rawSettings["idn_server"]["name"];
-                NewServerName = !string.IsNullOrEmpty(name) ? name : server.ServerInfo.Name;
+                NewServerName = !string.IsNullOrEmpty(name) ? name.Trim('"') : server.ServerInfo.Name;
+
+                if (uint.TryParse((rawSettings["mode_priority"]["idn"] ?? "").Trim('"'), out uint idnModePriority))
+                    NetworkModePriority = (int)idnModePriority;
+                if (uint.TryParse((rawSettings["mode_priority"]["usb"] ?? "").Trim('"'), out uint usbModePriority))
+                    UsbModePriority = (int)usbModePriority;
+                if (uint.TryParse((rawSettings["mode_priority"]["dmx"] ?? "").Trim('"'), out uint dmxModePriority))
+                    DmxModePriority = (int)dmxModePriority;
+                if (uint.TryParse((rawSettings["mode_priority"]["file"] ?? "").Trim('"'), out uint fileModePriority))
+                    FileModePriority = (int)fileModePriority;
+                
+                FilePlayerAutoplay = (rawSettings["file_player"]["autoplay"] ?? "false").ToLower().Trim('"') == "true";
+                FilePlayerStartingFilename = (rawSettings["file_player"]["starting_file"] ?? "").Trim('"');
+                var fileplayerMode = (rawSettings["file_player"]["mode"] ?? "").ToLower().Trim('"');
+                if (FilePlayerModes.Contains(fileplayerMode))
+                    FilePlayerModeIndex = Array.IndexOf(FilePlayerModes, fileplayerMode);
             }
             catch (Exception ex)
             {
@@ -183,16 +233,41 @@ namespace HeliosOpenIdnManager.ViewModels
             }
         }
 
+        /*
+         rawSettings["network"]["ethernet_ip_addresses"] = EthernetIsDhcp ? "auto" : EthernetIpAddress;
+            rawSettings["network"]["wifi_enable"] = WifiEnable ? "true" : "false";
+            rawSettings["network"]["wifi_ip_addresses"] = WifiIsDhcp ? "auto" : WifiIpAddress;
+            rawSettings["network"]["wifi_ssid"] = WifiSsid;
+            rawSettings["network"]["wifi_password"] = WifiPassword;
+            rawSettings["idn_server"]["name"] = NewServerName;
+
+            rawSettings["file_player"]["autoplay"] = FilePlayerAutoplay ? "true" : "false";
+            rawSettings["file_player"]["starting_file"] = FilePlayerStartingFilename ?? "";
+            rawSettings["file_player"]["mode"] = FilePlayerModes[FilePlayerModeIndex];
+
+            rawSettings["mode_priority"]["idn"] = NetworkModePriority.ToString(CultureInfo.InvariantCulture);
+            rawSettings["mode_priority"]["usb"] = UsbModePriority.ToString(CultureInfo.InvariantCulture);
+            rawSettings["mode_priority"]["dmx"] = DmxModePriority.ToString(CultureInfo.InvariantCulture);
+            rawSettings["mode_priority"]["file"] = FileModePriority.ToString(CultureInfo.InvariantCulture);*/
+
         [RelayCommand]
         public void LoadDefaultConfig()
         {
             NewServerName = "OpenIDN";
             EthernetIsDhcp = true;
             EthernetIpAddress = "";
+            WifiIsEnabled = false;
             WifiIsDhcp = true;
             WifiIpAddress = "";
             WifiSsid = "";
             WifiPassword = "";
+            FilePlayerAutoplay = false;
+            FilePlayerModeIndex = 3;
+            FilePlayerStartingFilename = "";
+            NetworkModePriority = 4;
+            UsbModePriority = 3;
+            DmxModePriority = 2;
+            FileModePriority = 1;
         }
 
         [RelayCommand]
@@ -302,6 +377,36 @@ namespace HeliosOpenIdnManager.ViewModels
                 scpClient.Upload(new FileInfo(ServerSoftwareUpdatePath), "/home/laser/openidn/helios_openidn");
                 Thread.Sleep(100);
                 sshClient.RunCommand("chmod +x /home/laser/openidn/helios_openidn");
+
+                RestartServer();
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Couldn't update server software: " + ex.Message;
+            }
+        }
+
+        [RelayCommand]
+        public void UpdateMcuFirmware()
+        {
+            try
+            {
+                if (McuFirmwareUpdatePath == null)
+                    throw new Exception("No firmware file chosen.");
+                if (!File.Exists(McuFirmwareUpdatePath) || !McuFirmwareUpdatePath!.Contains("heliospro_bufferchip"))
+                    throw new Exception("Invalid firmware file");
+
+                var server = Servers[SelectedServerIndex];
+
+                using var sshClient = HeliosOpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
+                sshClient.Connect();
+
+                using var scpClient = HeliosOpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
+                scpClient.Connect();
+                scpClient.Upload(new FileInfo(McuFirmwareUpdatePath), "/home/laser/"+Path.GetFileName(McuFirmwareUpdatePath));
+                Thread.Sleep(100);
+                sshClient.RunCommand(HeliosOpenIdnUtilities.GetSudoSshCommand($"/home/laser/picberry -f dspic33ck -w {Path.GetFileName(McuFirmwareUpdatePath)} & "));
+                Thread.Sleep(20000);
 
                 RestartServer();
             }
@@ -428,26 +533,38 @@ namespace HeliosOpenIdnManager.ViewModels
             catch { }
         }
 
+        [RelayCommand]
+        public void OpenDmxWebsite()
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "http://" + Servers[SelectedServerIndex].ServerInfo.IpAddress.ToString() + ":9090",
+                UseShellExecute = true
+            });
+        }
+
         void UpdateRawSettingsData()
         {
             rawSettings ??= new();
 
-            if (EthernetIsDhcp)
-                rawSettings["network"]["ethernet_ip_addresses"] = "auto";
-            else
-                rawSettings["network"]["ethernet_ip_addresses"] = EthernetIpAddress;
-
-            if (WifiIsDhcp)
-                rawSettings["network"]["wifi_ip_addresses"] = "auto";
-            else
-                rawSettings["network"]["wifi_ip_addresses"] = WifiIpAddress;
-
+            rawSettings["network"]["ethernet_ip_addresses"] = EthernetIsDhcp ? "auto" : EthernetIpAddress;
+            rawSettings["network"]["wifi_enable"] = WifiIsEnabled ? "true" : "false";
+            rawSettings["network"]["wifi_ip_addresses"] = WifiIsDhcp ? "auto" : WifiIpAddress;
             rawSettings["network"]["wifi_ssid"] = WifiSsid;
             rawSettings["network"]["wifi_password"] = WifiPassword;
             rawSettings["idn_server"]["name"] = NewServerName;
 
+            rawSettings["file_player"]["autoplay"] = FilePlayerAutoplay ? "true" : "false";
+            rawSettings["file_player"]["starting_file"] = (FilePlayerStartingFilename ?? "").Trim('"');
+            rawSettings["file_player"]["mode"] = FilePlayerModes[FilePlayerModeIndex];
+
+            rawSettings["mode_priority"]["idn"] = NetworkModePriority.ToString(CultureInfo.InvariantCulture);
+            rawSettings["mode_priority"]["usb"] = UsbModePriority.ToString(CultureInfo.InvariantCulture);
+            rawSettings["mode_priority"]["dmx"] = DmxModePriority.ToString(CultureInfo.InvariantCulture);
+            rawSettings["mode_priority"]["file"] = FileModePriority.ToString(CultureInfo.InvariantCulture);
+
             if (rawSettings["network"].ContainsKey("already_applied"))
-                rawSettings["network"].RemoveKey("already_applied"); // Otherwise it skips network settings
+                rawSettings["network"].RemoveKey("already_applied"); // Otherwise it skips applying network settings
 
             rawSettings.Configuration = new() { NewLineStr = "\n" }; // Since host computer is linux
         }
@@ -515,7 +632,7 @@ namespace HeliosOpenIdnManager.ViewModels
             if (value == "")
                 return true;
 
-            var entries = value.Split(' ');
+            var entries = value.Split(", ");
 
             foreach (var entry in entries)
             {
@@ -544,5 +661,7 @@ namespace HeliosOpenIdnManager.ViewModels
 
             return true;
         }
+
+        public readonly string[] FilePlayerModes = { "next", "shuffle", "once", "repeat" };
     }
 }

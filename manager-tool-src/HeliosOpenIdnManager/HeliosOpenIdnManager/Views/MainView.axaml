@@ -13,7 +13,7 @@
 		<vm:MainViewModel />
 	</Design.DataContext>
 
-	<Grid ColumnDefinitions="*,*,1.5*">
+	<Grid ColumnDefinitions="*,*,2*">
 		
 		<!-- LIST OF SERVERS -->
 
@@ -64,74 +64,175 @@
 		<TabControl Grid.Column="2">
 			
 			<TabItem Header="Configuration" FontSize="20">
-				<Border Padding="5,5,10,10">
+				<StackPanel>
 
-					<Grid Margin="0,0,0,5" RowDefinitions="Auto, *, Auto">
-						<StackPanel Spacing="10">
+					<StackPanel Margin="0, 15, 0, 0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
+						<Button Command="{Binding LoadCurrentConfigCommand}" IsEnabled="{Binding HasSelectedServer}" Background="MediumSeaGreen" Content=" Load current config " ToolTip.Tip="Fills out the fields below with the existing configuration of the selected server."></Button>
+						<Button Command="{Binding LoadDefaultConfigCommand}" Content=" Load default config " ToolTip.Tip="Fills out the fields below with the default configuration."></Button>
+					</StackPanel>
 
-							<StackPanel Margin="0, 15, 0, 0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
-								<Button Command="{Binding LoadCurrentConfigCommand}" IsEnabled="{Binding HasSelectedServer}" Background="MediumSeaGreen" Content=" Load current config " ToolTip.Tip="Fills out the fields below with the existing configuration of the selected server."></Button>
-								<Button Command="{Binding LoadDefaultConfigCommand}" Content=" Load default config " ToolTip.Tip="Fills out the fields below with the default configuration."></Button>
-							</StackPanel>
+					<TabControl Grid.Column="2">
 
-							<DockPanel Margin="0, 10, 0, 0" Background="#EEEEEE" ToolTip.Tip="Here you can replace the default IDN hostname ('OpenIDN') of the selected server.">
-								<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="New server name:" MinWidth="120"/>
-								<TextBox Text="{Binding NewServerName}" Watermark="Unchanged" Margin="10,0,0,0" MinWidth="170"></TextBox>
-							</DockPanel>
-							<DockPanel>
-								<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="Ethernet IP Address:" MinWidth="140"/>
-								<StackPanel>
-									<CheckBox Margin="20,0" Content="Auto (DHCP)" IsChecked="{Binding EthernetIsDhcp}"/>
-									<TextBox IsVisible="{Binding !EthernetIsDhcp}" Text="{Binding EthernetIpAddress}" Watermark="Unchanged" Margin="10,0,0,0" MinWidth="150" ToolTip.Tip="Here you can enter a static IP Address for the Ethernet port on the selected server. You can use CIDR notation to specify subnet, and you can configure multiple addresses by separating them with a space."></TextBox>
-								</StackPanel>
-							</DockPanel>
-							<TextBlock IsVisible="{Binding EthernetIpAddressHasWarning}" Text="⚠ This IP Address does not appear to be valid" Foreground="Red"/>
-							<!--<StackPanel Orientation="Horizontal">
-						<TextBlock VerticalAlignment="Center" Text="Enable WiFi:"/>
-						<CheckBox IsChecked="{Binding WifiIsEnabled}" Margin="10,0,0,0" MinWidth="115"></CheckBox>
-					</StackPanel>-->
-							<StackPanel Spacing="12" IsVisible="{Binding WifiIsEnabled}">
-								<Grid Background="#EEEEEE">
-									<DockPanel>
-										<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="WiFi IP Address:" MinWidth="140"/>
-										<StackPanel>
-											<CheckBox Margin="20,0" Content="Auto (DHCP)" IsChecked="{Binding WifiIsDhcp}"/>
-											<TextBox IsVisible="{Binding !WifiIsDhcp}" Text="{Binding WifiIpAddress}" Watermark="WiFi unchanged" Margin="10,0,0,0" MinWidth="150" ToolTip.Tip="Here you can enter a static IP Address for the WiFi interface on the selected server. You can use CIDR notation to specify subnet, and you can configure multiple addresses by separating them with a space."></TextBox>
-										</StackPanel>
-									</DockPanel>
+
+
+						<TabItem Header="Output mode" FontSize="20">
+							<Border Padding="5,0,5,10">
+								<Grid Margin="0,0,0,5" RowDefinitions="Auto, *, Auto">
+									<StackPanel Spacing="2">
+										
+										<TextBlock Margin="5,5,0,5" HorizontalAlignment="Right" Text="Mode priority" MinWidth="140" FontWeight="Bold"/>
+										<DockPanel ToolTip.Tip="In case multiple modes are active simultaneously, only the mode with the highest priority gets to control the laser output. The modes with lower priority need to wait for the other modes to stop their output before they can themselves start outputting.">
+											<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="Network stream (IDN):" MinWidth="120"/>
+											<ComboBox Margin="10,0,10,0" SelectedIndex="{Binding NetworkModePriority}" Width="150" HorizontalAlignment="Right">
+												<ComboBox.Items>
+													<ComboBoxItem>Disable</ComboBoxItem>
+													<ComboBoxItem>1</ComboBoxItem>
+													<ComboBoxItem>2</ComboBoxItem>
+													<ComboBoxItem>3</ComboBoxItem>
+													<ComboBoxItem>4</ComboBoxItem>
+												</ComboBox.Items>
+											</ComboBox>
+										</DockPanel>
+										<DockPanel Background="#EEEEEE" ToolTip.Tip="In case multiple modes are active simultaneously, only the mode with the highest priority gets to control the laser output. The modes with lower priority need to wait for the other modes to stop their output before they can themselves start outputting.">
+											<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="USB stream:" MinWidth="120"/>
+											<ComboBox Margin="10,0,10,0" SelectedIndex="{Binding UsbModePriority}" Width="150" HorizontalAlignment="Right">
+												<ComboBox.Items>
+													<ComboBoxItem>Disable</ComboBoxItem>
+													<ComboBoxItem>1</ComboBoxItem>
+													<ComboBoxItem>2</ComboBoxItem>
+													<ComboBoxItem>3</ComboBoxItem>
+													<ComboBoxItem>4</ComboBoxItem>
+												</ComboBox.Items>
+											</ComboBox>
+										</DockPanel>
+										<DockPanel ToolTip.Tip="In case multiple modes are active simultaneously, only the mode with the highest priority gets to control the laser output. The modes with lower priority need to wait for the other modes to stop their output before they can themselves start outputting.">
+											<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="DMX (Art-Net, sACN etc):" MinWidth="120"/>
+											<ComboBox Margin="10,0,10,0" SelectedIndex="{Binding DmxModePriority}" Width="150" HorizontalAlignment="Right">
+												<ComboBox.Items>
+													<ComboBoxItem>Disable</ComboBoxItem>
+													<ComboBoxItem>1</ComboBoxItem>
+													<ComboBoxItem>2</ComboBoxItem>
+													<ComboBoxItem>3</ComboBoxItem>
+													<ComboBoxItem>4</ComboBoxItem>
+												</ComboBox.Items>
+											</ComboBox>
+										</DockPanel>
+										<DockPanel Background="#EEEEEE" ToolTip.Tip="In case multiple modes are active simultaneously, only the mode with the highest priority gets to control the laser output. The modes with lower priority need to wait for the other modes to stop their output before they can themselves start outputting.">
+											<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="File player:" MinWidth="120"/>
+											<ComboBox Margin="10,0,10,0" SelectedIndex="{Binding FileModePriority}" Width="150" HorizontalAlignment="Right">
+												<ComboBox.Items>
+													<ComboBoxItem>Disable</ComboBoxItem>
+													<ComboBoxItem>1</ComboBoxItem>
+													<ComboBoxItem>2</ComboBoxItem>
+													<ComboBoxItem>3</ComboBoxItem>
+													<ComboBoxItem>4</ComboBoxItem>
+												</ComboBox.Items>
+											</ComboBox>
+										</DockPanel>
+
+										<TextBlock Margin="5,25,0,5" HorizontalAlignment="Left" Text="File player" MinWidth="140" FontWeight="Bold"/>
+										<DockPanel >
+											<DockPanel Margin="0,0,0,5" MinWidth="110">
+												<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="Autoplay" />
+												<CheckBox BorderThickness="1" Height="32" HorizontalAlignment="Left" Margin="10,0,0,0" ></CheckBox>
+											</DockPanel>
+											<DockPanel Margin="15,0,0,5" DockPanel.Dock="Right" HorizontalAlignment="Stretch">
+												<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="When file finishes:" />
+												<ComboBox Margin="10,0,0,0" SelectedIndex="{Binding FilePlayerModeIndex}" MinWidth="210" HorizontalAlignment="Stretch">
+													<ComboBox.Items>
+														<ComboBoxItem Tag="next">Play next (alphabetically)</ComboBoxItem>
+														<ComboBoxItem Tag="shuffle">Play next (random shuffle)</ComboBoxItem>
+														<ComboBoxItem Tag="once">Stop</ComboBoxItem>
+														<ComboBoxItem Tag="repeat">Repeat same file</ComboBoxItem>
+													</ComboBox.Items>
+												</ComboBox>
+											</DockPanel>
+										</DockPanel>
+										<DockPanel Background="#EEEEEE" >
+											<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="Starting file:" MinWidth="120"/>
+											<AutoCompleteBox BorderThickness="1" Height="32" Text="{Binding FilePlayerStartingFilename}" Watermark="Random" Margin="10,0,0,0" MinWidth="150" ToolTip.Tip="If file player autoplay is enabled, this is the file that starts playing when the device powers up. If left blank, the starting file is randomized."></AutoCompleteBox>
+										</DockPanel>
+
+										<TextBlock Margin="5,25,0,5" HorizontalAlignment="Left" Text="DMX" MinWidth="140" FontWeight="Bold"/>
+										<Button Command="{Binding OpenDmxWebsiteCommand}" IsEnabled="{Binding HasSelectedServer}"  Content=" Open advanced DMX server settings " ToolTip.Tip="Open website with advanced DMX server settings."></Button>
+
+
+									</StackPanel>
 								</Grid>
-								<TextBlock Margin="0,-12,0,0" Background="#EEEEEE" IsVisible="{Binding WifiIpAddressHasWarning}" Text="⚠ This IP Address does not appear to be valid" Foreground="Red"/>
-								<DockPanel ToolTip.Tip="The password for the WiFi network. Leave blank if the network is open and there is no password.">
-									<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="WiFi Password:" MinWidth="120"/>
-									<TextBox Text="{Binding WifiPassword}" Watermark="No password" PasswordChar="*" Margin="10,0,0,0" MinWidth="170" ></TextBox>
-								</DockPanel>
-								<DockPanel Background="#EEEEEE"  ToolTip.Tip="Here you can enter the name of the wireless network to connect to. You can also click the 'Scan nearby WiFi networks' button below to see what networks are available at the moment, and click one of them to fill this field in.">
-									<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="WiFi name (SSID):" MinWidth="120"/>
-									<TextBox Text="{Binding WifiSsid}" Margin="10,0,0,0" Watermark="WiFi unchanged" MinWidth="170"></TextBox>
-								</DockPanel>
-								<Button Content="Scan nearby WiFi networks" IsEnabled="{Binding HasSelectedServer}" Command="{Binding ScanWifiNetworksCommand}"/>
-							</StackPanel>
-						</StackPanel>
-						<ScrollViewer Grid.Row="1" MinHeight="80" Margin="0,10,0,0" >
-							<ListBox ItemsSource="{Binding WifiNetworks}" SelectionMode="Single" SelectedIndex="{Binding SelectedWifiNetworkIndex}">
-								<ListBox.ItemTemplate>
-									<DataTemplate>
-										<TextBlock Text="{Binding}" Margin="0,0,0,0"></TextBlock>
-									</DataTemplate>
-								</ListBox.ItemTemplate>
-							</ListBox>
-						</ScrollViewer>
+							</Border>
+						</TabItem>
 
-						<StackPanel Grid.Row="2" Margin="0,10,0,0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
 
-							<Button Click="ExportConfigButton_Click" Background="Tan" Content=" Export config to file " ToolTip.Tip="Exports the configuration above to a settings.ini file. This file can be used to apply settings to an offline Helios OpenIDN device. To do this: Place the file settings.ini on a USB drive. Plug the USB drive into the device. Plug the power cable out and back in to reboot the device. The device should power up with the new settings. NB: The startup process could take up to a full minute."></Button>
-							<Button Command="{Binding SaveAndApplyConfigCommand}"  IsEnabled="{Binding HasSelectedServer}" Background="Orange" Content=" Save/upload config " ToolTip.Tip="Sends the configuration above to the selected server over the network. Once this is complete, you need to restart the device for the settings to take effect."></Button>
-							
-						</StackPanel>
-					</Grid>
-				</Border>
+						<TabItem Header="Network" FontSize="20">
+							<Border Padding="5,0,5,10">
+								<Grid Margin="0,0,0,5" RowDefinitions="Auto, *, Auto">
+									<StackPanel Spacing="5">
+
+										<DockPanel Margin="0, 10, 0, 0" Background="#EEEEEE" ToolTip.Tip="Here you can replace the default IDN hostname ('OpenIDN') of the selected server.">
+											<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="New server name:" MinWidth="120"/>
+											<TextBox Text="{Binding NewServerName}" Watermark="Unchanged" Margin="10,0,0,0" MinWidth="170"></TextBox>
+										</DockPanel>
+										<DockPanel>
+											<TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="Ethernet IP Address:" MinWidth="140"/>
+											<StackPanel>
+												<CheckBox Margin="20,0" Content="Auto (DHCP)" IsChecked="{Binding EthernetIsDhcp}"/>
+												<TextBox IsVisible="{Binding !EthernetIsDhcp}" Text="{Binding EthernetIpAddress}" Watermark="Unchanged" Margin="10,0,0,0" MinWidth="150" ToolTip.Tip="Here you can enter a static IP Address for the Ethernet port on the selected server. You can use CIDR notation to specify subnet, and you can configure multiple addresses by separating them with a space."></TextBox>
+											</StackPanel>
+										</DockPanel>
+										<TextBlock IsVisible="{Binding EthernetIpAddressHasWarning}" Text="⚠ This IP Address does not appear to be valid" Foreground="Red"/>
+										
+										<StackPanel Orientation="Horizontal" Background="#EEEEEE">
+											<TextBlock VerticalAlignment="Center" Margin="10,0,0,0" Text="Enable WiFi:"/>
+											<CheckBox IsChecked="{Binding WifiIsEnabled}" Margin="10,0,0,0" MinWidth="115"></CheckBox>
+										</StackPanel>
+										<StackPanel Spacing="12" IsVisible="{Binding WifiIsEnabled}">
+											<Grid>
+												<DockPanel>
+													<TextBlock Margin="10,0,0,0" VerticalAlignment="Center" Text="WiFi IP Address:" MinWidth="140"/>
+													<StackPanel>
+														<CheckBox Margin="20,0" Content="Auto (DHCP)" IsChecked="{Binding WifiIsDhcp}"/>
+														<TextBox IsVisible="{Binding !WifiIsDhcp}" Text="{Binding WifiIpAddress}" Watermark="WiFi unchanged" Margin="10,0,0,0" MinWidth="150" ToolTip.Tip="Here you can enter a static IP Address for the WiFi interface on the selected server. You can use CIDR notation to specify subnet, and you can configure multiple addresses by separating them with a space."></TextBox>
+													</StackPanel>
+												</DockPanel>
+											</Grid>
+											<TextBlock Margin="0,0,0,0" IsVisible="{Binding WifiIpAddressHasWarning}" Text="⚠ This IP Address does not appear to be valid" Foreground="Red"/>
+											<DockPanel Background="#EEEEEE" ToolTip.Tip="The password for the WiFi network. Leave blank if the network is open and there is no password.">
+												<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="WiFi Password:" MinWidth="120"/>
+												<TextBox Text="{Binding WifiPassword}" Watermark="No password" PasswordChar="*" Margin="10,0,0,0" MinWidth="170" ></TextBox>
+											</DockPanel>
+											<DockPanel ToolTip.Tip="Here you can enter the name of the wireless network to connect to. You can also click the 'Scan nearby WiFi networks' button below to see what networks are available at the moment, and click one of them to fill this field in.">
+												<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="WiFi name (SSID):" MinWidth="120"/>
+												<TextBox Text="{Binding WifiSsid}" Margin="10,0,0,0" Watermark="WiFi unchanged" MinWidth="170"></TextBox>
+											</DockPanel>
+										</StackPanel>
+										<Button Content="Scan nearby WiFi networks" IsEnabled="{Binding HasSelectedServer}" Command="{Binding ScanWifiNetworksCommand}"/>
+									</StackPanel>
+									
+									<ScrollViewer Grid.Row="1" MinHeight="100" Margin="0,10,0,0" >
+										<ListBox ItemsSource="{Binding WifiNetworks}" SelectionMode="Single" SelectedIndex="{Binding SelectedWifiNetworkIndex}">
+											<ListBox.ItemTemplate>
+												<DataTemplate>
+													<TextBlock Text="{Binding}" Margin="0,0,0,0"></TextBlock>
+												</DataTemplate>
+											</ListBox.ItemTemplate>
+										</ListBox>
+									</ScrollViewer>
+								</Grid>
+							</Border>
+						</TabItem>
+
+
+					</TabControl>
+
+					<StackPanel Grid.Row="2" Margin="0,10,0,0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
+
+						<Button Click="ExportConfigButton_Click" Background="Tan" Content=" Export config to file " ToolTip.Tip="Exports the configuration above to a settings.ini file. This file can be used to apply settings to an offline Helios OpenIDN device. To do this: Place the file settings.ini on a USB drive. Plug the USB drive into the device. Plug the power cable out and back in to reboot the device. The device should power up with the new settings. NB: The startup process could take up to a full minute."></Button>
+						<Button Command="{Binding SaveAndApplyConfigCommand}"  IsEnabled="{Binding HasSelectedServer}" Background="Orange" Content=" Save/upload config " ToolTip.Tip="Sends the configuration above to the selected server over the network. Once this is complete, you need to restart the device for the settings to take effect."></Button>
+
+					</StackPanel>
+
+				</StackPanel>
 				
-
 			</TabItem>
 
 
@@ -164,10 +265,12 @@
 					<Grid Margin="0,0,0,5" RowDefinitions="Auto, *, Auto">
 						<StackPanel Spacing="10">
 
-							<!--
 							<StackPanel Margin="0, 15, 0, 0" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
-								<Button Command="{Binding RandomizeMacAddressCommand}" IsEnabled="{Binding HasSelectedServer}" Content=" Randomize MAC address " ToolTip.Tip="This randomizes the network MAC addresses of the device. It is used, for example, after installing a clean image that has a default, duplicate MAC address. The device will then reboot."></Button>
-							</StackPanel>-->
+								<Button Click="SelectAndUpdateMcuFirmwareButton_Click" IsEnabled="{Binding HasSelectedServer}" Content=" Update HeliosPRO buffer microcontroller firmware " ToolTip.Tip="In the case that the buffer microcontroller firmware of the HeliosPRO needs to be updated, click here. NB: This shouldn't normally be necessary, don't do this unless you know what you are doing."></Button>
+								
+								<!--<TextBlock Text="{Binding ShortServerSoftwareUpdatePath, StringFormat='File to install: {0}'}"/>-->
+								
+							</StackPanel>
 							
 						</StackPanel>
 					</Grid>

@@ -47,7 +47,7 @@ public:
 	const char softwareVersion[10] = "0.9.8";
 	const unsigned char softwareVersionUsb = 98;
 	std::shared_ptr<IDNServer> idnServer;
-	int modePriority[OUTPUT_MODE_MAX + 1] = { 3, 4, 1, 2 }; // If <=0, disable entirely
+	int modePriority[OUTPUT_MODE_MAX + 1] = { 4, 3, 1, 2 }; // If <=0, disable entirely
 	std::vector<std::shared_ptr<DACHWInterface>> devices;
 	std::vector<V1LaproGraphicOutput*> outputs; // not used right now
 
