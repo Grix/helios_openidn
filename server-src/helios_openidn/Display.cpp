@@ -22,8 +22,9 @@ Display::Display()
 	display->getInterface().flipVertical(1);
 	display->getInterface().flipHorizontal(1);
 	display->setFixedFont(ssd1306xled_font6x8);
-	display->printFixed(10, 10, "HelloWorld");
-	display->drawLine(10, 30, 110, 30);
+	display->printFixed(10, 10, "IDN");
+	display->drawLine(10, 25, 110, 30);
+	display->printFixed(10, 30, "alpha v0.9.8");
 	display->drawRect(1, 1, 2, 2);
 	display->drawRect(126, 62, 127, 63);
 

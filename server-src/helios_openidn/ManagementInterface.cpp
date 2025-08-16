@@ -16,6 +16,8 @@ ManagementInterface::ManagementInterface()
 	//filePlayer.devices = &devices;
 	//filePlayer.outputs = &outputs;
 
+	mountUsbDrive();
+
 	if (getHardwareType() == HARDWARE_ROCKS0)
 	{
 		//graphicsEngine = new GraphicsEngine(*display);
@@ -50,11 +52,9 @@ ManagementInterface::ManagementInterface()
 /// See example_settings.ini in the source files for how the file could look. 
 /// For this function to work, a folder must have been created at /media/usbdrive, and the USB drive must always be assigned by the system as /dev/sda1
 /// </summary>
-void ManagementInterface::readAndStoreNewSettingsFile()
+void ManagementInterface::readAndStoreUsbFiles()
 {
-	printf("Checking for new settings file.\n");
-
-	mountUsbDrive();
+	printf("Checking for new USB settings.\n");
 
 	char command[256];
 
@@ -62,7 +62,6 @@ void ManagementInterface::readAndStoreNewSettingsFile()
 	{
 		if (!std::filesystem::exists(newSettingsPath))
 		{
-			unmountUsbDrive();
 			return;
 		}
 	}
@@ -78,9 +77,8 @@ void ManagementInterface::readAndStoreNewSettingsFile()
 	sprintf(command, "cp %s %s", newSettingsPath.c_str(), settingsPath.c_str());
 	system(command);
 
-	unmountUsbDrive();
 
-	printf("Finished checking new settings.\n");
+	printf("Finished checking new USB settings.\n");
 }
 
 /// <summary>
@@ -205,7 +203,10 @@ void ManagementInterface::readSettingsFile()
 			printf("wifi disabled\n");
 			system("nmcli connection delete \"Wifi connection 1\"");
 			if (!wlan0_ssid.empty())
-				system("nmcli connection delete \"%s\"", wlan0_ssid); // Backwards compatibility, previously the connection name was the ssid
+			{
+				sprintf(command, "nmcli connection delete \"%s\"", wlan0_ssid.c_str()); // Backwards compatibility, previously the connection name was the ssid
+				system(command);
+			}
 		}
 
 		ini["network"]["already_applied"] = std::string("true");
@@ -216,12 +217,18 @@ void ManagementInterface::readSettingsFile()
 	if (!idn_hostname.empty())
 		settingIdnHostname = idn_hostname;
 
-	std::string& idn_enable = ini["idn_server"]["enable"];
-	if (!idn_enable.empty())
+	std::string& buffer_duration = ini["output"]["buffer_duration"];
+	try
 	{
-		bool enableIdnServer = !(idn_enable == "false" || idn_enable == "False" || idn_enable == "\"false\"" || idn_enable == "\"False\"");
-		if (!enableIdnServer)
-			modePriority[OUTPUT_MODE_MAX] = 0;
+		if (!buffer_duration.empty())
+		{
+			for (int i = 0; i > driverBridges.size(); i++)
+				driverBridges[i]->setBufferTargetMs(std::stoi(buffer_duration));
+		}
+	}
+	catch (...)
+	{
+		printf("Failed to parse buffer_duration setting, must be a number\n");
 	}
 
 	try 
@@ -357,18 +364,36 @@ void ManagementInterface::networkLoop(int sd) {
 
 void ManagementInterface::mountUsbDrive()
 {
+	// The reason we don't let linux automatically mount drives at boot is that if the drive does not exist, checking for files takes way too long and
+	// there isn't a way to reduce the timeout as far as I see. It's better to copy all files locally anyway to prevent issues with plugging out the drive
+	// when files are being played etc.
+
 	char command[256];
 	const char* rootPassword = "pen_pineapple"; // Todo support custom password for user, for systems that need to be secure.
-	sprintf(command, "echo \"%s\" | sudo -S mount /dev/sda1 /media/usbdrive -o uid=1000,gid=1000", rootPassword);
+	sprintf(command, "echo \"%s\" | sudo -S mount /dev/sda1 %s -o uid=1000,gid=1000", rootPassword, usbDrivePath.c_str());
 	system(command);
 	usleep(500000);
+
+	try
+	{
+		if (!std::filesystem::is_empty(usbDrivePath))
+			usbDriveMounted = true;
+		else
+			unmountUsbDrive();
+	}
+	catch (std::filesystem::filesystem_error)
+	{
+		unmountUsbDrive();
+		return;
+	}
 }
 
 void ManagementInterface::unmountUsbDrive()
 {
+	usbDriveMounted = false;
 	char command[256];
 	const char* rootPassword = "pen_pineapple"; // Todo support custom password for user, for systems that need to be secure.
-	sprintf(command, "echo \"%s\" | sudo -S umount /media/usbdrive", rootPassword);
+	sprintf(command, "echo \"%s\" | sudo -S umount %s", rootPassword, usbDrivePath.c_str());
 	system(command);
 }
 

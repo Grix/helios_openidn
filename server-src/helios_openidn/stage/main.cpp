@@ -69,6 +69,8 @@ void sig_handler(int sig) {
     write(STDOUT_FILENO, message, strlen(message));
     if (idnServer != nullptr) 
         idnServer->stopServer();
+    if (management != nullptr)
+        management->unmountUsbDrive();
 }
 
 void* driverThreadFunction(void* args) {
@@ -230,6 +232,7 @@ std::optional<int> maxPointRate = std::nullopt, std::optional<int> bufferTargetM
 
     management->devices.push_back(adapter);
     management->outputs.push_back(laproGraphicOut);
+    management->driverBridges.push_back(driverObj);
 }
 
 void* managementThreadFunction(void* args) {
@@ -615,7 +618,7 @@ int main(int argc, char** argv) {
 
     // Management specific to Helios OpenIDN product
     management = new ManagementInterface();
-    management->readAndStoreNewSettingsFile();
+    management->readAndStoreUsbFiles();
 
     int parsingRet = parseArguments(argc, argv);
     if (parsingRet != 0) {

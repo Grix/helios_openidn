@@ -106,6 +106,8 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 					this->connectionRetries = 50;
 			}
 
+			//printf("Sent hel frame: samples %d, pps %d\n", numPoints, framePointRate);
+
 			status = helios.WriteFrame(this->id
 				, framePointRate
 				, this->heliosFlags, (HeliosPoint*)&data.front()

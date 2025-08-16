@@ -225,6 +225,8 @@ public class HeliosOpenIdnUtilities
 
     public static ScpClient GetScpConnection(IPAddress hostname) => new ScpClient(new ConnectionInfo(hostname.ToString(), sshUser, new PasswordAuthenticationMethod(sshUser, sshPassword)));
 
+    public static SftpClient GetSftpConnection(IPAddress hostname) => new SftpClient(new ConnectionInfo(hostname.ToString(), sshUser, new PasswordAuthenticationMethod(sshUser, sshPassword)));
+
     /// <summary>
     /// Transforms a raw SSH command into a command that applies sudo with the OpenIDN device's superuser password.
     /// </summary>

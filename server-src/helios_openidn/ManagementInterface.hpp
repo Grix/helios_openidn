@@ -4,6 +4,7 @@
 #include "server/IDNServer.hpp"
 #include "output/V1LaproGraphOut.hpp"
 #include "shared/DACHWInterface.hpp"
+#include "shared/HWBridge.hpp"
 #include "Display.hpp"
 #include <string>
 #include <cstdint>
@@ -34,7 +35,7 @@ class ManagementInterface
 {
 public:
 	ManagementInterface();
-	void readAndStoreNewSettingsFile();
+	void readAndStoreUsbFiles();
 	void readSettingsFile();
 	void* networkThreadEntry();
 	//void setMode(unsigned int mode);
@@ -42,6 +43,7 @@ public:
 	static int getHardwareType();
 	bool requestOutput(int outputMode);
 	void stopOutput(int outputMode);
+	void unmountUsbDrive();
 
 	std::string settingIdnHostname = "HeliosPRO";
 	const char softwareVersion[10] = "0.9.8";
@@ -50,17 +52,19 @@ public:
 	int modePriority[OUTPUT_MODE_MAX + 1] = { 4, 3, 1, 2 }; // If <=0, disable entirely
 	std::vector<std::shared_ptr<DACHWInterface>> devices;
 	std::vector<V1LaproGraphicOutput*> outputs; // not used right now
+	std::vector<std::shared_ptr<HWBridge>> driverBridges; // only used for buffer duration setting, look into refactoring
+	bool usbDriveMounted = false;
 
 
 private:
 	void networkLoop(int socketFd);
 	void mountUsbDrive();
-	void unmountUsbDrive();
 
 	int writeTo(char* file, char* data, size_t numBytes);
 
 	const std::string newSettingsPath = "/media/usbdrive/settings.ini";
 	const std::string settingsPath = "/home/laser/openidn/settings.ini";
+	const std::string usbDrivePath = "/media/usbdrive";
 
 	static int hardwareType;
 	int currentMode = -1;

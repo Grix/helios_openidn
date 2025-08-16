@@ -3,7 +3,9 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IniParser;
 using IniParser.Model;
+using Material.Icons.Avalonia;
 using Renci.SshNet;
+using Renci.SshNet.Sftp;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -13,6 +15,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Mail;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -73,6 +76,9 @@ namespace HeliosOpenIdnManager.ViewModels
         private int _selectedWifiNetworkIndex = -1;
 
         [ObservableProperty]
+        private uint _bufferLengthMs = 40;
+
+        [ObservableProperty]
         private string? _errorMessage;
 
         [ObservableProperty]
@@ -107,6 +113,15 @@ namespace HeliosOpenIdnManager.ViewModels
 
         [ObservableProperty]
         private int _filePlayerModeIndex = 3;
+
+        [ObservableProperty]
+        private ObservableCollection<HeliosFileViewModel> _files = new();
+
+        [ObservableProperty]
+        private int _selectedFileIndex = -1;
+
+        [ObservableProperty]
+        private bool _fileListIsRefreshing = false;
 
         [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ShortServerSoftwareUpdatePath))]
@@ -268,6 +283,7 @@ namespace HeliosOpenIdnManager.ViewModels
             UsbModePriority = 3;
             DmxModePriority = 2;
             FileModePriority = 1;
+            BufferLengthMs = 40;
         }
 
         [RelayCommand]
@@ -543,6 +559,54 @@ namespace HeliosOpenIdnManager.ViewModels
             });
         }
 
+        [RelayCommand]
+        public async Task RefreshFileList()
+        {
+            async Task ListDirectoryRecursively(SftpClient client, string path)
+            {
+                await foreach (var file in client.ListDirectoryAsync(path, CancellationToken.None))
+                {
+                    if (file.FullName == path || file.FullName.EndsWith('.'))
+                        continue;
+
+                    if (file.IsDirectory)
+                    {
+                        await ListDirectoryRecursively(client, file.FullName);
+                    }
+
+                    if (!file.IsRegularFile)
+                        continue;
+
+                    var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+                    if (extension == ".ild" || extension == ".ilda")
+                    {
+                        Files.Add(new HeliosFileViewModel(file.FullName));
+                    }
+                }
+            }
+
+            Files.Clear();
+
+            FileListIsRefreshing = true;
+
+            try
+            {
+                var server = Servers[SelectedServerIndex];
+                using var sftpClient = HeliosOpenIdnUtilities.GetSftpConnection(server.ServerInfo.IpAddress);
+                await sftpClient.ConnectAsync(CancellationToken.None);
+                await ListDirectoryRecursively(sftpClient, "/home/laser/library/");
+                await ListDirectoryRecursively(sftpClient, "/media/usbdrive/");
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Couldn't scan for files: " + ex.Message; 
+            }
+            finally
+            {
+                FileListIsRefreshing = false;
+            }
+        }
+
         void UpdateRawSettingsData()
         {
             rawSettings ??= new();
@@ -562,6 +626,8 @@ namespace HeliosOpenIdnManager.ViewModels
             rawSettings["mode_priority"]["usb"] = UsbModePriority.ToString(CultureInfo.InvariantCulture);
             rawSettings["mode_priority"]["dmx"] = DmxModePriority.ToString(CultureInfo.InvariantCulture);
             rawSettings["mode_priority"]["file"] = FileModePriority.ToString(CultureInfo.InvariantCulture);
+
+            rawSettings["output"]["buffer_duration"] = BufferLengthMs.ToString(CultureInfo.InvariantCulture).Trim(',');
 
             if (rawSettings["network"].ContainsKey("already_applied"))
                 rawSettings["network"].RemoveKey("already_applied"); // Otherwise it skips applying network settings
