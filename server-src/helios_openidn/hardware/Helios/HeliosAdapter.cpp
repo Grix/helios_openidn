@@ -56,7 +56,7 @@ HeliosAdapter::HeliosAdapter(int id) {
 	this->id = id;
 
 	this->heliosFlags = HELIOS_FLAGS_SINGLE_MODE;
-	this->maximumPointRate = 54000; // Actual max is 65535, but subtract around 1/1.2 to account for max time factor strecthing
+	this->maximumPointRate = 0xFFFF*0.8 - 1; // Actual max is 65535, but subtract to account for max time factor strecthing (0.8)
 }
 
 HeliosAdapter::~HeliosAdapter() {
