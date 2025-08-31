@@ -13,6 +13,7 @@
 #include <netdb.h>
 #include <filesystem>
 #include <sys/utsname.h>
+#include <linux/input.h>
 
 #define MANAGEMENT_PORT 7355
 
@@ -26,6 +27,7 @@
 #define HARDWARE_ROCKPIS 1
 #define HARDWARE_ROCKS0 2
 
+void* keyboardThreadFunction(void* args);
 
 /// <summary>
 /// Class that exposes network and file system interfaces for managing the OpenIDN system, such as pinging, reading config files from USB drive, etc.
@@ -38,12 +40,14 @@ public:
 	void readAndStoreUsbFiles();
 	void readSettingsFile();
 	void* networkThreadEntry();
+	void* keyboardThreadEntry();
 	//void setMode(unsigned int mode);
 	//int getMode();
 	static int getHardwareType();
 	bool requestOutput(int outputMode);
 	void stopOutput(int outputMode);
 	void unmountUsbDrive();
+	void runStartup();
 
 	std::string settingIdnHostname = "HeliosPRO";
 	const char softwareVersion[10] = "0.9.8";
@@ -59,6 +63,10 @@ public:
 private:
 	void networkLoop(int socketFd);
 	void mountUsbDrive();
+	void emitEnterButtonPressed();
+	void emitEscButtonPressed();
+	void emitUpButtonPressed();
+	void emitDownButtonPressed();
 
 	int writeTo(char* file, char* data, size_t numBytes);
 
@@ -68,6 +76,10 @@ private:
 
 	static int hardwareType;
 	int currentMode = -1;
+
+	int keyboardFd;
+	pthread_t keyboardThread = 0;
+	//std::chrono::steady_clock::time_point lastPlayButtonPressedTime = std::chrono::steady_clock::now();
 
 	Display display;
 };

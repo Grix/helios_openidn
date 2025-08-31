@@ -26,7 +26,7 @@ void FilePlayer::start()
 	if (state == FILEPLAYER_STATE_STOP)
 	{
 		// Reset
-		frame = 0;
+		//frame = 0;
 	}
 	state = FILEPLAYER_STATE_PLAY;
 }
@@ -34,6 +34,7 @@ void FilePlayer::start()
 void FilePlayer::stop()
 {
 	state = FILEPLAYER_STATE_STOP;
+    management->stopOutput(OUTPUT_MODE_FILE);
     std::lock_guard<std::mutex> lock(threadLock);
     queue.clear();
 }
@@ -45,6 +46,16 @@ void FilePlayer::pause()
 
 int FilePlayer::playFile(std::string filename)
 {
+    if (filename.empty())
+        filename = nextRandomFile(usbFileDirectory + "a.ild");
+    if (filename.empty())
+        filename = nextRandomFile(localFileDirectory + "a.ild");
+    if (filename.empty())
+    {
+        stop();
+        return -1;
+    }
+
 	currentFile = filename;
 
     if (management->devices.empty())
@@ -263,14 +274,6 @@ int FilePlayer::playFile(std::string filename)
                 if (statusCode & 0x40) 
                     r = g = b = 0;
 
-                /*frame->buffer.push_back(x & 0xFF);
-                frame->buffer.push_back(x >> 8);
-                frame->buffer.push_back(y & 0xFF);
-                frame->buffer.push_back(y >> 8);
-                frame->buffer.push_back(r);
-                frame->buffer.push_back(g);
-                frame->buffer.push_back(b);
-                frame->buffer.push_back(0xFF);*/
 
                 ISPDB25Point point;
                 point.x = x;
@@ -296,12 +299,8 @@ int FilePlayer::playFile(std::string filename)
                     frame = std::make_shared<QueuedFrame>();
                     frame->buffer.reserve(pointsPerFrame);
 
-                    //std::shared_ptr<TimeSlice> frameSlice = std::make_shared<TimeSlice>();
-
                     currentPointInFrame = 0;
                 }
-
-                //addPointToSlice(point, metadata);
 
                 /*if (cbFunc->putSampleXYRGB(cbContext, x, y, r, g, b))
                 { 
@@ -326,12 +325,6 @@ int FilePlayer::playFile(std::string filename)
             if (result != 0) 
                 break;
 
-            // Tell the output to push the frame
-            //management->devices.front()->commitChunk(true);
-            //if (cbFunc->pushFrame(cbContext)) { result = -1; break; }
-
-
-            //frameSlice->dataChunk = management->devices.front()->convertPoints(pointBuffer);
 
             if (!frame->buffer.empty())
             {
@@ -341,8 +334,6 @@ int FilePlayer::playFile(std::string filename)
                     queue.push_back(frame);
                 }
             }
-
-            //management->devices.front()->process(chunkData, )
 
         }
         else if (formatCode == 2)
@@ -395,6 +386,8 @@ int FilePlayer::playFile(std::string filename)
 
     fclose(fpIDTF);
 
+    start();
+
     return result;
 }
 
@@ -428,20 +421,16 @@ void FilePlayer::outputLoop()
             else
                 delay.tv_nsec = 200000; // 200 us
 
-            // TODO
             if (!management->requestOutput(OUTPUT_MODE_FILE))
             {
                 printf("Warning: Requested file player output, but was busy\n");
-                state = FILEPLAYER_STATE_STOP;
+                {
+                    std::lock_guard<std::mutex> lock(threadLock);
+                    while (!queue.empty())
+                        queue.pop_front();
+                }
                 continue;
             }
-
-            /*if (!hasStarted)
-            {
-                outputs->front()->close();
-                outputs->front()->open(RTLaproGraphicOutput::OPMODE_FRAME);
-                hasStarted = true;
-            }*/
 
             // todo check timing
             //if (!devices->front()->getIsBusy())//hasBufferedFrame())
@@ -457,15 +446,6 @@ void FilePlayer::outputLoop()
 
                 if (numOfPoints > 0)
                 {
-                    /*RTLaproGraphicOutput::CHUNKDATA chunkData;
-                    memset(&chunkData, 0, sizeof(chunkData));
-                    chunkData.modFlags = RTLaproGraphicOutput::MODFLAG_SCAN_ONCE;
-                    chunkData.chunkDuration = (1000000 * numOfPoints) / frame->pps; // us
-                    chunkData.decoder = &decoder;
-                    chunkData.sampleCount = numOfPoints;
-
-                    outputs->front()->process(chunkData, frame->buffer.data(), frame->buffer.size());*/
-
                     TimeSlice slice;
                     slice.dataChunk = management->devices.front()->convertPoints(frame->buffer);
                     slice.durationUs = (1000000 * numOfPoints) / frame->pps;
@@ -483,9 +463,26 @@ void FilePlayer::outputLoop()
 
                     if (queue.empty())
                     {
-                        // todo play next files according to mode
-                        management->stopOutput(OUTPUT_MODE_FILE);
-                        state == FILEPLAYER_STATE_STOP;
+                        if (mode == FILEPLAYER_MODE_REPEAT)
+                            playFile(currentFile);
+                        else if (mode == FILEPLAYER_MODE_ONCE)
+                            stop();
+                        else if (mode == FILEPLAYER_MODE_NEXT)
+                        {
+                            std::string nextFile = nextAlphabeticalFile(currentFile);
+                            if (nextFile.empty())
+                                stop();
+                            else
+                                playFile(nextFile);
+                        }
+                        else if (mode == FILEPLAYER_MODE_SHUFFLE)
+                        {
+                            std::string nextFile = nextRandomFile(currentFile);
+                            if (nextFile.empty())
+                                stop();
+                            else
+                                playFile(nextFile);
+                        }
                         continue;
                     }
                 }
@@ -500,6 +497,35 @@ void FilePlayer::outputLoop()
 
         nanosleep(&delay, &dummy);
     }
+}
+
+void FilePlayer::playButtonPress()
+{
+    if (state == FILEPLAYER_STATE_PLAY)
+    {
+        state = FILEPLAYER_STATE_PAUSE;
+    }
+    else if (state == FILEPLAYER_STATE_PAUSE)
+    {
+        state = FILEPLAYER_STATE_PLAY;
+    }
+    else if (state == FILEPLAYER_STATE_STOP)
+    {
+        if (management->requestOutput(OUTPUT_MODE_FILE))
+            playFile(currentFile);
+    }
+}
+
+void FilePlayer::stopButtonPress()
+{
+}
+
+void FilePlayer::upButtonPress()
+{
+}
+
+void FilePlayer::downButtonPress()
+{
 }
 
 int FilePlayer::checkEOF(FILE* fp, const char* dbgText)
@@ -517,3 +543,110 @@ uint16_t FilePlayer::readShort(FILE* fp)
     return (uint16_t)((c1 << 8) | c2);
 }
 
+std::string FilePlayer::nextAlphabeticalFile(const std::string& filepath)
+{
+    std::string directory = getDirectory(filepath);
+    std::string filename = getFilename(filepath);
+
+    DIR* dir;
+    struct dirent* ent;
+    std::vector<std::string> files;
+
+    // Open the directory
+    if ((dir = opendir(directory.c_str())) == nullptr) 
+    {
+        perror("opendir");
+        return "";
+    }
+
+    // Read all entries into vector
+    while ((ent = readdir(dir)) != nullptr) 
+    {
+        std::string name = ent->d_name;
+
+        if (name == "." || name == "..") 
+            continue;
+        if (!hasIldExtension(name)) 
+            continue;
+
+        files.emplace_back(name);
+    }
+    closedir(dir);
+
+    if (files.empty()) 
+        return "";
+
+    // Sort alphabetically
+    std::sort(files.begin(), files.end());
+
+    // Find the next file
+    auto it = std::upper_bound(files.begin(), files.end(), filename);
+    if (it != files.end()) 
+    {
+        return *it; // Found a file greater than filename
+    }
+
+    return directory + files.front();
+}
+
+std::string FilePlayer::nextRandomFile(const std::string& filepath)
+{
+    std::string directory = getDirectory(filepath);
+    std::string filename = getFilename(filepath);
+
+    DIR* dir;
+    struct dirent* ent;
+    std::vector<std::string> files;
+
+    // Open the directory
+    if ((dir = opendir(directory.c_str())) == nullptr)
+    {
+        perror("opendir");
+        return "";
+    }
+
+    // Read all entries into vector
+    while ((ent = readdir(dir)) != nullptr)
+    {
+        std::string name = ent->d_name;
+
+        if (name == "." || name == "..")
+            continue;
+        if (!hasIldExtension(name))
+            continue;
+
+        files.emplace_back(name);
+    }
+    closedir(dir);
+
+    if (files.empty())
+        return "";
+
+    return directory + files[rand() % files.size()];
+}
+
+// Helper: check if filename ends with ".ild" case-insensitive
+bool FilePlayer::hasIldExtension(const std::string& name)
+{
+    const std::string ext = ".ild";
+    if (name.size() < ext.size()) return false;
+
+    return std::equal(
+        ext.rbegin(), ext.rend(), name.rbegin(),
+        [](char a, char b) { return std::tolower(a) == std::tolower(b); }
+    );
+}
+
+// Extract directory from path (everything up to an including last '/')
+std::string FilePlayer::getDirectory(const std::string& filepath) {
+    auto pos = filepath.find_last_of('/');
+    if (pos == std::string::npos) return "./"; // no slash = current directory
+    return filepath.substr(0, pos+1);
+}
+
+// Extract filename from path (everything after last '/')
+std::string FilePlayer::getFilename(const std::string& filepath) {
+    auto pos = filepath.find_last_of('/');
+    if (pos == std::string::npos) return filepath;
+    return filepath.substr(pos + 1);
+}

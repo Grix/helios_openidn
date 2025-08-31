@@ -50,6 +50,7 @@ public:
 private:
 	int spidevFd;
 	unsigned maximumPointrate;
+	double timerRemainder = 0;
 
 	//int	mem_fd;
 	//void* spi2_ctrl_mem_map;

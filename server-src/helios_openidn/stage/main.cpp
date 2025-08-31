@@ -580,7 +580,7 @@ int parseArguments(int argc, char** argv) {
                 return -1;
             }
         }
-        else if (management->getHardwareType() == HARDWARE_ROCKPIS)
+        else
         {
             try {
                 printf("using the Helios driver\n");
@@ -597,11 +597,6 @@ int parseArguments(int argc, char** argv) {
                 printf("Helios driver error: %s\n", e.what());
                 return -1;
             }
-        }
-        else
-        {
-            printf("using the Dummy driver, device: Dummy\n");
-            createLaProService(std::make_shared<DummyAdapter>(), "Dummy", 1);
         }
     }
 
@@ -650,6 +645,8 @@ int main(int argc, char** argv) {
     memset(&sp, 0, sizeof(sp));
     sp.sched_priority = sched_get_priority_min(SCHED_RR) + (sched_get_priority_max(SCHED_RR) - sched_get_priority_min(SCHED_RR)) / 4;
     sched_setscheduler(0, SCHED_RR, &sp);
+
+    management->runStartup();
 
     // Run the network thread on the main thread.
     idnServer->networkThreadFunc();

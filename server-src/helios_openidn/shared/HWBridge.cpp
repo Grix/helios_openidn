@@ -19,8 +19,9 @@ double HWBridge::calculateSpeedfactor(double currentSpeed, std::shared_ptr<Slice
 
 		if (debug == DEBUGSIMPLE)
 			//printf("Calculating speed factor: center %.2f, bufUsageMs %.2f, buffer->size() %.2f, buffer->front()->durationUs %.2f, accumOC %.2f, newSpeed %.2f \n", center, bufUsageMs, (double)buffer->size(), (double)buffer->front()->durationUs, this->accumOC, newSpeed);
-		
-		return std::min(1.4, std::max(0.8, newSpeed));
+
+			return 1;
+		return std::min(1.3, std::max(0.8, newSpeed));
 	} else {
 		return 1.0;
 	}

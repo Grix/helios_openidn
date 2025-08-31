@@ -13,6 +13,8 @@
 #include <queue>
 #include <cmath>
 #include <mutex>
+#include <dirent.h>
+#include <sys/types.h>
 
 #define FILEPLAYER_MODE_REPEAT 0
 #define FILEPLAYER_MODE_ONCE 1
@@ -48,7 +50,7 @@ public:
 	std::string currentFile = std::string("");
 	int mode = FILEPLAYER_MODE_REPEAT;
 	int state = FILEPLAYER_STATE_STOP;
-	unsigned int frame = 0;
+	//unsigned int frame = 0;
 	std::map<std::string, FilePlayerFileParameters> fileParameters;
 	FilePlayerFileParameters defaultParameters;
     std::string localFileDirectory = std::string("/home/laser/library/");
@@ -61,8 +63,12 @@ public:
 	void start();
 	void stop();
 	void pause();
-	int playFile(std::string filename);
+	int playFile(std::string filename); // if name is empty, play random
     void outputLoop();
+    void playButtonPress();
+    void stopButtonPress();
+    void upButtonPress();
+    void downButtonPress();
 
 private:
 
@@ -70,6 +76,11 @@ private:
 
     int checkEOF(FILE* fp, const char* dbgText);
     uint16_t readShort(FILE* fp);
+    bool hasIldExtension(const std::string& name);
+    std::string nextAlphabeticalFile(const std::string& filepath);
+    std::string nextRandomFile(const std::string& filepath);
+    std::string getDirectory(const std::string& filepath);
+    std::string getFilename(const std::string& filepath);
 
     //std::vector<ISPDB25Point> pointBuffer;
     //SliceBuf queue;

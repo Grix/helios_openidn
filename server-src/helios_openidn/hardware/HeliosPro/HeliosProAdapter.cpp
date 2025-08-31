@@ -181,7 +181,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 	size_t dataSizeBytes = data.size();
 
 	unsigned int numPoints = dataSizeBytes / bytesPerPoint();
-	uint32_t pps = numPoints * 1000000l / durationUs;
+	uint32_t pps = numPoints * 1001100l / durationUs; // manually adjusted 1000000 to 1001100 to account for observed actual clock speed
 
 	// Calculate raw values for MCU timer. We do this here instead of in the MCU because the MCU doesn't handle 32-bit divisions well
 	uint16_t timerRepeats = 0;
@@ -191,13 +191,24 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 	}
 	else if (pps < HELIOSPRO_MCU_MINSPEED)
 	{
-		if (pps == 0)
-			pps = 1;
 		timerRepeats = HELIOSPRO_MCU_MINSPEED / pps + 1;
 		timerRepeats *= 50;
 		pps *= timerRepeats;
 	}
-	uint16_t desiredTimer = HELIOSPRO_MCU_TIMERSPEED / pps + 1;
+	double desiredTimer = HELIOSPRO_MCU_TIMERSPEED / (double)pps;
+	double roundedDesiredTimer = std::roundl(desiredTimer);
+	timerRemainder += roundedDesiredTimer - desiredTimer;
+	if (timerRemainder > 1)
+	{
+		roundedDesiredTimer -= 1;
+		timerRemainder -= 1;
+	}
+	else if (timerRemainder < -1)
+	{
+		roundedDesiredTimer += 1;
+		timerRemainder += 1;
+	}
+	uint16_t desiredTimerInt = (uint16_t)roundedDesiredTimer;
 
 	unsigned int pointsPerFrame = numPoints;
 	unsigned int maxPointsPerFrame = HELIOSPRO_CHUNKSIZE / bytesPerPoint();
@@ -226,8 +237,8 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 		writeBuffer[5] = ((dataSizeBytes + 16) >> 8) & 0xFF;
 		writeBuffer[6] = ((0xFFFF) >> 4) & 0xFF; // shutter
 		writeBuffer[7] = ((0xFFFF) >> 12) & 0xFF; // shutter
-		writeBuffer[8] = ((desiredTimer) >> 0) & 0xFF;
-		writeBuffer[9] = ((desiredTimer) >> 8) & 0xFF;
+		writeBuffer[8] = ((desiredTimerInt) >> 0) & 0xFF;
+		writeBuffer[9] = ((desiredTimerInt) >> 8) & 0xFF;
 		writeBuffer[10] = ((timerRepeats) >> 0) & 0xFF;
 		writeBuffer[11] = ((timerRepeats) >> 8) & 0xFF;
 		writeBuffer[12] = 0; // reserved
@@ -318,7 +329,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 
 		// TODO REMOVE THIS PRINT
 		//#ifndef NDEBUG
-				//printf("Sent helPro frame: samples %d, left %d, txNum %d, pps %d, time %d, timerVal %d, repeats %d, startY %d\n", pointsThisFrame, pointsLeft, txNum, pps, tdif / 1000, desiredTimer, timerRepeats, data[1]);
+				//printf("Sent helPro frame: samples %d, left %d, txNum %d, pps %d, time %d, timerVal %d, rem %f, repeats %d, startY %d\n", pointsThisFrame, pointsLeft, txNum, pps, tdif / 1000, desiredTimerInt, timerRemainder, timerRepeats, data[1]);
 		//#endif
 
 		/*static uint16_t prevX = 0x8000;

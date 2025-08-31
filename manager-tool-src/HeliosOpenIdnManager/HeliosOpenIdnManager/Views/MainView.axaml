@@ -170,8 +170,11 @@
 								<Grid Margin="0,0,0,25" RowDefinitions="Auto, *, Auto">
 									<StackPanel Spacing="5">
 
-										<Button Content="Refresh list of files on device" Margin="0,10,0,0" Command="{Binding RefreshFileList}" IsEnabled="{Binding HasSelectedServer}" HorizontalAlignment="Center" ToolTip.Tip="Click to refresh the list of .ILD files on the selected server. Files are searched for both in the device's internal storage, and on any connected USB dongles."></Button>
-										
+										<StackPanel Orientation="Horizontal" Spacing="20">
+											<Button Content="Upload .ILD files" Background="LightBlue" Margin="0,10,0,0" Click="SelectAndUploadFilesButton_Click" IsEnabled="{Binding HasSelectedServer}" HorizontalAlignment="Center" ToolTip.Tip="Click to select .ILD files to upload to the device so that they can be played back offline."></Button>
+											<Button Content="Refresh list of files on device" Margin="0,10,0,0" Command="{Binding RefreshFileList}" IsEnabled="{Binding HasSelectedServer}" HorizontalAlignment="Center" ToolTip.Tip="Click to refresh the list of .ILD files on the selected server. Files are searched for both in the device's internal storage, and on any connected USB dongles."></Button>
+										</StackPanel>
+
 										<Border BorderThickness="1" BorderBrush="DarkGray" MinHeight="368" Margin="0,10,0,0">
 											<Grid>
 												<ScrollViewer Grid.Row="1" Margin="15,10">

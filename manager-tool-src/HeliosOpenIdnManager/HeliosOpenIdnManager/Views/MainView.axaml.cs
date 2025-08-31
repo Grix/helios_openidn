@@ -46,6 +46,32 @@ namespace HeliosOpenIdnManager.Views
             }
         }
 
+        private async void SelectAndUploadFilesButton_Click(object sender, RoutedEventArgs e)
+        {
+            var files = await TopLevel.GetTopLevel(this)!.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { Title = "Laser graphic files"/*, FileTypeFilter = new List<FilePickerFileType>() { new FilePickerFileType("") }*/ });
+
+            if (files is not null && files.Count > 0)
+            {
+                (DataContext as MainViewModel)!.FilesToUpload.Clear();
+
+                foreach (var file in files)
+                {
+                    var path = file.Path.LocalPath;
+                    if (!path.ToLower().Contains(".ild"))
+                    {
+                        (DataContext as MainViewModel)!.ErrorMessage = "Only .ILD files are supported so far.";
+                        return;
+                    }
+                    else
+                    {
+                        (DataContext as MainViewModel)!.FilesToUpload.Add(new FileInfo(path));
+                        (DataContext as MainViewModel)!.ErrorMessage = null;
+                    }
+                }
+                await (DataContext as MainViewModel)!.UploadFiles();
+            }
+        }
+
         private async void SelectAndUpdateMcuFirmwareButton_Click(object sender, RoutedEventArgs e)
         {
             var files = await TopLevel.GetTopLevel(this)!.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions { Title = "Server MCU firmware"/*, FileTypeFilter = new List<FilePickerFileType>() { new FilePickerFileType("") }*/ });

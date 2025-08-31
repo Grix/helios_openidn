@@ -39,6 +39,10 @@ ManagementInterface::ManagementInterface()
 		system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness"); // turn LED off.
 		system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness"); // turn LED off
 		system("echo 0 > /sys/class/leds/rock-s0:orange:user5/brightness"); // turn LED off
+
+		if (pthread_create(&keyboardThread, NULL, &keyboardThreadFunction, NULL) != 0) {
+			printf("WARNING: failed to create keyboard thread, buttons will not work\n");
+		}
 	}
 	else if (getHardwareType() == HARDWARE_ROCKPIS)
 	{
@@ -79,6 +83,17 @@ void ManagementInterface::readAndStoreUsbFiles()
 
 
 	printf("Finished checking new USB settings.\n");
+}
+
+void ManagementInterface::runStartup()
+{
+	if (filePlayer.autoplay)
+	{
+		if (filePlayer.currentFile.empty() || !std::filesystem::exists(filePlayer.currentFile))
+			filePlayer.playFile("");
+		else
+			filePlayer.playFile(filePlayer.currentFile);
+	}
 }
 
 /// <summary>
@@ -388,6 +403,30 @@ void ManagementInterface::mountUsbDrive()
 	}
 }
 
+void ManagementInterface::emitEnterButtonPressed()
+{
+	printf("Enter button");
+	filePlayer.playButtonPress();
+}
+
+void ManagementInterface::emitEscButtonPressed()
+{
+	printf("Esc button");
+	filePlayer.stop();
+}
+
+void ManagementInterface::emitUpButtonPressed()
+{
+	printf("Up button");
+	filePlayer.upButtonPress();
+}
+
+void ManagementInterface::emitDownButtonPressed()
+{
+	printf("Down button");
+	filePlayer.downButtonPress();
+}
+
 void ManagementInterface::unmountUsbDrive()
 {
 	usbDriveMounted = false;
@@ -465,6 +504,58 @@ void* ManagementInterface::networkThreadEntry() {
 	return NULL;
 }
 
+void* ManagementInterface::keyboardThreadEntry() {
+	printf("Starting keyboard/button handling thread in management class\n");
+
+	const char* keyboardDev = "/dev/input/event0";
+	int keyboardFd = open(keyboardDev, O_RDONLY);
+	if (keyboardFd < 0) {
+		printf("WARNING: failed to open keyboard, buttons will not work");
+		return NULL; // Todo retry?
+	}
+
+	auto lastPlayButtonPressedTime = std::chrono::steady_clock::now();
+	struct input_event event;
+	while (true) 
+	{
+		ssize_t bytesRead = read(keyboardFd, &event, sizeof(event));
+		if (bytesRead == (ssize_t)sizeof(event) && event.type == EV_KEY)
+		{
+			if (event.code == KEY_ENTER) 
+			{
+				if (event.value == 1)
+				{
+					// play key pressed, check how long it is held to determine button function
+					lastPlayButtonPressedTime = std::chrono::steady_clock::now();
+				}
+				else if (event.value == 0)
+				{
+					if (std::chrono::steady_clock::now() - lastPlayButtonPressedTime > std::chrono::milliseconds(500))
+						emitEscButtonPressed();
+					else
+						emitEnterButtonPressed();
+				}
+				continue;
+			}
+			else if (event.code == KEY_UP && event.value == 1)
+			{
+				emitUpButtonPressed();
+				continue;
+			}
+			else if (event.code == KEY_DOWN && event.value == 1)
+			{
+				emitUpButtonPressed();
+				continue;
+			}
+		}
+	}
+	if (keyboardFd >= 0)
+		close(keyboardFd);
+	return NULL;
+}
+
+
+
 /*void ManagementInterface::setMode(unsigned int _mode)
 {
 	if (mode == _mode || _mode > OUTPUT_MODE_MAX)
@@ -489,7 +580,7 @@ int ManagementInterface::getHardwareType()
 		struct utsname unameData;
 		if (uname(&unameData) == 0)
 		{
-			if (strstr(unameData.nodename, "rock-s0") != NULL)
+			if (strstr(unameData.nodename, "heliospro") != NULL || strstr(unameData.nodename, "rock-s0") != NULL)
 				hardwareType = HARDWARE_ROCKS0;
 			else if (strstr(unameData.nodename, "rockpi-s") != NULL)
 				hardwareType = HARDWARE_ROCKPIS;
@@ -561,4 +652,11 @@ void ManagementInterface::stopOutput(int outputMode)
 	system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness");
 	currentMode = -1;
 	return;
+}
+
+void* keyboardThreadFunction(void* args) 
+{
+	ManagementInterface* management = (ManagementInterface*)args;
+	management->keyboardThreadEntry();
+	return nullptr;
 }

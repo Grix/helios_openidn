@@ -124,6 +124,9 @@ namespace HeliosOpenIdnManager.ViewModels
         private bool _fileListIsRefreshing = false;
 
         [ObservableProperty]
+        private ObservableCollection<FileInfo> _filesToUpload = new();
+
+        [ObservableProperty]
         [NotifyPropertyChangedFor(nameof(ShortServerSoftwareUpdatePath))]
         private string? _serverSoftwareUpdatePath;
 
@@ -134,6 +137,8 @@ namespace HeliosOpenIdnManager.ViewModels
 
         private IniData? rawSettings;
 
+        const string remoteFileLibraryPath = "/home/laser/library/";
+        const string remoteFileUsbPath = "/media/usbdrive/";
 
         public MainViewModel()
         {
@@ -562,6 +567,31 @@ namespace HeliosOpenIdnManager.ViewModels
         [RelayCommand]
         public async Task RefreshFileList()
         {
+            if (FileListIsRefreshing)
+                return;
+
+            ErrorMessage = null;
+            Files.Clear();
+            FileListIsRefreshing = true;
+
+            try
+            {
+                var server = Servers[SelectedServerIndex];
+                using var sftpClient = HeliosOpenIdnUtilities.GetSftpConnection(server.ServerInfo.IpAddress);
+                await sftpClient.ConnectAsync(CancellationToken.None);
+                await ListDirectoryRecursively(sftpClient, remoteFileLibraryPath);
+                await ListDirectoryRecursively(sftpClient, remoteFileUsbPath);
+            }
+            catch (Exception ex)
+            {
+                ErrorMessage = "Couldn't scan for files: " + ex.Message; 
+            }
+            finally
+            {
+                FileListIsRefreshing = false;
+            }
+
+
             async Task ListDirectoryRecursively(SftpClient client, string path)
             {
                 await foreach (var file in client.ListDirectoryAsync(path, CancellationToken.None))
@@ -585,25 +615,26 @@ namespace HeliosOpenIdnManager.ViewModels
                 }
             }
 
-            Files.Clear();
+        }
 
-            FileListIsRefreshing = true;
 
+        [RelayCommand]
+        public async Task UploadFiles()
+        {
+            ErrorMessage = null;
             try
             {
                 var server = Servers[SelectedServerIndex];
-                using var sftpClient = HeliosOpenIdnUtilities.GetSftpConnection(server.ServerInfo.IpAddress);
-                await sftpClient.ConnectAsync(CancellationToken.None);
-                await ListDirectoryRecursively(sftpClient, "/home/laser/library/");
-                await ListDirectoryRecursively(sftpClient, "/media/usbdrive/");
+                using var scpClient = HeliosOpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
+                await scpClient.ConnectAsync(CancellationToken.None);
+                foreach (var file in FilesToUpload)
+                {
+                    scpClient.Upload(file, remoteFileLibraryPath + file.Name);
+                }
             }
             catch (Exception ex)
             {
-                ErrorMessage = "Couldn't scan for files: " + ex.Message; 
-            }
-            finally
-            {
-                FileListIsRefreshing = false;
+                ErrorMessage = "Couldn't upload files: " + ex.Message;
             }
         }
 
