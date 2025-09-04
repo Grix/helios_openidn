@@ -459,9 +459,13 @@ void FilePlayer::outputLoop()
 
                 if (state != FILEPLAYER_STATE_PAUSE)
                 {
-                    std::lock_guard<std::mutex> lock(threadLock);
+                    bool empty;
+                    {
+                        std::lock_guard<std::mutex> lock(threadLock);
+                        empty = queue.empty();
+                    }
 
-                    if (queue.empty())
+                    if (empty)
                     {
                         if (mode == FILEPLAYER_MODE_REPEAT)
                             playFile(currentFile);

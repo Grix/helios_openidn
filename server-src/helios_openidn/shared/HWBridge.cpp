@@ -5,7 +5,7 @@ extern ManagementInterface* management;
 
 
 double HWBridge::calculateSpeedfactor(double currentSpeed, std::shared_ptr<SliceBuf> buffer) {
-	double sm = 4;
+	double sm = 6;
 	if(buffer->size() != 0) {
 		double center = this->bufferTargetMs;
 		//bufusage in ms = bufsize * avg slice duration
