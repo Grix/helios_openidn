@@ -269,26 +269,7 @@ void ManagementInterface::readSettingsFile()
 		printf("Failed to parse mode priority settings, must be numbers\n");
 	}
 
-	std::string& fileplayer_autoplay = ini["file_player"]["autoplay"];
-	if (!fileplayer_autoplay.empty())
-		filePlayer.autoplay = (fileplayer_autoplay == "true" || fileplayer_autoplay == "True" || fileplayer_autoplay == "\"true\"" || fileplayer_autoplay == "\"True\"");
-
-	std::string& fileplayer_startingfile = ini["file_player"]["starting_file"];
-	if (!fileplayer_startingfile.empty())
-		filePlayer.currentFile = fileplayer_startingfile;
-
-	std::string& fileplayer_mode = ini["file_player"]["mode"];
-	if (!fileplayer_mode.empty())
-	{
-		if (fileplayer_mode == "once" || fileplayer_mode == "Once" || fileplayer_mode == "\"once\"" || fileplayer_mode == "\"Once\"")
-			filePlayer.mode = FILEPLAYER_MODE_ONCE;
-		else if (fileplayer_mode == "next" || fileplayer_mode == "Next" || fileplayer_mode == "\"next\"" || fileplayer_mode == "\"Next\"")
-			filePlayer.mode = FILEPLAYER_MODE_NEXT;
-		else if (fileplayer_mode == "shuffle" || fileplayer_mode == "Shuffle" || fileplayer_mode == "\"shuffle\"" || fileplayer_mode == "\"Shuffle\"")
-			filePlayer.mode = FILEPLAYER_MODE_SHUFFLE;
-		else
-			filePlayer.mode = FILEPLAYER_MODE_REPEAT;
-	}
+	filePlayer.readSettings(ini);
 
 	if (shouldRewrite)
 	{

@@ -7,6 +7,7 @@
 #include "output/RTLaproGraphOut.hpp"
 #include "shared/DACHWInterface.hpp"
 #include "output/V1LaproGraphOut.hpp"
+#include "ini.hpp"
 #include <string>
 #include <map>
 #include <cstring>
@@ -36,6 +37,7 @@ public:
 	{
 		int speedType = FILEPLAYER_PARAM_SPEEDTYPE_PPS;
 		unsigned int speed = 30000;
+        unsigned int numRepetitions = 1;
 		bool ignore = false;
 		int palette = 0;
 	} FilePlayerFileParameters;
@@ -69,6 +71,7 @@ public:
     void stopButtonPress();
     void upButtonPress();
     void downButtonPress();
+    void readSettings(mINI::INIStructure ini);
 
 private:
 
@@ -77,10 +80,13 @@ private:
     int checkEOF(FILE* fp, const char* dbgText);
     uint16_t readShort(FILE* fp);
     bool hasIldExtension(const std::string& name);
+    bool hasPrgExtension(const std::string& name);
     std::string nextAlphabeticalFile(const std::string& filepath);
     std::string nextRandomFile(const std::string& filepath);
     std::string getDirectory(const std::string& filepath);
     std::string getFilename(const std::string& filepath);
+    unsigned int getPps(std::string filename, unsigned int pointsPerFrame);
+    void parsePrgFile(std::filesystem::directory_entry fileEntry);
 
     //std::vector<ISPDB25Point> pointBuffer;
     //SliceBuf queue;

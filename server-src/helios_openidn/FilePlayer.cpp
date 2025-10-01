@@ -19,6 +19,8 @@ FilePlayer::FilePlayer()
     if (pthread_create(&outputThread, NULL, &outputLoopThread, this) != 0) {
         printf("ERROR CREATING FILEPLAYER THREAD\n");
     }
+    defaultParameters.speedType = FILEPLAYER_PARAM_SPEEDTYPE_PPS;
+    defaultParameters.speed = 30000;
 }
 
 void FilePlayer::start()
@@ -181,31 +183,6 @@ int FilePlayer::playFile(std::string filename)
             // Formats 0 and 1 have color index; Formats 4 and 5 are true color RGB.
             int hasIndex = (formatCode == 0) || (formatCode == 1);
 
-            // Open a frame (no longer needed bc done in process())
-            // Todo if device is busy
-            //management->devices.front()->stopAndEmptyQueue();
-            //management->devices.front()->bex->setMode(DRIVER_FRAMEMODE); // todo different mode for manual playback
-
-            /*ISPFrameMetadata metadata;
-            metadata.once = true;
-            metadata.isWave = false;
-            metadata.len = recordCnt;
-            metadata.dur = (1000000 * metadata.len) / 30000; // TODO get pps
-            */
-
-
-            /*auto queuedFrame = std::make_shared<QueuedFrame>();
-
-            memset(&queuedFrame->chunkData, 0, sizeof(queuedFrame->chunkData));
-            queuedFrame->chunkData.chunkFlags = IDNFLG_GRAPHIC_FRAME_ONCE;
-            queuedFrame->chunkData.chunkDuration = (1000000 * recordCnt) / 30000; // us
-            queuedFrame->chunkData.decoder = decoder;
-            queuedFrame->chunkData.sampleCount = recordCnt;
-
-            std::shared_ptr<uint8_t[]> buffer(new uint8_t[recordCnt * 8]);
-            queuedFrame->buffer = buffer;*/
-
-
             std::shared_ptr<QueuedFrame> frame = std::make_shared<QueuedFrame>();
 
             int pointsPerFrame = recordCnt;
@@ -289,7 +266,7 @@ int FilePlayer::playFile(std::string filename)
 
                 if (currentPointInFrame >= pointsPerFrame && i < recordCnt-1) //  Send partial frame, if frame is split it due to being too large for DAC.
                 {
-                    frame->pps = 30000; // todo         //durationUs = (1000000 * currentPointInFrame) / 30000; // us
+                    frame->pps = getPps(getFilename(filename), frame->buffer.size());
 
                     {
                         std::lock_guard<std::mutex> lock(threadLock);
@@ -328,7 +305,7 @@ int FilePlayer::playFile(std::string filename)
 
             if (!frame->buffer.empty())
             {
-                frame->pps = 30000; // todo
+                frame->pps = getPps(getFilename(filename), frame->buffer.size());
                 {
                     std::lock_guard<std::mutex> lock(threadLock);
                     queue.push_back(frame);
@@ -454,6 +431,7 @@ void FilePlayer::outputLoop()
                 }
                 else
                 {
+                    //delay.tv_nsec = frame->pps / 1000;
                     //nanosleep(&delay, &dummy); // todo sleep if FPS timing mode
                 }
 
@@ -532,9 +510,65 @@ void FilePlayer::downButtonPress()
 {
 }
 
+void FilePlayer::readSettings(mINI::INIStructure ini)
+{
+    // Parse general settings from main ini file
+    try
+    {
+        std::string& fileplayer_autoplay = ini["file_player"]["autoplay"];
+        if (!fileplayer_autoplay.empty())
+            autoplay = (fileplayer_autoplay == "true" || fileplayer_autoplay == "True" || fileplayer_autoplay == "\"true\"" || fileplayer_autoplay == "\"True\"");
+
+        std::string& fileplayer_startingfile = ini["file_player"]["starting_file"];
+        if (!fileplayer_startingfile.empty())
+            currentFile = fileplayer_startingfile;
+
+        std::string& fileplayer_mode = ini["file_player"]["mode"];
+        if (!fileplayer_mode.empty())
+        {
+            if (fileplayer_mode == "once" || fileplayer_mode == "Once" || fileplayer_mode == "\"once\"" || fileplayer_mode == "\"Once\"")
+                mode = FILEPLAYER_MODE_ONCE;
+            else if (fileplayer_mode == "next" || fileplayer_mode == "Next" || fileplayer_mode == "\"next\"" || fileplayer_mode == "\"Next\"")
+                mode = FILEPLAYER_MODE_NEXT;
+            else if (fileplayer_mode == "shuffle" || fileplayer_mode == "Shuffle" || fileplayer_mode == "\"shuffle\"" || fileplayer_mode == "\"Shuffle\"")
+                mode = FILEPLAYER_MODE_SHUFFLE;
+            else
+                mode = FILEPLAYER_MODE_REPEAT;
+        }
+
+        std::string& fileplayer_defaultpps = ini["file_player"]["default_pps"];
+        if (!fileplayer_defaultpps.empty())
+            defaultParameters.speed = std::stoi(fileplayer_defaultpps);
+    }
+    catch (...)
+    {
+        printf("Warning: Error during parsing of fileplayer ini file settings\n");
+    }
+
+    // Parse file-specific settings from .prg files in the library folders
+    try
+    {
+        for (const auto& fileEntry : std::filesystem::recursive_directory_iterator(localFileDirectory)) 
+        {
+            parsePrgFile(fileEntry);
+        }
+        for (const auto& fileEntry : std::filesystem::recursive_directory_iterator(usbFileDirectory)) 
+        {
+            parsePrgFile(fileEntry);
+        }
+    }
+    catch (...)
+    {
+        printf("Warning: Error during reading of .prg ilda file parameter files.\n");
+    }
+}
+
 int FilePlayer::checkEOF(FILE* fp, const char* dbgText)
 {
-    if (feof(fp)) { printf("[IDTF] Unexpected end of file (%s)", dbgText); return -1; }
+    if (feof(fp)) 
+    { 
+        printf("[IDTF] Unexpected end of file (%s)", dbgText); return -1; 
+    }
 
     return 0;
 }
@@ -641,6 +675,18 @@ bool FilePlayer::hasIldExtension(const std::string& name)
     );
 }
 
+// Helper: check if filename ends with ".prg" case-insensitive
+bool FilePlayer::hasPrgExtension(const std::string& name)
+{
+    const std::string ext = ".prg";
+    if (name.size() < ext.size()) return false;
+
+    return std::equal(
+        ext.rbegin(), ext.rend(), name.rbegin(),
+        [](char a, char b) { return std::tolower(a) == std::tolower(b); }
+    );
+}
+
 // Extract directory from path (everything up to an including last '/')
 std::string FilePlayer::getDirectory(const std::string& filepath) {
     auto pos = filepath.find_last_of('/');
@@ -653,4 +699,88 @@ std::string FilePlayer::getFilename(const std::string& filepath) {
     auto pos = filepath.find_last_of('/');
     if (pos == std::string::npos) return filepath;
     return filepath.substr(pos + 1);
+}
+
+// Determine the appropriate pps rate to play a frame from the given file and with the given number of points in the frame. NB: Filename is not including directory.
+unsigned int FilePlayer::getPps(std::string filename, unsigned int pointsPerFrame)
+{
+    std::string lowercaseFilename = filename;
+    std::transform(lowercaseFilename.begin(), lowercaseFilename.end(), lowercaseFilename.begin(), [](unsigned char c) { return std::tolower(c); });
+
+    // Check if settings are cached
+    if (fileParameters.count(lowercaseFilename))
+    {
+        auto parameters = fileParameters[lowercaseFilename];
+
+        if (parameters.speed == 0)
+            return 30000; // Failsafe
+
+        if (parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_FPS)
+            return parameters.speed * pointsPerFrame;
+        else // if (parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_PPS)
+            return parameters.speed;
+    }
+    
+    // Check ini file
+    // TODO do only at startup or when detecting file changes
+
+    // Check prg file(s)
+    //if (std::filesystem::exists(getDirectory(lowercaseFilename) + ""))
+    // TODO do only at startup or when detecting file changes
+
+    // Default settings
+    if (defaultParameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_FPS)
+        return defaultParameters.speed * pointsPerFrame;
+    else // if (defaultParameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_PPS)
+        return defaultParameters.speed;
+}
+
+void FilePlayer::parsePrgFile(std::filesystem::directory_entry fileEntry)
+{
+    if (fileEntry.is_regular_file() && hasPrgExtension(fileEntry.path().filename()))
+    {
+        std::fstream fileStream(fileEntry.path(), std::ios_base::in);
+        std::string line;
+
+        if (fileStream)
+        {
+            while (std::getline(fileStream, line))
+            {
+                try
+                {
+                    std::stringstream lineStream{ line };
+                    std::string field1, field2, field3;
+                    int pps, repetitions;
+                    if (std::getline(lineStream, field1, ','))
+                    {
+                        if (!std::getline(lineStream, field2, ','))
+                            continue;
+                        if (!std::getline(lineStream, field3, ','))
+                            continue;
+                        pps = std::stoi(field2);
+                        repetitions = std::stoi(field3);
+                    }
+                    else
+                        continue;
+
+                    std::string lowercaseFilename = field1;
+                    std::transform(lowercaseFilename.begin(), lowercaseFilename.end(), lowercaseFilename.begin(), [](unsigned char c) { return std::tolower(c); });
+
+                    fileParameters[lowercaseFilename].speedType = FILEPLAYER_PARAM_SPEEDTYPE_PPS;
+                    fileParameters[lowercaseFilename].speed = pps;
+                    fileParameters[lowercaseFilename].numRepetitions = repetitions;
+                }
+                catch (...)
+                {
+                    continue;
+                }
+            }
+        }
+        else
+        {
+            printf("Warning: couldn't open .prg file %s\n", fileEntry.path());
+        }
+
+        fileStream.close();
+    }
 }

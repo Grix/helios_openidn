@@ -37,31 +37,13 @@
     <ClCompile Include="thirdparty\lcdgfx\src\v2\gui\yesno.cpp">
       <Filter>thirdparty\lcdgfx</Filter>
     </ClCompile>
-    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\il9163\lcd_il9163.cpp">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </ClCompile>
-    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ili9341\lcd_ili9341.cpp">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </ClCompile>
     <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\lcdany\lcd_any.cpp">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </ClCompile>
-    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\lcdttgo\lcd_ttgo.cpp">
       <Filter>thirdparty\lcdgfx</Filter>
     </ClCompile>
     <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\lcdwio\lcd_wio.cpp">
       <Filter>thirdparty\lcdgfx</Filter>
     </ClCompile>
     <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\lcd_common.cpp">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </ClCompile>
-    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\pcd8544\lcd_pcd8544.cpp">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </ClCompile>
-    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\sh1106\lcd_sh1106.cpp">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </ClCompile>
-    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\sh1107\lcd_sh1107.cpp">
       <Filter>thirdparty\lcdgfx</Filter>
     </ClCompile>
     <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ssd1306\lcd_ssd1306.cpp">
@@ -77,12 +59,6 @@
       <Filter>thirdparty\lcdgfx</Filter>
     </ClCompile>
     <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ssd1351\lcd_ssd1351.cpp">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </ClCompile>
-    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\st7735\lcd_st7735.cpp">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </ClCompile>
-    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\st7789\lcd_st7789.cpp">
       <Filter>thirdparty\lcdgfx</Filter>
     </ClCompile>
     <ClCompile Include="thirdparty\lcdgfx\src\v2\nano_engine\core.cpp">
@@ -226,31 +202,13 @@
     <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\base\display_base.h">
       <Filter>thirdparty\lcdgfx</Filter>
     </ClInclude>
-    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\il9163\lcd_il9163.h">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </ClInclude>
-    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ili9341\lcd_ili9341.h">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </ClInclude>
     <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\lcdany\lcd_any.h">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </ClInclude>
-    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\lcdttgo\lcd_ttgo.h">
       <Filter>thirdparty\lcdgfx</Filter>
     </ClInclude>
     <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\lcdwio\lcd_wio.h">
       <Filter>thirdparty\lcdgfx</Filter>
     </ClInclude>
     <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\lcd_common.h">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </ClInclude>
-    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\pcd8544\lcd_pcd8544.h">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </ClInclude>
-    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\sh1106\lcd_sh1106.h">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </ClInclude>
-    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\sh1107\lcd_sh1107.h">
       <Filter>thirdparty\lcdgfx</Filter>
     </ClInclude>
     <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ssd1306\lcd_ssd1306.h">
@@ -266,12 +224,6 @@
       <Filter>thirdparty\lcdgfx</Filter>
     </ClInclude>
     <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ssd1351\lcd_ssd1351.h">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </ClInclude>
-    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\st7735\lcd_st7735.h">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </ClInclude>
-    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\st7789\lcd_st7789.h">
       <Filter>thirdparty\lcdgfx</Filter>
     </ClInclude>
     <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\core.h">
@@ -361,22 +313,7 @@
     <None Include="thirdparty\lcdgfx\src\v2\lcd\base\ssd1306_common.inl">
       <Filter>thirdparty\lcdgfx</Filter>
     </None>
-    <None Include="thirdparty\lcdgfx\src\v2\lcd\il9163\lcd_il9163.inl">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </None>
-    <None Include="thirdparty\lcdgfx\src\v2\lcd\ili9341\lcd_ili9341.inl">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </None>
     <None Include="thirdparty\lcdgfx\src\v2\lcd\lcd_common.inl">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </None>
-    <None Include="thirdparty\lcdgfx\src\v2\lcd\pcd8544\lcd_pcd8544.inl">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </None>
-    <None Include="thirdparty\lcdgfx\src\v2\lcd\sh1106\lcd_sh1106.inl">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </None>
-    <None Include="thirdparty\lcdgfx\src\v2\lcd\sh1107\lcd_sh1107.inl">
       <Filter>thirdparty\lcdgfx</Filter>
     </None>
     <None Include="thirdparty\lcdgfx\src\v2\lcd\ssd1306\lcd_ssd1306.inl">
@@ -392,12 +329,6 @@
       <Filter>thirdparty\lcdgfx</Filter>
     </None>
     <None Include="thirdparty\lcdgfx\src\v2\lcd\ssd1351\lcd_ssd1351.inl">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </None>
-    <None Include="thirdparty\lcdgfx\src\v2\lcd\st7735\lcd_st7735.inl">
-      <Filter>thirdparty\lcdgfx</Filter>
-    </None>
-    <None Include="thirdparty\lcdgfx\src\v2\lcd\st7789\lcd_st7789.inl">
       <Filter>thirdparty\lcdgfx</Filter>
     </None>
   </ItemGroup>
