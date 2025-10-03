@@ -21,6 +21,7 @@ FilePlayer::FilePlayer()
     }
     defaultParameters.speedType = FILEPLAYER_PARAM_SPEEDTYPE_PPS;
     defaultParameters.speed = 30000;
+    defaultParameters.numRepetitions = 1;
 }
 
 void FilePlayer::start()
@@ -183,27 +184,35 @@ int FilePlayer::playFile(std::string filename)
             // Formats 0 and 1 have color index; Formats 4 and 5 are true color RGB.
             int hasIndex = (formatCode == 0) || (formatCode == 1);
 
-            std::shared_ptr<QueuedFrame> frame = std::make_shared<QueuedFrame>();
+            auto parameters = getFileParameters(getFilename(filename));
+            if (parameters.speed == 0)
+                parameters.speed = 30000; //Failsafe
 
-            int pointsPerFrame = recordCnt;
-            int maxPointsPerFrame = management->devices.front()->maxBytesPerTransmission() / management->devices.front()->bytesPerPoint();
-            if (recordCnt > maxPointsPerFrame)
+            printf("Playing frame from file %s, speed %d, reps %d\n", filename.c_str(), parameters.speed, parameters.numRepetitions);
+
+            std::vector<std::shared_ptr<QueuedChunk>> chunksInFrame;
+
+            std::shared_ptr<QueuedChunk> chunk = std::make_shared<QueuedChunk>();
+
+            int pointsPerChunk = recordCnt;
+            int maxPointsPerChunk = management->devices.front()->maxBytesPerTransmission() / management->devices.front()->bytesPerPoint();
+            if (recordCnt > maxPointsPerChunk)
             {
-                if (maxPointsPerFrame == 0)
+                if (maxPointsPerChunk == 0)
                     return -1;
 
-                pointsPerFrame = (int)ceil(recordCnt / ceil((double)recordCnt / maxPointsPerFrame));
-                if (pointsPerFrame < maxPointsPerFrame)
-                    pointsPerFrame += 1;
+                pointsPerChunk = (int)ceil(recordCnt / ceil((double)recordCnt / maxPointsPerChunk));
+                if (pointsPerChunk < maxPointsPerChunk)
+                    pointsPerChunk += 1;
 
-                if (pointsPerFrame == 0)
+                if (pointsPerChunk == 0)
                     return -1;
             }
 
-            frame->buffer.reserve(pointsPerFrame);
-            
+            chunk->buffer.reserve(pointsPerChunk);
+
             // Loop through all points
-            unsigned int currentPointInFrame = 0;
+            unsigned int currentPointInChunk = 0;
             for (int i = 0; i < recordCnt; i++)
             {
                 int16_t x, y, z;
@@ -215,9 +224,9 @@ int FilePlayer::playFile(std::string filename)
                 // Read coordinates
                 x = (short)((float)(short)readShort(fpIDTF) * xScale);
                 y = (short)((float)(short)readShort(fpIDTF) * yScale);
-                if (hasZ) 
-                    z = readShort(fpIDTF); 
-                else 
+                if (hasZ)
+                    z = readShort(fpIDTF);
+                else
                     z = 0;
 
                 // Read status code
@@ -248,41 +257,46 @@ int FilePlayer::playFile(std::string filename)
                 }
 
                 // Output the point
-                if (statusCode & 0x40) 
+                if (statusCode & 0x40)
                     r = g = b = 0;
 
-
                 ISPDB25Point point;
-                point.x = x;
-                point.y = y;
+                point.x = x + 0x8000;
+                point.y = y + 0x8000;
                 point.r = r * 0x101;
                 point.g = g * 0x101;
                 point.b = b * 0x101;
                 point.intensity = 0xFFFF;
                 point.u1 = point.u2 = point.u3 = point.u4 = 0;
-                frame->buffer.push_back(point);
+                chunk->buffer.push_back(point);
 
-                currentPointInFrame++;
+                currentPointInChunk++;
 
-                if (currentPointInFrame >= pointsPerFrame && i < recordCnt-1) //  Send partial frame, if frame is split it due to being too large for DAC.
+                if (currentPointInChunk >= pointsPerChunk && i < recordCnt - 1) //  Send partial frame, if frame is split due to being too large for DAC.
                 {
-                    frame->pps = getPps(getFilename(filename), frame->buffer.size());
+                    if (parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_PPS)
+                        chunk->pps = parameters.speed;
+                    else // if (parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_FPS)
+                        chunk->pps = parameters.speed * chunk->buffer.size();
 
                     {
                         std::lock_guard<std::mutex> lock(threadLock);
-                        queue.push_back(frame);
+                        queue.push_back(chunk);
                     }
+                    chunksInFrame.push_back(chunk);
+                        
+                    printf("Played chunk from file %s\n", filename.c_str());
 
-                    frame = std::make_shared<QueuedFrame>();
-                    frame->buffer.reserve(pointsPerFrame);
+                    chunk = std::make_shared<QueuedChunk>();
+                    chunk->buffer.reserve(pointsPerChunk);
 
-                    currentPointInFrame = 0;
+                    currentPointInChunk = 0;
                 }
 
                 /*if (cbFunc->putSampleXYRGB(cbContext, x, y, r, g, b))
-                { 
-                    result = -1; 
-                    break; 
+                {
+                    result = -1;
+                    break;
                 }*/
 
                 // Check the status code (last point) against the record counter
@@ -299,19 +313,33 @@ int FilePlayer::playFile(std::string filename)
                     printf("[IDTF] Last point flag not set on last record: File pos 0x%08X", filePos);
                 }
             }
-            if (result != 0) 
+            if (result != 0)
                 break;
 
 
-            if (!frame->buffer.empty())
+            if (!chunk->buffer.empty())
             {
-                frame->pps = getPps(getFilename(filename), frame->buffer.size());
+                if (parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_PPS)
+                    chunk->pps = parameters.speed;
+                else // if (parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_FPS)
+                    chunk->pps = parameters.speed * chunk->buffer.size();
+
                 {
                     std::lock_guard<std::mutex> lock(threadLock);
-                    queue.push_back(frame);
+                    queue.push_back(chunk);
                 }
+                chunksInFrame.push_back(chunk);
+
+                printf("Played chunk from file %s\n", filename.c_str());
             }
 
+            for (int repetition = 1; repetition < parameters.numRepetitions; repetition++)
+            {
+                std::lock_guard<std::mutex> lock(threadLock);
+                for (int i = 0; i < chunksInFrame.size(); i++)
+                    queue.push_back(chunksInFrame[i]);
+                chunksInFrame.clear();
+            }
         }
         else if (formatCode == 2)
         {
@@ -412,7 +440,7 @@ void FilePlayer::outputLoop()
             // todo check timing
             //if (!devices->front()->getIsBusy())//hasBufferedFrame())
             {
-                std::shared_ptr<QueuedFrame> frame;
+                std::shared_ptr<QueuedChunk> frame;
                 {
                     std::lock_guard<std::mutex> lock(threadLock);
                     frame = queue.front();
@@ -425,9 +453,9 @@ void FilePlayer::outputLoop()
                 {
                     TimeSlice slice;
                     slice.dataChunk = management->devices.front()->convertPoints(frame->buffer);
-                    slice.durationUs = (1000000 * numOfPoints) / frame->pps;
+                    slice.durationUs = (double)(1000000 * numOfPoints) / frame->pps;
 
-                    management->devices.front()->writeFrame(slice, (1000000 * numOfPoints) / frame->pps);
+                    management->devices.front()->writeFrame(slice, slice.durationUs);
                 }
                 else
                 {
@@ -451,7 +479,7 @@ void FilePlayer::outputLoop()
                             stop();
                         else if (mode == FILEPLAYER_MODE_NEXT)
                         {
-                            std::string nextFile = nextAlphabeticalFile(currentFile);
+                            std::string nextFile = nextAlphabeticalFile(currentFile, false);
                             if (nextFile.empty())
                                 stop();
                             else
@@ -500,14 +528,25 @@ void FilePlayer::playButtonPress()
 
 void FilePlayer::stopButtonPress()
 {
+    stop();
 }
 
 void FilePlayer::upButtonPress()
 {
+    stop();
+    if (mode == FILEPLAYER_MODE_SHUFFLE)
+        playFile(nextRandomFile(currentFile));
+    else
+        playFile(nextAlphabeticalFile(currentFile, false));
 }
 
 void FilePlayer::downButtonPress()
 {
+    stop();
+    if (mode == FILEPLAYER_MODE_SHUFFLE)
+        playFile(nextRandomFile(currentFile)); // Todo remember last file and go back
+    else
+        playFile(nextAlphabeticalFile(currentFile, true));
 }
 
 void FilePlayer::readSettings(mINI::INIStructure ini)
@@ -581,8 +620,9 @@ uint16_t FilePlayer::readShort(FILE* fp)
     return (uint16_t)((c1 << 8) | c2);
 }
 
-std::string FilePlayer::nextAlphabeticalFile(const std::string& filepath)
+std::string FilePlayer::nextAlphabeticalFile(const std::string& filepath, bool reverseOrder)
 {
+    // Todo cache the file list
     std::string directory = getDirectory(filepath);
     std::string filename = getFilename(filepath);
 
@@ -618,10 +658,21 @@ std::string FilePlayer::nextAlphabeticalFile(const std::string& filepath)
     std::sort(files.begin(), files.end());
 
     // Find the next file
-    auto it = std::upper_bound(files.begin(), files.end(), filename);
-    if (it != files.end()) 
+    if (reverseOrder)
     {
-        return *it; // Found a file greater than filename
+        auto it = std::lower_bound(files.begin(), files.end(), filename);
+        if (it != files.end())
+        {
+            return directory + *it; // Found a file lower than filename
+        }
+    }
+    else
+    {
+        auto it = std::upper_bound(files.begin(), files.end(), filename);
+        if (it != files.end())
+        {
+            return directory + *it; // Found a file greater than filename
+        }
     }
 
     return directory + files.front();
@@ -702,7 +753,7 @@ std::string FilePlayer::getFilename(const std::string& filepath) {
 }
 
 // Determine the appropriate pps rate to play a frame from the given file and with the given number of points in the frame. NB: Filename is not including directory.
-unsigned int FilePlayer::getPps(std::string filename, unsigned int pointsPerFrame)
+FilePlayer::FilePlayerFileParameters FilePlayer::getFileParameters(const std::string& filename)
 {
     std::string lowercaseFilename = filename;
     std::transform(lowercaseFilename.begin(), lowercaseFilename.end(), lowercaseFilename.begin(), [](unsigned char c) { return std::tolower(c); });
@@ -710,15 +761,7 @@ unsigned int FilePlayer::getPps(std::string filename, unsigned int pointsPerFram
     // Check if settings are cached
     if (fileParameters.count(lowercaseFilename))
     {
-        auto parameters = fileParameters[lowercaseFilename];
-
-        if (parameters.speed == 0)
-            return 30000; // Failsafe
-
-        if (parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_FPS)
-            return parameters.speed * pointsPerFrame;
-        else // if (parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_PPS)
-            return parameters.speed;
+        return fileParameters[lowercaseFilename];
     }
     
     // Check ini file
@@ -729,13 +772,10 @@ unsigned int FilePlayer::getPps(std::string filename, unsigned int pointsPerFram
     // TODO do only at startup or when detecting file changes
 
     // Default settings
-    if (defaultParameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_FPS)
-        return defaultParameters.speed * pointsPerFrame;
-    else // if (defaultParameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_PPS)
-        return defaultParameters.speed;
+    return defaultParameters;
 }
 
-void FilePlayer::parsePrgFile(std::filesystem::directory_entry fileEntry)
+void FilePlayer::parsePrgFile(const std::filesystem::directory_entry& fileEntry)
 {
     if (fileEntry.is_regular_file() && hasPrgExtension(fileEntry.path().filename()))
     {
@@ -767,8 +807,10 @@ void FilePlayer::parsePrgFile(std::filesystem::directory_entry fileEntry)
                     std::transform(lowercaseFilename.begin(), lowercaseFilename.end(), lowercaseFilename.begin(), [](unsigned char c) { return std::tolower(c); });
 
                     fileParameters[lowercaseFilename].speedType = FILEPLAYER_PARAM_SPEEDTYPE_PPS;
-                    fileParameters[lowercaseFilename].speed = pps;
+                    fileParameters[lowercaseFilename].speed = pps * 1000;
                     fileParameters[lowercaseFilename].numRepetitions = repetitions;
+
+                    printf("PRG file for %s, speed %d, reps %d\n", lowercaseFilename, pps * 1000, repetitions);
                 }
                 catch (...)
                 {

@@ -16,6 +16,7 @@
 #include <mutex>
 #include <dirent.h>
 #include <sys/types.h>
+#include <filesystem>
 
 #define FILEPLAYER_MODE_REPEAT 0
 #define FILEPLAYER_MODE_ONCE 1
@@ -42,11 +43,11 @@ public:
 		int palette = 0;
 	} FilePlayerFileParameters;
 
-    typedef struct QueuedFrame
+    typedef struct QueuedChunk
     {
         std::vector<ISPDB25Point> buffer;// = std::vector<ISPDB25Point>(3000); // Todo reuse buffers, avoid memory allocation
         unsigned int pps;
-    } QueuedFrame;
+    } QueuedChunk;
 
 	bool autoplay = false;
 	std::string currentFile = std::string("");
@@ -81,16 +82,16 @@ private:
     uint16_t readShort(FILE* fp);
     bool hasIldExtension(const std::string& name);
     bool hasPrgExtension(const std::string& name);
-    std::string nextAlphabeticalFile(const std::string& filepath);
+    std::string nextAlphabeticalFile(const std::string& filepath, bool reverseOrder);
     std::string nextRandomFile(const std::string& filepath);
     std::string getDirectory(const std::string& filepath);
     std::string getFilename(const std::string& filepath);
-    unsigned int getPps(std::string filename, unsigned int pointsPerFrame);
-    void parsePrgFile(std::filesystem::directory_entry fileEntry);
+    FilePlayerFileParameters getFileParameters(const std::string& filename);
+    void parsePrgFile(const std::filesystem::directory_entry& fileEntry);
 
     //std::vector<ISPDB25Point> pointBuffer;
     //SliceBuf queue;
-    std::deque<std::shared_ptr<QueuedFrame>> queue;
+    std::deque<std::shared_ptr<QueuedChunk>> queue;
     //IdtfDecoder decoder;
     pthread_t outputThread = 0;
     std::mutex threadLock;

@@ -34,11 +34,11 @@ public:
 
     double bufferTargetDurationSeconds = 0.025; 
 
-    typedef struct QueuedFrame
+    typedef struct QueuedChunk
     {
         std::vector<ISPDB25Point> buffer;
         unsigned int pps;
-    } QueuedFrame;
+    } QueuedChunk;
 
 private:
     void interruptUsbReceived(size_t numBytes, unsigned char* buffer);
@@ -50,7 +50,7 @@ private:
     //int isReceiveBusy = false;
     //IdtfDecoder decoder;
     //std::vector<ISPDB25Point> pointBuffer = std::vector<ISPDB25Point>(5000);
-    std::deque<std::shared_ptr<QueuedFrame>> queue;
+    std::deque<std::shared_ptr<QueuedChunk>> queue;
     pthread_t outputThread = 0;
     std::mutex threadLock;
     bool hasStarted = false;

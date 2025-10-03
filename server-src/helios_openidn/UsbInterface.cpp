@@ -27,7 +27,7 @@ void UsbInterface::outputLoop()
     delay.tv_nsec = 200000; // 200 us
     while (1) // todo close on exit
     {
-        std::shared_ptr<QueuedFrame> frame;
+        std::shared_ptr<QueuedChunk> frame;
         bool empty = false;
         {
             std::lock_guard<std::mutex> lock(threadLock);
@@ -78,9 +78,9 @@ void UsbInterface::outputLoop()
 
             TimeSlice slice;
             slice.dataChunk = management->devices.front()->convertPoints(frame->buffer);
-            slice.durationUs = (1000000 * numOfPoints) / frame->pps;
+            slice.durationUs = (double)(1000000 * numOfPoints) / frame->pps;
 
-            management->devices.front()->writeFrame(slice, (1000000 * numOfPoints) / frame->pps);
+            management->devices.front()->writeFrame(slice, slice.durationUs);
 
             /*if (slice.durationUs > 1000)
             {
@@ -266,7 +266,7 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
             return;
     }
 
-    std::shared_ptr<QueuedFrame> frame = std::make_shared<QueuedFrame>();
+    std::shared_ptr<QueuedChunk> frame = std::make_shared<QueuedChunk>();
     frame->buffer.reserve(pointsPerFrame);
 
     unsigned int bufferPos = 0;
@@ -314,7 +314,7 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
                 std::lock_guard<std::mutex> lock(threadLock);
                 queue.push_back(frame);
             }
-            frame = std::make_shared<QueuedFrame>();
+            frame = std::make_shared<QueuedChunk>();
             frame->buffer.reserve(pointsPerFrame);
 
             //std::shared_ptr<TimeSlice> frameSlice = std::make_shared<TimeSlice>();

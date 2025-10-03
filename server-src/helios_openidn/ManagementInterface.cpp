@@ -386,25 +386,25 @@ void ManagementInterface::mountUsbDrive()
 
 void ManagementInterface::emitEnterButtonPressed()
 {
-	printf("Enter button");
+	printf("Enter button\n");
 	filePlayer.playButtonPress();
 }
 
 void ManagementInterface::emitEscButtonPressed()
 {
-	printf("Esc button");
-	filePlayer.stop();
+	printf("Esc button\n");
+	filePlayer.stopButtonPress();
 }
 
 void ManagementInterface::emitUpButtonPressed()
 {
-	printf("Up button");
+	printf("Up button\n");
 	filePlayer.upButtonPress();
 }
 
 void ManagementInterface::emitDownButtonPressed()
 {
-	printf("Down button");
+	printf("Down button\n");
 	filePlayer.downButtonPress();
 }
 
