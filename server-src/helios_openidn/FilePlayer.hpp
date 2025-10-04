@@ -88,6 +88,7 @@ private:
     std::string getFilename(const std::string& filepath);
     FilePlayerFileParameters getFileParameters(const std::string& filename);
     void parsePrgFile(const std::filesystem::directory_entry& fileEntry);
+    void doFileEndAction(bool dontAttemptRepeat);
 
     //std::vector<ISPDB25Point> pointBuffer;
     //SliceBuf queue;

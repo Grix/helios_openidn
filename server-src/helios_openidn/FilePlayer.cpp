@@ -82,6 +82,7 @@ int FilePlayer::playFile(std::string filename)
     if (!fpIDTF)
     {
         printf("[IDTF] %s: Cannot open file (errno: %d)", filename.c_str(), errno);
+        doFileEndAction(true);
         return -1;
     }
 
@@ -97,6 +98,7 @@ int FilePlayer::playFile(std::string filename)
     {
         printf("[IDTF] %s: Not an IDTF file", filename.c_str());
         fclose(fpIDTF);
+        doFileEndAction(true);
         return -1;
     }
 
@@ -126,6 +128,7 @@ int FilePlayer::playFile(std::string filename)
         {
             printf("[IDTF] %s: Bad section signature at pos 0x%08X", filename.c_str(), filePos);
             result = -1;
+            doFileEndAction(true);
             break;
         }
 
@@ -175,6 +178,7 @@ int FilePlayer::playFile(std::string filename)
             {
                 printf("[IDTF] %s: Frames should contain at least 2 points", filename.c_str());
                 result = -1;
+                doFileEndAction(true);
                 break;
             }
 
@@ -188,7 +192,9 @@ int FilePlayer::playFile(std::string filename)
             if (parameters.speed == 0)
                 parameters.speed = 30000; //Failsafe
 
+#ifndef NDEBUG
             printf("Playing frame from file %s, speed %d, reps %d\n", filename.c_str(), parameters.speed, parameters.numRepetitions);
+#endif
 
             std::vector<std::shared_ptr<QueuedChunk>> chunksInFrame;
 
@@ -253,6 +259,7 @@ int FilePlayer::playFile(std::string filename)
                 {
                     printf("[IDTF] Unexpected end of file: Record %u of %u", i, recordCnt);
                     result = -1;
+                    doFileEndAction(true);
                     break;
                 }
 
@@ -261,8 +268,8 @@ int FilePlayer::playFile(std::string filename)
                     r = g = b = 0;
 
                 ISPDB25Point point;
-                point.x = x + 0x8000;
-                point.y = y + 0x8000;
+                point.x = 0xFFFF - (x + 0x8000);
+                point.y = 0xFFFF - (y + 0x8000);
                 point.r = r * 0x101;
                 point.g = g * 0x101;
                 point.b = b * 0x101;
@@ -285,7 +292,7 @@ int FilePlayer::playFile(std::string filename)
                     }
                     chunksInFrame.push_back(chunk);
                         
-                    printf("Played chunk from file %s\n", filename.c_str());
+                    //printf("Played chunk from file %s\n", filename.c_str());
 
                     chunk = std::make_shared<QueuedChunk>();
                     chunk->buffer.reserve(pointsPerChunk);
@@ -306,6 +313,7 @@ int FilePlayer::playFile(std::string filename)
                 {
                     printf("[IDTF] Last point flag set, record count mismatch: Record %u of %u, file pos 0x%08X", i, recordCnt, filePos);
                     result = -1;
+                    doFileEndAction(true);
                     break;
                 }
                 else if (!lastPointFlag && lastRecordFlag)
@@ -350,6 +358,7 @@ int FilePlayer::playFile(std::string filename)
             {
                 printf("[IDTF] %s: Palettes shall not contain more than 256 colors", filename.c_str());
                 result = -1;
+                doFileEndAction(true);
                 break;
             }
 
@@ -369,6 +378,7 @@ int FilePlayer::playFile(std::string filename)
                 {
                     printf("[IDTF] Unexpected end of file: Record %u of %u", i, recordCnt);
                     result = -1;
+                    doFileEndAction(true);
                     break;
                 }
 
@@ -385,6 +395,7 @@ int FilePlayer::playFile(std::string filename)
         {
             printf("[IDTF] %s: formatCode = %d", filename.c_str(), formatCode);
             result = -1;
+            doFileEndAction(true);
             break;
         }
     }
@@ -473,26 +484,7 @@ void FilePlayer::outputLoop()
 
                     if (empty)
                     {
-                        if (mode == FILEPLAYER_MODE_REPEAT)
-                            playFile(currentFile);
-                        else if (mode == FILEPLAYER_MODE_ONCE)
-                            stop();
-                        else if (mode == FILEPLAYER_MODE_NEXT)
-                        {
-                            std::string nextFile = nextAlphabeticalFile(currentFile, false);
-                            if (nextFile.empty())
-                                stop();
-                            else
-                                playFile(nextFile);
-                        }
-                        else if (mode == FILEPLAYER_MODE_SHUFFLE)
-                        {
-                            std::string nextFile = nextRandomFile(currentFile);
-                            if (nextFile.empty())
-                                stop();
-                            else
-                                playFile(nextFile);
-                        }
+                        doFileEndAction(false);
                         continue;
                     }
                 }
@@ -824,5 +816,55 @@ void FilePlayer::parsePrgFile(const std::filesystem::directory_entry& fileEntry)
         }
 
         fileStream.close();
+    }
+}
+
+void FilePlayer::doFileEndAction(bool dontAttemptRepeat)
+{
+    if (mode == FILEPLAYER_MODE_REPEAT)
+    {
+        if (dontAttemptRepeat)
+            stop();
+        else
+            playFile(currentFile); // todo use cache instead of reloading file
+    }
+    else if (mode == FILEPLAYER_MODE_ONCE)
+        stop();
+    else if (mode == FILEPLAYER_MODE_NEXT)
+    {
+        std::string nextFile = nextAlphabeticalFile(currentFile, false);
+        if (getFilename(nextFile) == currentFile)
+        {
+            if (dontAttemptRepeat)
+                stop();
+
+            // todo use cache instead of reloading file
+        }
+        else
+        {
+            if (nextFile.empty())
+                stop();
+            else
+                playFile(nextFile);
+        }
+    }
+    else if (mode == FILEPLAYER_MODE_SHUFFLE)
+    {
+        std::string nextFile = nextRandomFile(currentFile);
+
+        if (getFilename(nextFile) == currentFile)
+        {
+            if (dontAttemptRepeat)
+                stop();
+
+            // todo use cache instead of reloading file
+        }
+        else
+        {
+            if (nextFile.empty())
+                stop();
+            else
+                playFile(nextFile);
+        }
     }
 }
