@@ -109,6 +109,8 @@ enum {
 
 struct io_thread_args {
     unsigned stop;
+    unsigned stopOnlyUserEndpoints;
+    unsigned reopenInEndpoint;
     int fd_int_in, fd_int_out, fd_bulk_out, fd_main;  //host perspective for directions
 };
 
@@ -164,7 +166,7 @@ int verbosity = 1;   //make it configurable
 int txamount = 100;
 int txcounter = 0;
 int rxcounter = 0;
-struct io_thread_args thread_args;
+struct io_thread_args thread_args = { 0, 0, 0, -1, -1, -1, -1};
 __u8 altSetting = 0;
 pthread_t thread_main_ep0;
 
@@ -306,6 +308,21 @@ int usb_gadget_get_string(struct usb_gadget_strings* table, int id, __u8* buf)
 
 int init_usb_gadget()
 {
+    if (thread_args.fd_main > 0)
+    {
+        printf("RESTARTING USB gadget device\n");
+        // already opened, close and then reopen
+        thread_args.stop = 1;
+        close(thread_args.fd_bulk_out);
+        close(thread_args.fd_int_out);
+        close(thread_args.fd_int_in);
+        usleep(50000);
+        close(thread_args.fd_main);
+        thread_args.fd_main = -1;
+        usleep(10000);
+    }
+
+
     int fd = -1, ret, err = -1;
     uint32_t send_size;
     struct usb_config_descriptor config;
@@ -319,6 +336,10 @@ int init_usb_gadget()
     __u16 pid, vid, usbver = 2;
     char sernum[12];
 
+#ifndef NDEBUG
+    verbosity = 2;
+#endif
+
     if (verbosity)
         printf("wug V"VERSION"\n");
 
@@ -326,12 +347,15 @@ int init_usb_gadget()
 
     if (fd <= 0)
     {
-        fprintf(stderr, "Unable to open %s (%m)\n", USB_DEV);
-        fprintf(stderr, "Did you forget to execute this:\n"
+        printf("Unable to open %s (%m)\n", USB_DEV);
+        printf("Did you forget to execute this:\n"
             "mkdir /dev/gadget ; mount -t gadgetfs gadgetfs /dev/gadget\n"
             "?\n");
         return 1;
     }
+
+    // Descriptors are sent as a big char array that must starts by an
+    // uint32_t tag set to 0. All values are expressed in little endian.
 
     *(uint32_t*)init_config = 0;
     cp = &init_config[4];
@@ -430,7 +454,7 @@ int init_usb_gadget()
 
     if (ret != send_size)
     {
-        fprintf(stderr, "Write error %d (%m)\n", ret);
+        printf("Write error %d (%m)\n", ret);
         if (fd != -1)
         {
             close(fd);
@@ -442,6 +466,9 @@ int init_usb_gadget()
             printf("ep0 configured\n");
 
         thread_args.fd_main = fd;
+        thread_args.stop = 0;
+        thread_args.reopenInEndpoint = 0;
+        thread_args.stopOnlyUserEndpoints = 0;
 
         pthread_create(&thread_main_ep0, NULL, handle_ep0_thread, &thread_args);
     }
@@ -450,10 +477,6 @@ int init_usb_gadget()
 }
 
 // The main function. We build the descriptors and send them to ep0. 
-// It's needed to send both low/full speed (USB 1) and high speed (USB 2) configurations. 
-// Here, they are quite the same.
-// Descriptors are sent as a big char array that must starts by an
-// uint32_t tag set to 0. All values are expressed in little endian.
 
 // ep0 function :
 void* handle_ep0_thread(void* arg)
@@ -475,7 +498,7 @@ void* handle_ep0_thread(void* arg)
 
         if (ret < 0)
         {
-            fprintf(stderr, "Read error %d (%m)\n", ret);
+            printf("Read error %d (%m)\n", ret);
             goto end;
         }
 
@@ -506,9 +529,19 @@ void* handle_ep0_thread(void* arg)
                 break;
             case GADGETFS_SUSPEND:    //4
                 //todo: handle suspend
-                //thread_args->stop = 1; // Stopping the threads will crash the system if the program is ever restarted afterwards..
+                //thread_args->stopOnlyUserEndpoints = 1; // Stopping the threads will crash the system if the program is ever restarted afterwards..
+                //close(thread_args->fd_int_out);
+                //thread_args->fd_int_out = -1;
+                //close(thread_args->fd_int_in);
+                //thread_args->fd_int_in = -1;
+                //close(thread_args->fd_bulk_out);
+                //thread_args->fd_bulk_out = -1;
                 if (verbosity)
                     printf("Suspend Request!\n");
+
+                init_usb_gadget();
+                return;
+
             case GADGETFS_NOP:        //0
                 break;
             }
@@ -580,7 +613,7 @@ void handle_setup_request(int fd, struct usb_ctrlrequest* setup)
             // Error 
             if (status < 0)
             {
-                fprintf(stderr, "String not found !!\n");
+                printf("String not found !!\n");
                 break;
             }
             else
@@ -591,13 +624,13 @@ void handle_setup_request(int fd, struct usb_ctrlrequest* setup)
             write(fd, buffer, status);
             return;
         default:
-            fprintf(stderr, "Cannot return descriptor %d\n", (setup->wValue >> 8));
+            printf("Cannot return descriptor %d\n", (setup->wValue >> 8));
         }
         break;
     case USB_REQ_SET_CONFIGURATION:
         if (setup->bRequestType != USB_DIR_OUT)
         {
-            fprintf(stderr, "Bad dir\n");
+            printf("Bad dir\n");
             goto stall;
         }
         switch (setup->wValue)
@@ -630,7 +663,7 @@ void handle_setup_request(int fd, struct usb_ctrlrequest* setup)
             thread_args.stop = 1;
             break;
         default:
-            fprintf(stderr, "Unhandled configuration value %d\n", setup->wValue);
+            printf("Unhandled configuration value %d\n", setup->wValue);
             break;
         }
         // Just ACK
@@ -646,12 +679,29 @@ void handle_setup_request(int fd, struct usb_ctrlrequest* setup)
         altSetting = setup->wValue;
         if (verbosity > 1)
             printf("SET_INTERFACE %d %d\n", setup->wIndex, altSetting);
+
+        if (thread_args.stopOnlyUserEndpoints)
+        {
+            if (thread_args.fd_int_in <= 0)
+            {
+                status = init_ep(&thread_args.fd_int_in, &thread_args.fd_int_out, &thread_args.fd_bulk_out);
+                if (!status)
+                {
+                    thread_args.stopOnlyUserEndpoints = 0;
+                    pthread_create(&threadr, NULL, rx_int_thread, &thread_args);
+                    pthread_create(&threadrbulk, NULL, rx_bulk_thread, &thread_args);
+                    pthread_create(&threadt, NULL, tx_int_thread, &thread_args);
+                }
+            }
+        }
+
         //ioctl(thread_args.fd_int_in, GADGETFS_CLEAR_HALT); // These lines break my program. What do they even do?
         //ioctl(thread_args.fd_int_out, GADGETFS_CLEAR_HALT);
         //ioctl(thread_args.fd_bulk_out, GADGETFS_CLEAR_HALT);
         // ACK
         status = read(fd, &status, 0);
         return;
+
     case WU_VENDOR_CODE:
     {
 
@@ -713,7 +763,7 @@ void handle_setup_request(int fd, struct usb_ctrlrequest* setup)
     }
     }
 stall:
-    fprintf(stderr, "Stalled\n");
+    printf("Stalled\n");
     // Error
     if (setup->bRequestType & USB_DIR_IN)
         read(fd, &status, 0);
@@ -721,28 +771,19 @@ stall:
         write(fd, &status, 0);
 }
 
-
-
-// A bad response within this function can stall the endpoint. Two principle 
-//functions are to send back strings (not managed by driver) and starts/stop io_thread().
-
-// The init_ep() function is pretty simple. It justs sends endpoint descriptors
-// (in low/full and high speed configuration). Like ep0, it must starts with an uint32_t tag of value 1 :
-
-int init_ep(int* fd_int_in, int* fd_int_out, int* fd_bulk_out)
+int init_ep_int_in(int* fd_int_in)
 {
     uint8_t init_config[2048];
     uint8_t* cp;
     int ret = -1;
     uint32_t send_size;
 
-    // Configure ep1 (low/full speed + high speed)
     *fd_int_in = open(USB_EP_INT_IN, O_RDWR);
 
     if (*fd_int_in <= 0)
     {
-        fprintf(stderr, "Unable to open %s (%m)\n", USB_EP_INT_IN);
-        goto end;
+        printf("Unable to open %s (%m)\n", USB_EP_INT_IN);
+        return ret;
     }
 
     *(uint32_t*)init_config = 1;
@@ -756,21 +797,35 @@ int init_ep(int* fd_int_in, int* fd_int_out, int* fd_bulk_out)
 
     if (ret != send_size)
     {
-        fprintf(stderr, "Write error %d (%m)\n", ret);
-        goto end;
+        printf("Write error %d (%m)\n", ret);
+        return ret;
     }
     if (verbosity)
         printf("int in EP configured\n");
 
+    ret = 0;
+    return ret;
+}
 
-    // Configure ep2 (low/full speed + high speed)
+int init_ep_int_out(int* fd_int_out)
+{
+    uint8_t init_config[2048];
+    uint8_t* cp;
+    int ret = -1;
+    uint32_t send_size;
+
+    if (verbosity)
+        printf("init_ep_int_out entered\n");
+
     *fd_int_out = open(USB_EP_INT_OUT, O_RDWR);
 
     if (*fd_int_out <= 0)
     {
-        fprintf(stderr, "Unable to open %s (%m)\n", USB_EP_INT_OUT);
-        goto end;
+        printf("Unable to open %s (%m)\n", USB_EP_INT_OUT);
+        return ret;
     }
+    else if (verbosity)
+        printf("fd_int_out opened\n");
 
     *(uint32_t*)init_config = 1;
     cp = &init_config[4];
@@ -778,25 +833,37 @@ int init_ep(int* fd_int_in, int* fd_int_out, int* fd_bulk_out)
     FETCH(ep_descriptor_int_out);
     FETCH(ep_descriptor_int_out);
 
+    if (verbosity)
+        printf("init_ep_int_out write start\n");
+
     send_size = (uint32_t)cp - (uint32_t)init_config;
     ret = write(*fd_int_out, init_config, send_size);
 
     if (ret != send_size)
     {
-        fprintf(stderr, "Write error %d (%m)\n", ret);
-        goto end;
+        printf("Write error %d (%m)\n", ret);
+        return ret;
     }
     if (verbosity)
         printf("int out EP configured\n");
 
+    ret = 0;
+    return ret;
+}
 
-    // Configure ep3 (low/full speed + high speed)
+int init_ep_bulk_out(int* fd_bulk_out)
+{
+    uint8_t init_config[2048];
+    uint8_t* cp;
+    int ret = -1;
+    uint32_t send_size;
+
     *fd_bulk_out = open(USB_EP_BULK_OUT, O_RDWR);
 
     if (*fd_bulk_out <= 0)
     {
-        fprintf(stderr, "Unable to open %s (%m)\n", USB_EP_BULK_OUT);
-        goto end;
+        printf("Unable to open %s (%m)\n", USB_EP_BULK_OUT);
+        return ret;
     }
 
     *(uint32_t*)init_config = 1;
@@ -810,11 +877,35 @@ int init_ep(int* fd_int_in, int* fd_int_out, int* fd_bulk_out)
 
     if (ret != send_size)
     {
-        fprintf(stderr, "Write error %d (%m)\n", ret);
-        goto end;
+        printf("Write error %d (%m)\n", ret);
+        return ret;
     }
     if (verbosity)
         printf("bulk out EP configured\n");
+
+    ret = 0;
+    return ret;
+}
+
+
+// A bad response within this function can stall the endpoint. Two principle 
+//functions are to send back strings (not managed by driver) and starts/stop io_thread().
+
+// The init_ep() function is pretty simple. It justs sends endpoint descriptors
+// (in low/full and high speed configuration). Like ep0, it must starts with an uint32_t tag of value 1 :
+
+int init_ep(int* fd_int_in, int* fd_int_out, int* fd_bulk_out)
+{
+
+    int ret = init_ep_int_in(fd_int_in);
+    if (ret)
+        goto end;
+    ret = init_ep_int_out(fd_int_out);
+    if (ret)
+        goto end;
+    ret = init_ep_bulk_out(fd_bulk_out);
+    if (ret)
+        goto end;
 
     ret = 0;
 
@@ -848,9 +939,9 @@ void* rx_int_thread(void* arg)
         max_read_fd = thread_args->fd_int_out;
 
     if (verbosity > 1)
-        fprintf(stderr, "Starting rx_int_thread\n");
+        printf("Starting rx_int_thread\n");
 
-    while (!thread_args->stop)
+    while (!thread_args->stop && !thread_args->stopOnlyUserEndpoints)
     {
         FD_ZERO(&read_set);
         FD_SET(thread_args->fd_int_out, &read_set);
@@ -858,13 +949,13 @@ void* rx_int_thread(void* arg)
         timeout.tv_usec = 30000; // 30ms
 
         if (verbosity > 1)
-            fprintf(stderr, "Starting select\n");
+            printf("Starting select\n");
 
         memset(buffer, 0, sizeof(buffer));
         ret = select(max_read_fd + 1, &read_set, NULL, NULL, NULL);//&timeout);
 
         if (verbosity > 1)
-            fprintf(stderr, "Select returned: %d(%m)\n", ret);
+            printf("Select returned: %d\n", ret);
 
         // Timeout
         if (ret == 0)
@@ -873,12 +964,12 @@ void* rx_int_thread(void* arg)
         // Error
         if (ret < 0)
         {
-            fprintf(stderr, "Select ERROR in rx_int_thread\n");
+            printf(stderr, "Select ERROR in rx_int_thread\n");
             break;
         }
 
         if (verbosity > 1)
-            fprintf(stderr, "Starting read\n");
+            printf("Starting read\n");
 
         ret = read(thread_args->fd_int_out, buffer, sizeof(buffer));
 
@@ -894,12 +985,20 @@ void* rx_int_thread(void* arg)
         }
         else
         {
-            fprintf(stderr, "Read ERROR %d(%m)\n", ret);
-            //todo: put a sleep here
+            printf("Read ERROR %d\n", ret);
+
+            /*close(thread_args->fd_int_out);
+            thread_args->fd_int_out = -1;
+            init_ep_int_out(thread_args->fd_int_out);
+            thread_args->reopenInEndpoint = 1;
+            */
+            struct timespec delay, dummy; // Prevents hogging 100% CPU use in case of stuck error state
+            delay.tv_sec = 0;
+            delay.tv_nsec = 200000;
+            nanosleep(&delay, &dummy);
         }
     }
     close(thread_args->fd_int_out);
-
     thread_args->fd_int_out = -1;
 
     return NULL;
@@ -926,9 +1025,9 @@ void* rx_bulk_thread(void* arg)
         max_read_fd = thread_args->fd_bulk_out;
 
     if (verbosity > 1)
-        fprintf(stderr, "Starting rx_bulk_thread\n");
+        printf("Starting rx_bulk_thread\n");
 
-    while (!thread_args->stop)
+    while (!thread_args->stop && !thread_args->stopOnlyUserEndpoints)
     {
         FD_ZERO(&read_set);
         FD_SET(thread_args->fd_bulk_out, &read_set);
@@ -936,13 +1035,13 @@ void* rx_bulk_thread(void* arg)
         timeout.tv_usec = 20000; // 20ms
 
         //if (verbosity > 1)
-        //    fprintf(stderr, "Starting bulk select\n");
+        //    printf("Starting bulk select\n");
 
         memset(buffer, 0, sizeof(buffer));
         ret = select(max_read_fd + 1, &read_set, NULL, NULL, &timeout);
 
         //if (verbosity > 1)
-        //    fprintf(stderr, "Select returned: %d(%m)\n", ret);
+        //    printf("Select returned: %d\n", ret);
 
         // Timeout
         if (ret == 0)
@@ -951,12 +1050,12 @@ void* rx_bulk_thread(void* arg)
         // Error
         if (ret < 0)
         {
-            fprintf(stderr, "Select ERROR");
+            printf("Select ERROR");
             break;
         }
 
         if (verbosity > 1)
-            fprintf(stderr, "Starting bulk read\n");
+            printf("Starting bulk read\n");
 
         struct timespec now, then;
         unsigned long sdif, nsdif, tdif;
@@ -981,12 +1080,18 @@ void* rx_bulk_thread(void* arg)
         }
         else
         {
-            fprintf(stderr, "Read ERROR in rx_bulk_thread, %d(%m)\n", ret);
-            //todo: put a sleep here
+            printf("Read ERROR in rx_bulk_thread, %d\n", ret);
+            /*close(thread_args->fd_bulk_out);
+            thread_args->fd_bulk_out = -1;
+            init_ep_bulk_out(thread_args->fd_bulk_out);*/
+
+            struct timespec delay, dummy; // Prevents hogging 100% CPU use in case of stuck error state
+            delay.tv_sec = 0;
+            delay.tv_nsec = 200000;
+            nanosleep(&delay, &dummy);
         }
     }
     close(thread_args->fd_bulk_out);
-
     thread_args->fd_bulk_out = -1;
 
     return NULL;
@@ -1007,7 +1112,7 @@ void* tx_int_thread(void* arg)
     //if (thread_args->fd_int_in > max_write_fd)
     //    max_write_fd = thread_args->fd_int_in;
 
-    while (!thread_args->stop)
+    while (!thread_args->stop && !thread_args->stopOnlyUserEndpoints)
     {
         if (txSize == 0)
         {
@@ -1018,6 +1123,15 @@ void* tx_int_thread(void* arg)
 
             continue;
         }
+
+        /*if (thread_args->reopenInEndpoint)
+        {
+            printf("Reopening int in endpoint after error!\n");
+            close(thread_args->fd_int_in);
+            thread_args->fd_int_in = -1;
+            init_ep_int_in(thread_args->fd_int_in);
+            thread_args->reopenInEndpoint = 0;
+        }*/
 
         fd_set write_set;
         int max_write_fd = 0;
@@ -1037,7 +1151,7 @@ void* tx_int_thread(void* arg)
         if (ret < 0)
         {
             if (verbosity)
-                fprintf(stderr, "select ERROR in int msg response %d!\n", ret);
+                printf("select ERROR in int msg response %d!\n", ret);
         }
         else
         {
@@ -1104,8 +1218,7 @@ int send_interrupt_msg_response(size_t numBytes, unsigned char* buffer)
     memcpy(txBuffer, buffer, numBytes);
     txSize = numBytes;
 
-    // was previously in tx_int_thread: 
-    
+    return 0;
 }
 
 //eof
