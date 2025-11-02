@@ -42,6 +42,7 @@
 
 // Module header
 #include "IDNServer.hpp"
+#include "../hardware/Helios/HeliosAdapter.hpp"
 
 
 
@@ -1152,9 +1153,15 @@ void IDNServer::processCommand(ODF_ENV *env, RECV_COOKIE *cookie, ODF_TAXI_BUFFE
             unsigned relayCount = 0, serviceCount = 0;
             IDNHDR_SERVICEMAP_ENTRY relayTable[0xFF];
             IDNHDR_SERVICEMAP_ENTRY serviceTable[0xFF];
+
+            HeliosAdapter::updateDeviceList();
+
             for(LLNode<ServiceNode> *node = firstService; node != (LLNode<ServiceNode> *)0; node = node->getNextNode())
             {
                 IDNService *service = static_cast<IDNService *>(node);
+
+                if (!service->isActive)
+                    continue;
 
                 if(serviceCount >= 0xFF)
                 {

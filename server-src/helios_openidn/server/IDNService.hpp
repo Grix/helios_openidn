@@ -141,6 +141,7 @@ class IDNService: public LLNode<ServiceNode>
 
     virtual uint8_t getServiceType() = 0;
     virtual int copyServiceName(char *bufferPtr, unsigned bufferSize);
+    virtual int setServiceName(char *bufferPtr, unsigned bufferSize);
 
     virtual bool handlesMode(uint8_t serviceMode);
     virtual IDNInlet *requestInlet(ODF_ENV *env, uint8_t serviceMode) = 0;
@@ -151,8 +152,9 @@ class IDNService: public LLNode<ServiceNode>
     // -- Inline Methods ----------------
     uint8_t getServiceID() { return serviceID; }
     bool isDefaultService() { return defaultServiceFlag; }
+
+    bool isActive;
 };
 
 
 #endif
-

@@ -38,6 +38,7 @@ class HWBridge
     double bufferTargetMs = 40;
     double accumOC = 0.0;
     bool hasUnderrun = false;
+    bool hasStopped = true;
 
     //stats
     int debug = NODEBUG;

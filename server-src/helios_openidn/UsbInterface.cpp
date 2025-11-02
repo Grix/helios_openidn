@@ -128,7 +128,6 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
         unsigned char status = 0;
         if (management->devices.size() > 0)
         {
-            //if (!management->devices.front()->getIsBusy())
             std::lock_guard<std::mutex> lock(threadLock);
             if (queue.size() <= 1)
             {
@@ -145,11 +144,6 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
                 //printf("status %d, buffer dur %f size %d\n", status, bufferDurationSeconds, queue.size());
             }
         }
-        /*if (management->outputs.size() > 0)
-        {
-            if (!management->outputs.front()->hasBufferedFrame()) //
-                status = 1;
-        }*/
 
         unsigned char response[2];
         response[0] = 0x83;
@@ -229,7 +223,7 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
     //management->devices.front()->bex->setMode(DRIVER_FRAMEMODE);
 
     unsigned int pps = (buffer[numOfPointBytes + 1] << 8) | buffer[numOfPointBytes + 0];
-    unsigned int flags = buffer[numOfPointBytes + 4];
+    unsigned int flags = buffer[numOfPointBytes + 4]; // todo implement looping etc
     unsigned int numPoints = numOfPointBytes / 7;
 
 #ifndef NDEBUG

@@ -1,8 +1,14 @@
 #include "HeliosAdapter.hpp"
 
 bool HeliosAdapter::isInitialized = false;
-HeliosDac HeliosAdapter::helios; 
 int HeliosAdapter::numHeliosDevices = 0;
+int HeliosAdapter::indexFirstDevice = -1;
+int HeliosAdapter::indexSecondDevice = -1;
+IDNLaproService* HeliosAdapter::serviceFirstDevice = NULL;
+IDNLaproService* HeliosAdapter::serviceSecondDevice = NULL;
+bool HeliosAdapter::firstServiceIsAlwaysVisible = false;
+HeliosDac HeliosAdapter::helios;
+
 
 void HeliosAdapter::initialize() {
     if (isInitialized) {
@@ -11,6 +17,8 @@ void HeliosAdapter::initialize() {
     }
 
     numHeliosDevices = helios.OpenDevices();
+
+	refreshDacReferences(numHeliosDevices);
 
 	if(numHeliosDevices == 0) {
 		printf("No Helios device found!\n");
@@ -67,10 +75,21 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 	isBusy = true;
 
 	// This will be left in for now, unique hotplugging 1:1 scenario, technically outdated
-	if (!getHeliosConnected())
-	{
-		numHeliosDevices = helios.OpenDevices(); // For hot-plugging
-	}
+	//if (!getHeliosConnected())
+	//{
+	//	numHeliosDevices = helios.OpenDevices(); // For hot-plugging
+	//}
+
+	int heliosId;
+	if (this->id == 0)
+		heliosId = indexFirstDevice;
+	else if (this->id == 0)
+		heliosId = indexSecondDevice;
+	else
+		heliosId = this->id;
+
+	if (heliosId < 0)
+		return -1;
 
 	struct timespec now, then;
 	unsigned long sdif, nsdif, tdif;
@@ -84,44 +103,47 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 		framePointRate = (unsigned)((1000000.0*(double)data.size()) / (duration*(double)sizeof(HeliosPoint)));
 	}
 	
-	if (framePointRate <= HELIOS_MAX_RATE)
+	if (framePointRate <= HELIOS_MAX_PPS)
 	{
 		int status = 0;
 
-		if (getHeliosConnected())
+		while (true)
 		{
-			while (true)
-			{
-				status = helios.GetStatus(this->id);
-				if (status == 1)
-					break;
-
-				if (status < 0)
-				{
-					printf("Error checking Helios status: %d\n", status);
-					checkConnection();
-					break;
-				}
-				else
-					this->connectionRetries = 50;
-			}
-
-			//printf("Sent hel frame: samples %d, pps %d\n", numPoints, framePointRate);
-
-			status = helios.WriteFrame(this->id
-				, framePointRate
-				, this->heliosFlags, (HeliosPoint*)&data.front()
-				, numPoints);
+			status = helios.GetStatus(heliosId);
+			if (status == 1)
+				break;
 
 			if (status < 0)
 			{
-				printf("Error writing Helios frame: %d\n", status);
-				checkConnection();
-
+				printf("Error checking Helios status: %d\n", status);
+				if (status == HELIOS_ERROR_DEVICE_CLOSED)
+				{
+					if (this->id == 0)
+						indexFirstDevice = -1;
+					else if (this->id == 1)
+						indexSecondDevice = -1;
+				}
+				break;
 			}
-			else
-				this->connectionRetries = 50;
-		
+		}
+
+		//printf("Sent hel frame: samples %d, pps %d\n", numPoints, framePointRate);
+
+		status = helios.WriteFrame(heliosId
+			, framePointRate
+			, this->heliosFlags, (HeliosPoint*)&data.front()
+			, numPoints);
+
+		if (status < 0)
+		{
+			printf("Error writing Helios frame: %d\n", status);
+			if (status == HELIOS_ERROR_DEVICE_CLOSED)
+			{
+				if (this->id == 0)
+					indexFirstDevice = -1;
+				else if (this->id == 1)
+					indexSecondDevice = -1;
+			}
 		}
 	}
 	else
@@ -184,10 +206,19 @@ void HeliosAdapter::setMaxPointrate(unsigned newRate) {
 
 void HeliosAdapter::getName(char *nameBufferPtr, unsigned nameBufferSize)
 {
+	int heliosId;
+	if (this->id == 0)
+		heliosId = indexFirstDevice;
+	else if (this->id == 0)
+		heliosId = indexSecondDevice;
+	else
+		heliosId = this->id;
+
 	char heliosName[32];
-	if (getHeliosConnected())
+	if (heliosId >= 0)
 	{
-		helios.GetName(this->id, heliosName);
+		if (helios.GetName(this->id, heliosName) != HELIOS_SUCCESS)
+			strcpy(heliosName, "[Unknown Helios]");
 	}
 	else
 		strcpy(heliosName, "[Missing Helios]");
@@ -202,10 +233,67 @@ bool HeliosAdapter::getHeliosConnected()
 	//return helios.GetStatus(this->id);
 }
 
+void HeliosAdapter::updateDeviceList()
+{
+	int listSize = helios.ReScanDevices();
+
+	refreshDacReferences(listSize);
+}
+
 /*bool HeliosAdapter::getIsBusy()
 {
 	return false;
 }*/
+
+void HeliosAdapter::refreshDacReferences(unsigned int numDevices)
+{
+#ifndef NDEBUG
+	printf("Refreshing Helios references. %d, %d\n", indexFirstDevice, indexSecondDevice);
+#endif
+
+	if (indexFirstDevice >= numDevices)
+		indexFirstDevice = -1;
+	if (indexFirstDevice >= 0 && helios.GetIsClosed(indexFirstDevice))
+		indexFirstDevice = -1;
+	if (indexSecondDevice >= numDevices)
+		indexSecondDevice = -1;
+	if (indexSecondDevice >= 0 && helios.GetIsClosed(indexSecondDevice))
+		indexSecondDevice = -1;
+
+#ifndef NDEBUG
+	printf("After clean. %d, %d\n", indexFirstDevice, indexSecondDevice);
+#endif
+
+	for (int i = 0; i < numDevices; i++)
+	{
+		if (indexFirstDevice == -1 && indexSecondDevice != i)
+		{
+			if (!helios.GetIsClosed(i))
+			{
+				indexFirstDevice = i;
+				char name[32];
+				helios.GetName(indexFirstDevice, name);
+				printf("Adding Helios 1 reference. %d\n", indexFirstDevice);
+				if (serviceFirstDevice != NULL)
+					serviceFirstDevice->setServiceName(name, strlen(name));
+			}
+		}
+		else if (indexSecondDevice == -1 && indexFirstDevice != i && !helios.GetIsClosed(i))
+		{
+			indexSecondDevice = i;
+			char name[32];
+			helios.GetName(indexFirstDevice, name);
+			printf("Adding Helios 2 reference. %d\n", indexSecondDevice);
+			if (serviceSecondDevice != NULL)
+				serviceSecondDevice->setServiceName(name, strlen(name));
+		}
+	}
+
+	if (serviceFirstDevice != NULL)
+		serviceFirstDevice->isActive = firstServiceIsAlwaysVisible || indexFirstDevice >= 0;
+	if (serviceSecondDevice != NULL)
+		serviceSecondDevice->isActive = indexSecondDevice >= 0;
+}
 
 void HeliosAdapter::checkConnection()
 {

@@ -198,7 +198,7 @@ std::map<std::string, ServiceConfig> readServicesIni(const std::string& filename
     return servicesConfig;
 }
 
-void createLaProService(std::shared_ptr<DACHWInterface> adapter, const std::string& name, const int id,
+IDNLaproService* createLaProService(std::shared_ptr<DACHWInterface> adapter, const std::string& name, const int id, const bool isDefaultService,
 std::optional<int> maxPointRate = std::nullopt, std::optional<int> bufferTargetMs = std::nullopt, std::optional<int> chunkLengthUs = std::nullopt) {
 
     if(maxPointRate) {
@@ -226,13 +226,18 @@ std::optional<int> maxPointRate = std::nullopt, std::optional<int> bufferTargetM
 
     char* serviceName = strdup(name.c_str());
 
-    auto laproService = new IDNLaproService(id, serviceName, true, laproGraphicOut);
+#ifndef NDEBUG
+    printf("Creating service %s ID %d, default %d\n", serviceName, id, isDefaultService);
+#endif
+    auto laproService = new IDNLaproService(id, serviceName, isDefaultService, laproGraphicOut);
 
     laproService->linkinLast(&firstService);
 
     management->devices.push_back(adapter);
     management->outputs.push_back(laproGraphicOut);
     management->driverBridges.push_back(driverObj);
+
+    return laproService;
 }
 
 void* managementThreadFunction(void* args) {
@@ -283,7 +288,7 @@ int parseArguments(int argc, char** argv) {
                         for(const auto& [name, id] : available) {
                             int serviceID = 1;
                             for(LLNode<ServiceNode> *node = firstService; node != nullptr; node = node->getNextNode()) serviceID++;
-                            createLaProService(std::make_shared<HeliosAdapter>(id), name, serviceID);
+                            createLaProService(std::make_shared<HeliosAdapter>(id), name, serviceID, true);
                             printf("Started Helios device: %s \n", name.c_str());
                         }
                     } else {
@@ -370,7 +375,7 @@ int parseArguments(int argc, char** argv) {
                     std::optional<int> bufferTargetMs = (config.bufferTargetMs != -1) ? std::make_optional(config.bufferTargetMs) : std::nullopt;
                     std::optional<int> chunkLengthUs = (config.chunkLengthUs != -1) ? std::make_optional(config.chunkLengthUs) : std::nullopt;
 
-                    createLaProService(dachw, serviceNameCStr, config.serviceID, maxPointRate, bufferTargetMs, chunkLengthUs);
+                    createLaProService(dachw, serviceNameCStr, config.serviceID, config.serviceID == 1, maxPointRate, bufferTargetMs, chunkLengthUs);
 
 
                     printf("Added service [%s] with serviceID: %d using %s adapter\n",
@@ -449,41 +454,57 @@ int parseArguments(int argc, char** argv) {
         // ------------------------------------------------------------------
 
         //#ifdef INCLUDE_HELIOS
-        if (strcmp(argv[i], "--helios") == 0) {
-            try {
-                HeliosAdapter::initialize();
-                std::map<std::string, int> available = HeliosAdapter::getAvailableDevices();
+        if (strcmp(argv[i], "--helios") == 0 || strcmp(argv[i], "--heliospro") == 0) {
+        
+            bool isHeliosPro = (management->getHardwareType() == HARDWARE_ROCKS0) && (strcmp(argv[i], "--heliospro") == 0);
 
-                if (available.empty()) {
-                    printf("No Helios devices available!\n");
-                    return -1;
-                }
-
-                printf("Using the Helios driver, device: %s\n", available.begin()->first.c_str());
-                createLaProService(std::make_shared<HeliosAdapter>(available.begin()->second), available.begin()->first, 1);
-            } catch (const std::exception &e) {
-                printf("Helios driver error: %s\n", e.what());
-                return -1;
-            }
-            continue;
-        }
-
-        if (management->getHardwareType() == HARDWARE_ROCKS0)
-        {
-            if (strcmp(argv[i], "--heliospro") == 0) {
+            if (isHeliosPro)
+            {
                 try {
                     printf("Using the HeliosPRO driver\n");
                     auto device = std::make_shared<HeliosProAdapter>();
                     char name[32];
                     device->getName(name, 32);
-                    createLaProService(device, std::string(name), 1);
+                    createLaProService(device, std::string(name), 1, true);
                 }
                 catch (const std::exception& e) {
                     printf("HeliosPRO driver error: %s\n", e.what());
+                    //
+                }
+            }
+            else
+                HeliosAdapter::setFirstServiceIsAlwaysVisible();
+
+            try {
+                HeliosAdapter::initialize();
+                //std::map<std::string, int> available = HeliosAdapter::getAvailableDevices();
+
+                printf("Using the Helios driver, creating two placeholder services.\n");
+
+                char heliosName[32] = { 0 };
+                auto heliosAdapter = std::make_shared<HeliosAdapter>(0);
+                heliosAdapter->getName(heliosName, 32);
+                HeliosAdapter::setFirstDeviceService( createLaProService(heliosAdapter, heliosName, isHeliosPro ? 2 : 1, !isHeliosPro) );
+                heliosAdapter = std::make_shared<HeliosAdapter>(1);
+                memset(heliosName, 0, 32);
+                heliosAdapter->getName(heliosName, 32);
+                HeliosAdapter::setSecondDeviceService( createLaProService(heliosAdapter, heliosName, isHeliosPro ? 3 : 2, false) );
+                //createLaProService(std::make_shared<HeliosAdapter>(available.begin()->second), available.begin()->first, 1);
+
+                /*if (available.empty()) {
+                    printf("No Helios devices available!\n");
                     return -1;
                 }
-                continue;
+                else
+                {
+                    printf("Using the Helios driver, device: %s\n", available.begin()->first.c_str());
+                    createLaProService(std::make_shared<HeliosAdapter>(available.begin()->second), available.begin()->first, 1);
+                }*/
+            } catch (const std::exception &e) {
+                printf("Helios driver error: %s\n", e.what());
+                return -1;
             }
+            continue;
         }
 
         //#endif
@@ -492,7 +513,7 @@ int parseArguments(int argc, char** argv) {
         //#ifdef INCLUDE_DUMMY
         if (strcmp(argv[i], "--dummy") == 0) {
             printf("Using the Dummy driver, device: Dummy\n");
-            createLaProService(std::make_shared<DummyAdapter>(), "Dummy", 1);
+            createLaProService(std::make_shared<DummyAdapter>(), "Dummy", 1, true);
             continue;
         }
         //#endif
@@ -573,7 +594,7 @@ int parseArguments(int argc, char** argv) {
                 auto device = std::make_shared<HeliosProAdapter>();
                 char name[32];
                 device->getName(name, 32);
-                createLaProService(device, std::string(name), 1);
+                createLaProService(device, std::string(name), 1, true);
             }
             catch (const std::exception& e) {
                 printf("HeliosPRO driver error: %s\n", e.what());
@@ -591,7 +612,7 @@ int parseArguments(int argc, char** argv) {
                     printf("No Helios devices available!\n");
                     return -1;
                 }
-                createLaProService(std::make_shared<HeliosAdapter>(available.begin()->second), available.begin()->first, 1);
+                createLaProService(std::make_shared<HeliosAdapter>(available.begin()->second), available.begin()->first, 1, true);
             }
             catch (const std::exception& e) {
                 printf("Helios driver error: %s\n", e.what());

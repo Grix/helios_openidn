@@ -49,11 +49,6 @@ class DACHWInterface: public LaproAdapter
 	virtual unsigned maxPointrate() = 0;
 	virtual void setMaxPointrate(unsigned) = 0;
 
-    /*virtual bool getIsBusy()
-    {
-        return true;
-    }*/
-
 
     // -----------------------------------------------------
 

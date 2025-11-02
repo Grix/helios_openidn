@@ -469,11 +469,6 @@ void HeliosProAdapter::setMaxPointrate(unsigned newRate)
 	this->maximumPointrate = newRate;
 }
 
-/*bool HeliosProAdapter::getIsBusy()
-{
-	return isBusy;
-}*/
-
 void HeliosProAdapter::getName(char* nameBufferPtr, unsigned nameBufferSize) {
 	snprintf(nameBufferPtr, nameBufferSize, "Main");
 }

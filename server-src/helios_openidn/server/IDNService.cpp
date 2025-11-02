@@ -207,6 +207,7 @@ IDNService::IDNService(uint8_t serviceID, char *serviceName, bool defaultService
     this->serviceID = serviceID;
     this->serviceName = (serviceName == (char *)0) ? (char *)0 : strdup(serviceName);
     this->defaultServiceFlag = defaultServiceFlag;
+    this->isActive = true;
 }
 
 
@@ -226,6 +227,18 @@ int IDNService::copyServiceName(char *bufferPtr, unsigned bufferSize)
     uint8_t *src = (uint8_t *)serviceName;
     for(; (len < bufferSize) && (*src != 0); len++) *dst++ = *src++;
     if(len < bufferSize) *dst = 0;
+
+    return len;
+}
+
+int IDNService::setServiceName(char* bufferPtr, unsigned bufferSize)
+{
+    // Populate destination buffer. Note: Not '\0' terminated.
+    unsigned len = 0;
+    uint8_t* dst = (uint8_t*)serviceName;
+    uint8_t* src = (uint8_t*)bufferPtr;
+    for (; (len < bufferSize) && (*src != 0); len++) *dst++ = *src++;
+    if (len < bufferSize) *dst = 0;
 
     return len;
 }

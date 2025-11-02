@@ -338,7 +338,9 @@ int FilePlayer::playFile(std::string filename)
                 }
                 chunksInFrame.push_back(chunk);
 
+#ifndef NDEBUG
                 printf("Played chunk from file %s\n", filename.c_str());
+#endif
             }
 
             for (int repetition = 1; repetition < parameters.numRepetitions; repetition++)
@@ -448,14 +450,15 @@ void FilePlayer::outputLoop()
                 continue;
             }
 
-            // todo check timing
-            //if (!devices->front()->getIsBusy())//hasBufferedFrame())
+
             {
                 std::shared_ptr<QueuedChunk> frame;
                 {
                     std::lock_guard<std::mutex> lock(threadLock);
                     frame = queue.front();
                     queue.pop_front();
+                    if (mode == FILEPLAYER_MODE_REPEAT)
+                        queue.push_back(frame);
                 }
 
                 unsigned int numOfPoints = frame->buffer.size();

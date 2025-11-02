@@ -139,10 +139,10 @@ void HWBridge::driverLoop()
 			if (!hasUnderrun)
 				printf("Underrun\n");
 			hasUnderrun = true;
-			struct timespec delay, dummy; // Prevents hogging 100% CPU use when idle
+			/*struct timespec delay, dummy; // Prevents hogging 100% CPU use when idle
 			delay.tv_sec = 0;
 			delay.tv_nsec = 500000; //0.5ms
-			nanosleep(&delay, &dummy);
+			nanosleep(&delay, &dummy);*/
 
 			if (driverMode == DRIVER_INACTIVE)
 			{
@@ -152,10 +152,12 @@ void HWBridge::driverLoop()
 				this->accumOC = 0;
 				struct timespec delay, dummy; // Prevents hogging 100% CPU use when idle
 				delay.tv_sec = 0;
-				delay.tv_nsec = 2000000; //2ms
+				delay.tv_nsec = 3000000; //3ms
 				nanosleep(&delay, &dummy);
 
-				management->stopOutput(OUTPUT_MODE_IDN);
+				if (!hasStopped)
+					management->stopOutput(OUTPUT_MODE_IDN);
+				hasStopped = true;
 			}
 			else
 				std::this_thread::yield();
@@ -187,6 +189,7 @@ void HWBridge::driverLoop()
 
 				continue;
 			}
+			hasStopped = false;
 
 			//if we're in frame mode, put the slice back
 			//wave mode just discards
