@@ -7,7 +7,7 @@
 
 FilePlayer filePlayer;
 
-#define UDP_MAXBUF 128
+#define UDP_MAXBUF 8192
 
 
 
@@ -90,9 +90,15 @@ void ManagementInterface::runStartup()
 	if (filePlayer.autoplay)
 	{
 		if (filePlayer.currentFile.empty() || !std::filesystem::exists(filePlayer.currentFile))
+		{
+			printf("Autoplaying undetermined ild file\n");
 			filePlayer.playFile("");
+		}
 		else
+		{
+			printf("Autoplaying ild file: %s\n", filePlayer.currentFile.c_str());
 			filePlayer.playFile(filePlayer.currentFile);
+		}
 	}
 }
 
@@ -286,8 +292,8 @@ void ManagementInterface::readSettingsFile()
 void ManagementInterface::networkLoop(int sd) {
 	unsigned int len;
 	int num_bytes;
-	char buffer_in[UDP_MAXBUF];
 	struct sockaddr_in remote;
+	char buffer_in[UDP_MAXBUF];
 
 	len = sizeof(remote);
 
@@ -347,6 +353,48 @@ void ManagementInterface::networkLoop(int sd) {
 							continue;
 						}
 					}
+				}
+				else if (buffer_in[1] == 0x4)
+				{
+					// Got get settings file command, respond
+					char responseBuffer[UDP_MAXBUF] = { 0xE6, 0x4, 0, 1 };
+					size_t msgSize = 4;
+
+					try
+					{
+						std::ifstream file(settingsPath);
+						if (!file.is_open())
+						{
+							printf("WARNING: Could not find/open main settings file during get settings file command.\n");
+							responseBuffer[2] = 0;
+							responseBuffer[3] = 2;
+							msgSize = 4;
+						}
+						else
+						{
+							std::stringstream buffer;
+							buffer << file.rdbuf();
+							std::string settingsString = buffer.str();
+							size_t settingsStringLength = settingsString.length() + 1;
+							if (settingsStringLength > UDP_MAXBUF - 2)
+							{
+								settingsStringLength = UDP_MAXBUF - 3;
+								responseBuffer[UDP_MAXBUF - 1] = '\0';
+							}
+							strncpy(responseBuffer + 2, settingsString.c_str(), settingsStringLength);
+							msgSize = 2 + settingsStringLength;
+						}
+					}
+					catch (std::exception ex)
+					{
+						printf("WARNING: Other error during get settings file command: %s.\n", ex.what());
+						responseBuffer[2] = 0;
+						responseBuffer[3] = 3;
+						msgSize = 4;
+					}
+
+					sendto(sd, &responseBuffer, msgSize, 0, (struct sockaddr*)&remote, len);
+					continue;
 				}
 			}
 		}

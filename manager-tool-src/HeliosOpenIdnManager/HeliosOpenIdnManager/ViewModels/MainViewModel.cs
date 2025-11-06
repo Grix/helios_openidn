@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using IniParser;
 using IniParser.Model;
+using IniParser.Parser;
 using Material.Icons.Avalonia;
 using Renci.SshNet;
 using Renci.SshNet.Sftp;
@@ -15,8 +16,9 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Mail;
+using System.Net.Sockets;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -185,20 +187,59 @@ namespace HeliosOpenIdnManager.ViewModels
         [RelayCommand]
         public void LoadCurrentConfig()
         {
-            LoadDefaultConfig();
-
             var server = Servers[SelectedServerIndex];
 
             try
             {
-                using var scpClient = HeliosOpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
-                scpClient.Connect();
+                // Try to get settings via UDP socket first
+                bool success = false;
+                try
+                {
+                    using var udpClient = new UdpClient();
+                    var data = new byte[] { 0xE5, 0x4 };
+                    udpClient.Client.ReceiveTimeout = 500;
+                    udpClient.Client.SendTimeout = 500;
 
-                using var settingsStream = new MemoryStream();
-                scpClient.Download("/home/laser/openidn/settings.ini", settingsStream);
-                settingsStream.Position = 0;
-                using var reader = new StreamReader(settingsStream);
-                rawSettings = new StreamIniDataParser().ReadData(reader);
+                    var sendAddress = new IPEndPoint(server.ServerInfo.IpAddress, 7355);
+                    udpClient.Send(data, data.Length, sendAddress);
+
+                    var receiveAddress = new IPEndPoint(IPAddress.Any, sendAddress.Port);
+                    var receivedData = udpClient.Receive(ref receiveAddress);
+
+                    if (receivedData is not null && receivedData.Length > 4 && receivedData[0] == 0xE5 + 1 && receivedData[1] == 0x4)
+                    {
+                        receivedData[receivedData.Length - 1] = 0;
+                        var settings = Encoding.UTF8.GetString(receivedData, 2, receivedData.Length - 2);
+                        //var stream = new MemoryStream();
+                        //stream.Write(receivedData, 2, receivedData.Length - 2);
+                        //using var reader = new StreamReader(stream);
+                        //rawSettings = new StreamIniDataParser().ReadData(reader);
+                        //var tempPath = Path.GetTempFileName();
+                        //File.WriteAllText(tempPath, settings);
+                        //rawSettings = new FileIniDataParser().ReadFile(tempPath);
+                        var parser = new IniDataParser();
+                        parser.Configuration.SkipInvalidLines = true;
+                        rawSettings = parser.Parse(settings);
+                        success = true;
+                    }
+                }
+                catch { }
+
+                // Use SCP transfer to get settings file if UDP socket fails
+                if (!success)
+                {
+                    using var scpClient = HeliosOpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
+                    scpClient.Connect();
+
+                    using var settingsStream = new MemoryStream();
+                    scpClient.Download("/home/laser/openidn/settings.ini", settingsStream);
+                    settingsStream.Position = 0;
+                    using var reader = new StreamReader(settingsStream);
+                    rawSettings = new StreamIniDataParser().ReadData(reader);
+                }
+
+                if (rawSettings == null)
+                    throw new Exception("No settings");
 
                 var ethernetIpAddr = rawSettings["network"]["ethernet_ip_addresses"] ?? "";
                 if (ethernetIpAddr == "auto")
@@ -234,18 +275,36 @@ namespace HeliosOpenIdnManager.ViewModels
 
                 if (uint.TryParse((rawSettings["mode_priority"]["idn"] ?? "").Trim('"'), out uint idnModePriority))
                     NetworkModePriority = (int)idnModePriority;
+                else
+                    NetworkModePriority = 4;
+
                 if (uint.TryParse((rawSettings["mode_priority"]["usb"] ?? "").Trim('"'), out uint usbModePriority))
                     UsbModePriority = (int)usbModePriority;
+                else
+                    UsbModePriority = 3;
+
                 if (uint.TryParse((rawSettings["mode_priority"]["dmx"] ?? "").Trim('"'), out uint dmxModePriority))
                     DmxModePriority = (int)dmxModePriority;
+                else
+                    DmxModePriority = 2;
+
                 if (uint.TryParse((rawSettings["mode_priority"]["file"] ?? "").Trim('"'), out uint fileModePriority))
                     FileModePriority = (int)fileModePriority;
-                
+                else
+                    FileModePriority = 1;
+
                 FilePlayerAutoplay = (rawSettings["file_player"]["autoplay"] ?? "false").ToLower().Trim('"') == "true";
                 FilePlayerStartingFilename = (rawSettings["file_player"]["starting_file"] ?? "").Trim('"');
                 var fileplayerMode = (rawSettings["file_player"]["mode"] ?? "").ToLower().Trim('"');
                 if (FilePlayerModes.Contains(fileplayerMode))
                     FilePlayerModeIndex = Array.IndexOf(FilePlayerModes, fileplayerMode);
+                else
+                    FilePlayerModeIndex = 3;
+
+                if (uint.TryParse((rawSettings["output"]["buffer_duration"] ?? "").Trim('"'), out uint bufferDurationMs))
+                    BufferLengthMs = bufferDurationMs;
+                else
+                    BufferLengthMs = 40;
             }
             catch (Exception ex)
             {
@@ -273,7 +332,7 @@ namespace HeliosOpenIdnManager.ViewModels
         [RelayCommand]
         public void LoadDefaultConfig()
         {
-            NewServerName = "OpenIDN";
+            NewServerName = "HeliosPRO";
             EthernetIsDhcp = true;
             EthernetIpAddress = "";
             WifiIsEnabled = false;
@@ -642,6 +701,7 @@ namespace HeliosOpenIdnManager.ViewModels
         {
             rawSettings ??= new();
 
+            
             rawSettings["network"]["ethernet_ip_addresses"] = EthernetIsDhcp ? "auto" : EthernetIpAddress;
             rawSettings["network"]["wifi_enable"] = WifiIsEnabled ? "true" : "false";
             rawSettings["network"]["wifi_ip_addresses"] = WifiIsDhcp ? "auto" : WifiIpAddress;
@@ -685,6 +745,7 @@ namespace HeliosOpenIdnManager.ViewModels
                 }
                 ServicesListString = servicesString;
                 CurrentServerVersion = server.SoftwareVersion;
+                LoadCurrentConfig();
             }
         }
 

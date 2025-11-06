@@ -116,32 +116,30 @@ public class HeliosOpenIdnUtilities
     static public IdnServerInfo? GetServerInfo(IPAddress server)
     {
         scanSequenceNumber++;
-        using (var udpClient = new UdpClient())
+        using var udpClient = new UdpClient();
+        var data = new byte[] { IDNCMD_SCAN_REQUEST, 0, (byte)(scanSequenceNumber & 0xFF), (byte)((scanSequenceNumber >> 8) & 0xFF) };
+        udpClient.Client.ReceiveTimeout = 500;
+        udpClient.Client.SendTimeout = 500;
+
+        var sendAddress = new IPEndPoint(server, IDN_HELLO_PORT);
+        udpClient.Send(data, data.Length, sendAddress);
+
+        var receiveAddress = new IPEndPoint(IPAddress.Any, sendAddress.Port);
+        var receivedData = udpClient.Receive(ref receiveAddress);
+
+        if (receivedData is not null && receivedData.Length >= 8 && receivedData[0] == IDNCMD_SCAN_REQUEST + 1 && (receivedData[2] | (receivedData[3] << 8)) == scanSequenceNumber)
         {
-            var data = new byte[] { IDNCMD_SCAN_REQUEST, 0, (byte)(scanSequenceNumber & 0xFF), (byte)((scanSequenceNumber >> 8) & 0xFF) };
-            udpClient.Client.ReceiveTimeout = 500;
-            udpClient.Client.SendTimeout = 500;
+            var structSize = receivedData[4];
+            var protocolVersion = receivedData[5];
+            var status = receivedData[6];
+            var reserved = receivedData[7];
 
-            var sendAddress = new IPEndPoint(server, IDN_HELLO_PORT);
-            udpClient.Send(data, data.Length, sendAddress);
+            byte[] unitId = receivedData[8..(8 + 16)];
+            string name = System.Text.Encoding.UTF8.GetString(receivedData[(8 + 16)..(8 + 16 + 20)]).Replace("\0", "");
 
-            var receiveAddress = new IPEndPoint(IPAddress.Any, sendAddress.Port);
-            var receivedData = udpClient.Receive(ref receiveAddress);
+            var services = GetServiceNamesOfServer(server).ToArray();
 
-            if (receivedData is not null && receivedData.Length >= 8 && receivedData[0] == IDNCMD_SCAN_REQUEST + 1 && (receivedData[2] | (receivedData[3] << 8)) == scanSequenceNumber)
-            {
-                var structSize = receivedData[4];
-                var protocolVersion = receivedData[5];
-                var status = receivedData[6];
-                var reserved = receivedData[7];
-
-                byte[] unitId = receivedData[8..(8 + 16)];
-                string name = System.Text.Encoding.UTF8.GetString(receivedData[(8+16)..(8+16+20)]).Replace("\0", "");
-
-                var services = GetServiceNamesOfServer(server).ToArray();
-
-                return new IdnServerInfo() { Name = name, UnitId = unitId, Services = services, IpAddress = server };
-            }
+            return new IdnServerInfo() { Name = name, UnitId = unitId, Services = services, IpAddress = server };
         }
         return null;
     }
@@ -154,36 +152,34 @@ public class HeliosOpenIdnUtilities
     static public IEnumerable<string> GetServiceNamesOfServer(IPAddress server)
     {
         scanSequenceNumber++;
-        using (var udpClient = new UdpClient())
+        using var udpClient = new UdpClient();
+        var data = new byte[] { IDNCMD_SERVICEMAP_REQUEST, 0, (byte)(scanSequenceNumber & 0xFF), (byte)((scanSequenceNumber >> 8) & 0xFF) };
+        udpClient.Client.ReceiveTimeout = 500;
+        udpClient.Client.SendTimeout = 500;
+
+        var sendAddress = new IPEndPoint(server, IDN_HELLO_PORT);
+        udpClient.Send(data, data.Length, sendAddress);
+
+        var receiveAddress = new IPEndPoint(IPAddress.Any, sendAddress.Port);
+        var receivedData = udpClient.Receive(ref receiveAddress);
+
+        if (receivedData is not null && receivedData.Length >= 8 && receivedData[0] == IDNCMD_SERVICEMAP_REQUEST + 1 && (receivedData[2] | (receivedData[3] << 8)) == scanSequenceNumber)
         {
-            var data = new byte[] { IDNCMD_SERVICEMAP_REQUEST, 0, (byte)(scanSequenceNumber & 0xFF), (byte)((scanSequenceNumber >> 8) & 0xFF) };
-            udpClient.Client.ReceiveTimeout = 500;
-            udpClient.Client.SendTimeout = 500;
+            var structSize = receivedData[4];
+            var entrySize = receivedData[5];
+            var relayCount = receivedData[6];
+            var serviceCount = receivedData[7];
 
-            var sendAddress = new IPEndPoint(server, IDN_HELLO_PORT);
-            udpClient.Send(data, data.Length, sendAddress);
+            int bufferPosition = 4 + structSize;
 
-            var receiveAddress = new IPEndPoint(IPAddress.Any, sendAddress.Port);
-            var receivedData = udpClient.Receive(ref receiveAddress);
-
-            if (receivedData is not null && receivedData.Length >= 8 && receivedData[0] == IDNCMD_SERVICEMAP_REQUEST+1 && (receivedData[2] | (receivedData[3] << 8)) == scanSequenceNumber)
+            for (int i = 0; i < relayCount; i++)
             {
-                var structSize = receivedData[4];
-                var entrySize = receivedData[5];
-                var relayCount = receivedData[6];
-                var serviceCount = receivedData[7];
-
-                int bufferPosition = 4 + structSize;
-
-                for (int i = 0; i < relayCount; i++)
-                {
-                    bufferPosition += entrySize;
-                }
-                for (int i = 0; i < serviceCount; i++)
-                {
-                    yield return System.Text.Encoding.UTF8.GetString(receivedData[(bufferPosition + 4) .. (bufferPosition + 24)]).Replace("\0", "");
-                    bufferPosition += entrySize;
-                }
+                bufferPosition += entrySize;
+            }
+            for (int i = 0; i < serviceCount; i++)
+            {
+                yield return System.Text.Encoding.UTF8.GetString(receivedData[(bufferPosition + 4)..(bufferPosition + 24)]).Replace("\0", "");
+                bufferPosition += entrySize;
             }
         }
     }
@@ -195,22 +191,20 @@ public class HeliosOpenIdnUtilities
     /// <returns></returns>
     static public string GetSoftwareVersion(IPAddress server)
     {
-        using (var udpClient = new UdpClient())
+        using var udpClient = new UdpClient();
+        var data = new byte[] { 0xE5, 0x2 };
+        udpClient.Client.ReceiveTimeout = 500;
+        udpClient.Client.SendTimeout = 500;
+
+        var sendAddress = new IPEndPoint(server, MANAGEMENT_PORT);
+        udpClient.Send(data, data.Length, sendAddress);
+
+        var receiveAddress = new IPEndPoint(IPAddress.Any, sendAddress.Port);
+        var receivedData = udpClient.Receive(ref receiveAddress);
+
+        if (receivedData is not null && receivedData.Length >= 10 && receivedData[0] == 0xE6 && receivedData[1] == 0x2)
         {
-            var data = new byte[] { 0xE5, 0x2 };
-            udpClient.Client.ReceiveTimeout = 500;
-            udpClient.Client.SendTimeout = 500;
-
-            var sendAddress = new IPEndPoint(server, MANAGEMENT_PORT);
-            udpClient.Send(data, data.Length, sendAddress);
-
-            var receiveAddress = new IPEndPoint(IPAddress.Any, sendAddress.Port);
-            var receivedData = udpClient.Receive(ref receiveAddress);
-
-            if (receivedData is not null && receivedData.Length >= 10 && receivedData[0] == 0xE6 && receivedData[1] == 0x2)
-            {
-                return System.Text.Encoding.UTF8.GetString(receivedData[2..^0]).Replace("\0", "");
-            }
+            return System.Text.Encoding.UTF8.GetString(receivedData[2..^0]).Replace("\0", "");
         }
 
         return "";

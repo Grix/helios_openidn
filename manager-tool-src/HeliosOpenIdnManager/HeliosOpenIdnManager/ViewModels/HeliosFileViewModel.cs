@@ -23,5 +23,7 @@ namespace HeliosOpenIdnManager.ViewModels
         {
             FilePath = filePath;
         }
+
+        public override string ToString() => FileName;
     }
 }
