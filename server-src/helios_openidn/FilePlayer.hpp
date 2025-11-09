@@ -50,6 +50,7 @@ public:
     } QueuedChunk;
 
 	bool autoplay = false;
+    bool handleMissingPrg = true;
 	std::string currentFile = std::string("");
 	int mode = FILEPLAYER_MODE_REPEAT;
 	int state = FILEPLAYER_STATE_STOP;

@@ -22,6 +22,9 @@ FilePlayer::FilePlayer()
     defaultParameters.speedType = FILEPLAYER_PARAM_SPEEDTYPE_PPS;
     defaultParameters.speed = 30000;
     defaultParameters.numRepetitions = 1;
+
+    if (!std::filesystem::is_directory(localFileDirectory))
+        std::filesystem::create_directory(localFileDirectory);
 }
 
 void FilePlayer::start()
@@ -105,6 +108,14 @@ int FilePlayer::playFile(std::string filename)
     // Rewind for loop start
     fseek(fpIDTF, filePos, SEEK_SET);
 
+    auto parameters = getFileParameters(getFilename(filename));
+    if (parameters.speed == 0)
+        parameters.speed = 30000; //Failsafe
+
+
+#ifndef NDEBUG
+    printf("Playing file %s, speed %d, reps %d\n", filename.c_str(), parameters.speed, parameters.numRepetitions);
+#endif
 
     // -------------------------------------------------------------------------
     // OK - Read the file
@@ -188,12 +199,8 @@ int FilePlayer::playFile(std::string filename)
             // Formats 0 and 1 have color index; Formats 4 and 5 are true color RGB.
             int hasIndex = (formatCode == 0) || (formatCode == 1);
 
-            auto parameters = getFileParameters(getFilename(filename));
-            if (parameters.speed == 0)
-                parameters.speed = 30000; //Failsafe
-
 #ifndef NDEBUG
-            printf("Playing frame from file %s, speed %d, reps %d\n", filename.c_str(), parameters.speed, parameters.numRepetitions);
+            //printf("Playing frame from file %s, speed %d, reps %d\n", filename.c_str(), parameters.speed, parameters.numRepetitions);
 #endif
 
             std::vector<std::shared_ptr<QueuedChunk>> chunksInFrame;
@@ -339,7 +346,7 @@ int FilePlayer::playFile(std::string filename)
                 chunksInFrame.push_back(chunk);
 
 #ifndef NDEBUG
-                printf("Played chunk from file %s\n", filename.c_str());
+                //printf("Played chunk from file %s\n", filename.c_str());
 #endif
             }
 
@@ -404,7 +411,8 @@ int FilePlayer::playFile(std::string filename)
 
     fclose(fpIDTF);
 
-    start();
+    if (state != FILEPLAYER_STATE_PAUSE)
+        start();
 
     return result;
 }
@@ -477,8 +485,8 @@ void FilePlayer::outputLoop()
                     //nanosleep(&delay, &dummy); // todo sleep if FPS timing mode
                 }
 
-                if (state != FILEPLAYER_STATE_PAUSE)
-                {
+                //if (state != FILEPLAYER_STATE_PAUSE)
+                //{
                     bool empty;
                     {
                         std::lock_guard<std::mutex> lock(threadLock);
@@ -490,7 +498,7 @@ void FilePlayer::outputLoop()
                         doFileEndAction(false);
                         continue;
                     }
-                }
+                //}
 
                 /*TimeSlice slice;
                 slice.dataChunk = frame->buffer;
@@ -552,6 +560,10 @@ void FilePlayer::readSettings(mINI::INIStructure ini)
         std::string& fileplayer_autoplay = ini["file_player"]["autoplay"];
         if (!fileplayer_autoplay.empty())
             autoplay = (fileplayer_autoplay == "true" || fileplayer_autoplay == "True" || fileplayer_autoplay == "\"true\"" || fileplayer_autoplay == "\"True\"");
+
+        std::string& fileplayer_handleMissingPrg = ini["file_player"]["handle_missing_prg"];
+        if (!fileplayer_handleMissingPrg.empty())
+            handleMissingPrg = (fileplayer_handleMissingPrg == "true" || fileplayer_handleMissingPrg == "True" || fileplayer_handleMissingPrg == "\"true\"" || fileplayer_handleMissingPrg == "\"True\"");
 
         std::string& fileplayer_startingfile = ini["file_player"]["starting_file"];
         if (!fileplayer_startingfile.empty())
@@ -656,21 +668,22 @@ std::string FilePlayer::nextAlphabeticalFile(const std::string& filepath, bool r
     if (reverseOrder)
     {
         auto it = std::lower_bound(files.begin(), files.end(), filename);
-        if (it != files.end())
+        if (it != files.begin())
         {
-            return directory + *it; // Found a file lower than filename
+            --it; // Move to the previous (alphabetically smaller) file
+            return directory + *it;
         }
+        else
+            return directory + files.back();
     }
     else
     {
         auto it = std::upper_bound(files.begin(), files.end(), filename);
         if (it != files.end())
-        {
             return directory + *it; // Found a file greater than filename
-        }
+        else 
+            return directory + files.front();
     }
-
-    return directory + files.front();
 }
 
 std::string FilePlayer::nextRandomFile(const std::string& filepath)
@@ -824,7 +837,7 @@ void FilePlayer::parsePrgFile(const std::filesystem::directory_entry& fileEntry)
 
 void FilePlayer::doFileEndAction(bool dontAttemptRepeat)
 {
-    if (mode == FILEPLAYER_MODE_REPEAT)
+    if (mode == FILEPLAYER_MODE_REPEAT || state == FILEPLAYER_STATE_PAUSE)
     {
         if (dontAttemptRepeat)
             stop();

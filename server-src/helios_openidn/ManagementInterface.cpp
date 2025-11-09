@@ -573,7 +573,7 @@ void* ManagementInterface::keyboardThreadEntry() {
 			}
 			else if (event.code == KEY_DOWN && event.value == 1)
 			{
-				emitUpButtonPressed();
+				emitDownButtonPressed();
 				continue;
 			}
 		}

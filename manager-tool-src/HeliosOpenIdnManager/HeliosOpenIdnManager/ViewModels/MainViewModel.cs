@@ -117,7 +117,13 @@ namespace HeliosOpenIdnManager.ViewModels
         private int _filePlayerModeIndex = 3;
 
         [ObservableProperty]
+        private bool _filePlayerHandleMissingPrg = true;
+
+        [ObservableProperty]
+        //[NotifyPropertyChangedFor(nameof(FilesStrings))]
         private ObservableCollection<HeliosFileViewModel> _files = new();
+
+        //List<string> FilesStrings => new List<string>() { "test1", "test2" };//Files.Select(item => item.ToString()).ToList();
 
         [ObservableProperty]
         private int _selectedFileIndex = -1;
@@ -294,6 +300,7 @@ namespace HeliosOpenIdnManager.ViewModels
                     FileModePriority = 1;
 
                 FilePlayerAutoplay = (rawSettings["file_player"]["autoplay"] ?? "false").ToLower().Trim('"') == "true";
+                FilePlayerHandleMissingPrg = (rawSettings["file_player"]["handle_missing_prg"] ?? "true").ToLower().Trim('"') == "true";
                 FilePlayerStartingFilename = (rawSettings["file_player"]["starting_file"] ?? "").Trim('"');
                 var fileplayerMode = (rawSettings["file_player"]["mode"] ?? "").ToLower().Trim('"');
                 if (FilePlayerModes.Contains(fileplayerMode))
@@ -445,15 +452,16 @@ namespace HeliosOpenIdnManager.ViewModels
 
                 var server = Servers[SelectedServerIndex];
 
-                using var sshClient = HeliosOpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
-                sshClient.Connect();
+                //using var sshClient = HeliosOpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
+                var sshClient = server.SshClient ?? throw new Exception("Could not connect");
+                //sshClient.Connect();
                 sshClient.RunCommand("pkill helios_openidn");
                 Thread.Sleep(100);
                 sshClient.RunCommand("mv /home/laser/openidn/helios_openidn /home/laser/openidn/helios_openidn_backup");
                 Thread.Sleep(100);
 
                 using var scpClient = HeliosOpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
-                scpClient.Connect();
+                //scpClient.Connect();
                 scpClient.Upload(new FileInfo(ServerSoftwareUpdatePath), "/home/laser/openidn/helios_openidn");
                 Thread.Sleep(100);
                 sshClient.RunCommand("chmod +x /home/laser/openidn/helios_openidn");
@@ -478,8 +486,8 @@ namespace HeliosOpenIdnManager.ViewModels
 
                 var server = Servers[SelectedServerIndex];
 
-                using var sshClient = HeliosOpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
-                sshClient.Connect();
+                var sshClient = server.SshClient ?? throw new Exception("Could not connect");
+                //sshClient.Connect();
 
                 using var scpClient = HeliosOpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
                 scpClient.Connect();
@@ -571,8 +579,8 @@ namespace HeliosOpenIdnManager.ViewModels
             {
                 var server = Servers[SelectedServerIndex];
 
-                using var sshClient = HeliosOpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
-                sshClient.Connect();
+                var sshClient = server.SshClient ?? throw new Exception("Could not connect");
+                //sshClient.Connect();
                 var command = sshClient.RunCommand("nmcli -t device wifi list");
                 foreach (string line in command.Result.Split('\n'))
                 {
@@ -593,11 +601,11 @@ namespace HeliosOpenIdnManager.ViewModels
         public void RestartServer()
         {
             var server = Servers[SelectedServerIndex];
-            using var sshClient = HeliosOpenIdnUtilities.GetSshConnection(server.ServerInfo.IpAddress);
+            var sshClient = server.SshClient ?? throw new Exception("Could not connect");
 
             try
             {
-                sshClient.Connect(); 
+                //sshClient.Connect(); 
                 SelectedServerIndex = -1;
                 Servers.Remove(server);
             }
@@ -636,8 +644,8 @@ namespace HeliosOpenIdnManager.ViewModels
             try
             {
                 var server = Servers[SelectedServerIndex];
-                using var sftpClient = HeliosOpenIdnUtilities.GetSftpConnection(server.ServerInfo.IpAddress);
-                await sftpClient.ConnectAsync(CancellationToken.None);
+                var sftpClient = server.SftpClient ?? throw new Exception("Could not connect");
+                //await sftpClient.ConnectAsync(CancellationToken.None);
                 await ListDirectoryRecursively(sftpClient, remoteFileLibraryPath);
                 await ListDirectoryRecursively(sftpClient, remoteFileUsbPath);
             }
@@ -647,6 +655,7 @@ namespace HeliosOpenIdnManager.ViewModels
             }
             finally
             {
+                //OnPropertyChanged(nameof(FilesStrings));
                 FileListIsRefreshing = false;
             }
 
@@ -712,6 +721,7 @@ namespace HeliosOpenIdnManager.ViewModels
             rawSettings["file_player"]["autoplay"] = FilePlayerAutoplay ? "true" : "false";
             rawSettings["file_player"]["starting_file"] = (FilePlayerStartingFilename ?? "").Trim('"');
             rawSettings["file_player"]["mode"] = FilePlayerModes[FilePlayerModeIndex];
+            rawSettings["file_player"]["handle_missing_prg"] = FilePlayerHandleMissingPrg ? "true" : "false";
 
             rawSettings["mode_priority"]["idn"] = NetworkModePriority.ToString(CultureInfo.InvariantCulture);
             rawSettings["mode_priority"]["usb"] = UsbModePriority.ToString(CultureInfo.InvariantCulture);
@@ -745,6 +755,7 @@ namespace HeliosOpenIdnManager.ViewModels
                 }
                 ServicesListString = servicesString;
                 CurrentServerVersion = server.SoftwareVersion;
+                server.Connect();
                 LoadCurrentConfig();
             }
         }

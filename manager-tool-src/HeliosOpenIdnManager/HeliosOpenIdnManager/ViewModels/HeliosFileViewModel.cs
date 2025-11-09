@@ -25,5 +25,7 @@ namespace HeliosOpenIdnManager.ViewModels
         }
 
         public override string ToString() => FileName;
+
+        public static implicit operator string(HeliosFileViewModel obj) => obj.ToString();
     }
 }
