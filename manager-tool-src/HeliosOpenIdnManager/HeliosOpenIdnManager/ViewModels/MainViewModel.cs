@@ -301,7 +301,7 @@ namespace HeliosOpenIdnManager.ViewModels
 
                 FilePlayerAutoplay = (rawSettings["file_player"]["autoplay"] ?? "false").ToLower().Trim('"') == "true";
                 FilePlayerHandleMissingPrg = (rawSettings["file_player"]["handle_missing_prg"] ?? "true").ToLower().Trim('"') == "true";
-                FilePlayerStartingFilename = (rawSettings["file_player"]["starting_file"] ?? "").Trim('"');
+                FilePlayerStartingFilename = (rawSettings["file_player"]["starting_program"] ?? "").Trim('"');
                 var fileplayerMode = (rawSettings["file_player"]["mode"] ?? "").ToLower().Trim('"');
                 if (FilePlayerModes.Contains(fileplayerMode))
                     FilePlayerModeIndex = Array.IndexOf(FilePlayerModes, fileplayerMode);
@@ -719,7 +719,7 @@ namespace HeliosOpenIdnManager.ViewModels
             rawSettings["idn_server"]["name"] = NewServerName;
 
             rawSettings["file_player"]["autoplay"] = FilePlayerAutoplay ? "true" : "false";
-            rawSettings["file_player"]["starting_file"] = (FilePlayerStartingFilename ?? "").Trim('"');
+            rawSettings["file_player"]["starting_program"] = (FilePlayerStartingFilename ?? "").Trim('"');
             rawSettings["file_player"]["mode"] = FilePlayerModes[FilePlayerModeIndex];
             rawSettings["file_player"]["handle_missing_prg"] = FilePlayerHandleMissingPrg ? "true" : "false";
 

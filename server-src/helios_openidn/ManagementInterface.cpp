@@ -87,19 +87,7 @@ void ManagementInterface::readAndStoreUsbFiles()
 
 void ManagementInterface::runStartup()
 {
-	if (filePlayer.autoplay)
-	{
-		if (filePlayer.currentFile.empty() || !std::filesystem::exists(filePlayer.currentFile))
-		{
-			printf("Autoplaying undetermined ild file\n");
-			filePlayer.playFile("");
-		}
-		else
-		{
-			printf("Autoplaying ild file: %s\n", filePlayer.currentFile.c_str());
-			filePlayer.playFile(filePlayer.currentFile);
-		}
-	}
+	filePlayer.startup();
 }
 
 /// <summary>

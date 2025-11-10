@@ -34,14 +34,27 @@ class FilePlayer
 {
 public:
 
-	typedef struct FilePlayerFileParameters
+	typedef struct FileParameters
 	{
 		int speedType = FILEPLAYER_PARAM_SPEEDTYPE_PPS;
-		unsigned int speed = 30000;
+		double speed = 30000;
         unsigned int numRepetitions = 1;
 		bool ignore = false;
 		int palette = 0;
-	} FilePlayerFileParameters;
+	} FileParameters;
+
+    typedef struct IldaFile
+    {
+        std::string filePath;
+        FileParameters parameters;
+    } IldaFile;
+
+    typedef struct Program
+    {
+        std::filesystem::path filePath;
+        std::vector<IldaFile> files;
+        int dmxIndex = -1;
+    } Program;
 
     typedef struct QueuedChunk
     {
@@ -50,13 +63,16 @@ public:
     } QueuedChunk;
 
 	bool autoplay = false;
+    std::string currentProgramName = "";
     bool handleMissingPrg = true;
-	std::string currentFile = std::string("");
+    //Program currentProgram;
+    std::map<std::string, Program> programs;
 	int mode = FILEPLAYER_MODE_REPEAT;
 	int state = FILEPLAYER_STATE_STOP;
+    //unsigned int fileIndexInProgram = 0;
 	//unsigned int frame = 0;
-	std::map<std::string, FilePlayerFileParameters> fileParameters;
-	FilePlayerFileParameters defaultParameters;
+	//std::map<std::string, FileParameters> fileParameters;
+	FileParameters defaultParameters;
     std::string localFileDirectory = std::string("/home/laser/library/");
     std::string usbFileDirectory = std::string("/media/usbdrive/");
     //std::vector<std::shared_ptr<DACHWInterface>>* devices;
@@ -64,6 +80,7 @@ public:
 
     FilePlayer();
 
+	void startup();
 	void start();
 	void stop();
 	void pause();
@@ -83,11 +100,11 @@ private:
     uint16_t readShort(FILE* fp);
     bool hasIldExtension(const std::string& name);
     bool hasPrgExtension(const std::string& name);
-    std::string nextAlphabeticalFile(const std::string& filepath, bool reverseOrder);
-    std::string nextRandomFile(const std::string& filepath);
+    std::string nextAlphabeticalProgram(const std::string& filepath, bool reverseOrder);
+    std::string nextRandomProgram(const std::string& filepath);
     std::string getDirectory(const std::string& filepath);
     std::string getFilename(const std::string& filepath);
-    FilePlayerFileParameters getFileParameters(const std::string& filename);
+    //FileParameters getFileParameters(const std::string& filename);
     void parsePrgFile(const std::filesystem::directory_entry& fileEntry);
     void doFileEndAction(bool dontAttemptRepeat);
 
