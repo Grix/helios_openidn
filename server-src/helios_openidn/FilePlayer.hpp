@@ -67,6 +67,8 @@ public:
     bool handleMissingPrg = true;
     //Program currentProgram;
     std::map<std::string, Program> programs;
+    std::vector<std::string> programsAlphabeticSort;
+    std::vector<std::string> programsRandomSort;
 	int mode = FILEPLAYER_MODE_REPEAT;
 	int state = FILEPLAYER_STATE_STOP;
     //unsigned int fileIndexInProgram = 0;
@@ -91,6 +93,8 @@ public:
     void upButtonPress();
     void downButtonPress();
     void readSettings(mINI::INIStructure ini);
+    void buildProgramMap();
+    std::string getProgramListString();
 
 private:
 
@@ -100,8 +104,8 @@ private:
     uint16_t readShort(FILE* fp);
     bool hasIldExtension(const std::string& name);
     bool hasPrgExtension(const std::string& name);
-    std::string nextAlphabeticalProgram(const std::string& filepath, bool reverseOrder);
-    std::string nextRandomProgram(const std::string& filepath);
+    std::string nextAlphabeticalProgram(const std::string& previousProgramName, bool reverseOrder);
+    std::string nextRandomProgram(const std::string& previousProgramName);
     std::string getDirectory(const std::string& filepath);
     std::string getFilename(const std::string& filepath);
     //FileParameters getFileParameters(const std::string& filename);

@@ -293,28 +293,24 @@ void ManagementInterface::networkLoop(int sd) {
 		{
 			if (buffer_in[0] == 0xE5) // Valid command
 			{
-				if (buffer_in[1] == 0x1)
+				if (buffer_in[1] == 0x1) // Ping
 				{
-					// Got ping request, respond:
 					char responseBuffer[2] = { 0xE6, 0x1 };
 					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
 				}
-				else if (buffer_in[1] == 0x2)
+				else if (buffer_in[1] == 0x2) // Get software version
 				{
-					// Got software version query, respond:
 					char responseBuffer[20] = { 0 };
 					responseBuffer[0] = 0xE6;
 					responseBuffer[1] = 0x2;
 					strcpy(responseBuffer + 2, softwareVersion);
 					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
 				}
-				else if (buffer_in[1] == 0x3)
+				else if (buffer_in[1] == 0x3) // Set name
 				{
-					// Got set name command, respond:
 					char responseBuffer[2] = { 0xE6, 0x3 };
 					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
 
-					// Set name
 					if (num_bytes > 3) // Name must not be empty
 					{
 						if (num_bytes > 22)
@@ -342,9 +338,8 @@ void ManagementInterface::networkLoop(int sd) {
 						}
 					}
 				}
-				else if (buffer_in[1] == 0x4)
+				else if (buffer_in[1] == 0x4) // Get settings file
 				{
-					// Got get settings file command, respond
 					char responseBuffer[UDP_MAXBUF] = { 0xE6, 0x4, 0, 1 };
 					size_t msgSize = 4;
 
@@ -379,6 +374,27 @@ void ManagementInterface::networkLoop(int sd) {
 						responseBuffer[2] = 0;
 						responseBuffer[3] = 3;
 						msgSize = 4;
+					}
+
+					sendto(sd, &responseBuffer, msgSize, 0, (struct sockaddr*)&remote, len);
+					continue;
+				}
+				else if (buffer_in[1] == 0x5) // Get program list
+				{
+					char responseBuffer[UDP_MAXBUF] = { 0xE6, 0x5, 0 };
+					size_t msgSize = 3;
+
+					try
+					{
+						std::string programListString = filePlayer.getProgramListString();
+						strncpy(responseBuffer + 2, programListString.c_str(), UDP_MAXBUF - 2);
+						msgSize = programListString.size() + 2;
+					}
+					catch (std::exception ex)
+					{
+						printf("WARNING: Error during get program list command: %s.\n", ex.what());
+						responseBuffer[2] = 0;
+						msgSize = 3;
 					}
 
 					sendto(sd, &responseBuffer, msgSize, 0, (struct sockaddr*)&remote, len);

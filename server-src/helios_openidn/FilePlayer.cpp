@@ -29,6 +29,8 @@ FilePlayer::FilePlayer()
 
 void FilePlayer::startup()
 {
+    buildProgramMap();
+
     if (autoplay)
     {
         playFile(currentProgramName);
@@ -61,9 +63,9 @@ void FilePlayer::pause()
 int FilePlayer::playFile(std::string programName)
 {
     if (programName.empty())
-        programName = nextRandomFile(usbFileDirectory + "a.ild");
+        programName = nextRandomProgram(usbFileDirectory + "a.ild");
     if (programName.empty())
-        programName = nextRandomFile(localFileDirectory + "a.ild");
+        programName = nextRandomProgram(localFileDirectory + "a.ild");
     if (programName.empty() || programs.count(programName) == 0)
     {
         stop();
@@ -542,18 +544,18 @@ void FilePlayer::upButtonPress()
 {
     stop();
     if (mode == FILEPLAYER_MODE_SHUFFLE)
-        playFile(nextRandomFile(currentProgramName));
+        playFile(nextRandomProgram(currentProgramName));
     else
-        playFile(nextAlphabeticalFile(currentProgramName, false));
+        playFile(nextAlphabeticalProgram(currentProgramName, false));
 }
 
 void FilePlayer::downButtonPress()
 {
     stop();
     if (mode == FILEPLAYER_MODE_SHUFFLE)
-        playFile(nextRandomFile(currentProgramName)); // Todo remember last file and go back
+        playFile(nextRandomProgram(currentProgramName)); // Todo remember last file and go back
     else
-        playFile(nextAlphabeticalFile(currentProgramName, true));
+        playFile(nextAlphabeticalProgram(currentProgramName, true));
 }
 
 void FilePlayer::readSettings(mINI::INIStructure ini)
@@ -595,22 +597,6 @@ void FilePlayer::readSettings(mINI::INIStructure ini)
         printf("Warning: Error during parsing of fileplayer ini file settings\n");
     }
 
-    // Parse file-specific settings from .prg files in the library folders
-    try
-    {
-        for (const auto& fileEntry : std::filesystem::recursive_directory_iterator(localFileDirectory)) 
-        {
-            parsePrgFile(fileEntry);
-        }
-        for (const auto& fileEntry : std::filesystem::recursive_directory_iterator(usbFileDirectory)) 
-        {
-            parsePrgFile(fileEntry);
-        }
-    }
-    catch (...)
-    {
-        printf("Warning: Error during reading of .prg ilda file parameter files.\n");
-    }
 }
 
 int FilePlayer::checkEOF(FILE* fp, const char* dbgText)
@@ -631,99 +617,43 @@ uint16_t FilePlayer::readShort(FILE* fp)
     return (uint16_t)((c1 << 8) | c2);
 }
 
-std::string FilePlayer::nextAlphabeticalFile(const std::string& filepath, bool reverseOrder)
+std::string FilePlayer::nextAlphabeticalProgram(const std::string& previousProgramName, bool reverseOrder)
 {
-    // Todo cache the file list
-    std::string directory = getDirectory(filepath);
-    std::string filename = getFilename(filepath);
-
-    DIR* dir;
-    struct dirent* ent;
-    std::vector<std::string> files;
-
-    // Open the directory
-    if ((dir = opendir(directory.c_str())) == nullptr) 
-    {
-        perror("opendir");
-        return "";
-    }
-
-    // Read all entries into vector
-    while ((ent = readdir(dir)) != nullptr) 
-    {
-        std::string name = ent->d_name;
-
-        if (name == "." || name == "..") 
-            continue;
-        if (!hasIldExtension(name)) 
-            continue;
-
-        files.emplace_back(name);
-    }
-    closedir(dir);
-
-    if (files.empty()) 
+    if (programsAlphabeticSort.empty())
         return "";
 
-    // Sort alphabetically
-    std::sort(files.begin(), files.end());
-
-    // Find the next file
+    // Find the next program name
     if (reverseOrder)
     {
-        auto it = std::lower_bound(files.begin(), files.end(), filename);
-        if (it != files.begin())
+        auto it = std::lower_bound(programsAlphabeticSort.begin(), programsAlphabeticSort.end(), previousProgramName);
+        if (it != programsAlphabeticSort.begin())
         {
-            --it; // Move to the previous (alphabetically smaller) file
-            return directory + *it;
+            --it;
+            return *it;
         }
         else
-            return directory + files.back();
+            return programsAlphabeticSort.back();
     }
     else
     {
-        auto it = std::upper_bound(files.begin(), files.end(), filename);
-        if (it != files.end())
-            return directory + *it; // Found a file greater than filename
+        auto it = std::upper_bound(programsAlphabeticSort.begin(), programsAlphabeticSort.end(), previousProgramName);
+        if (it != programsAlphabeticSort.end())
+            return *it;
         else 
-            return directory + files.front();
+            return programsAlphabeticSort.front();
     }
 }
 
-std::string FilePlayer::nextRandomFile(const std::string& filepath)
+std::string FilePlayer::nextRandomProgram(const std::string& previousProgramName)
 {
-    std::string directory = getDirectory(filepath);
-    std::string filename = getFilename(filepath);
-
-    DIR* dir;
-    struct dirent* ent;
-    std::vector<std::string> files;
-
-    // Open the directory
-    if ((dir = opendir(directory.c_str())) == nullptr)
-    {
-        perror("opendir");
-        return "";
-    }
-
-    // Read all entries into vector
-    while ((ent = readdir(dir)) != nullptr)
-    {
-        std::string name = ent->d_name;
-
-        if (name == "." || name == "..")
-            continue;
-        if (!hasIldExtension(name))
-            continue;
-
-        files.emplace_back(name);
-    }
-    closedir(dir);
-
-    if (files.empty())
+    if (programsRandomSort.empty())
         return "";
 
-    return directory + files[rand() % files.size()];
+    auto it = std::upper_bound(programsRandomSort.begin(), programsRandomSort.end(), previousProgramName);
+    if (it != programsRandomSort.end())
+        return *it;
+    else
+        return programsRandomSort.front();
 }
 
 // Helper: check if filename ends with ".ild" case-insensitive
@@ -833,7 +763,7 @@ void FilePlayer::parsePrgFile(const std::filesystem::directory_entry& fileEntry)
                     continue;
 
                 IldaFile file;
-                file.filePath = field1;
+                file.filePath = fileEntry.path().parent_path() / field1;
                 file.parameters.speedType = isFps ? FILEPLAYER_PARAM_SPEEDTYPE_FPS : FILEPLAYER_PARAM_SPEEDTYPE_PPS;
                 file.parameters.speed = isFps ? speed : (speed * 1000);
                 file.parameters.numRepetitions = repetitions;
@@ -860,6 +790,78 @@ void FilePlayer::parsePrgFile(const std::filesystem::directory_entry& fileEntry)
 
 }
 
+bool caseInsensitiveLess(const std::string& a, const std::string& b) 
+{
+    return std::lexicographical_compare( a.begin(), a.end(), b.begin(), b.end(), [](unsigned char c1, unsigned char c2) 
+        {
+            return std::tolower(c1) < std::tolower(c2);
+        }
+    );
+}
+
+void FilePlayer::buildProgramMap()
+{
+    // Parse file-specific settings from .prg files in the library folders
+    try
+    {
+        programs.clear();
+        programsAlphabeticSort.clear();
+        programsRandomSort.clear();
+
+        for (const auto& fileEntry : std::filesystem::recursive_directory_iterator(localFileDirectory))
+        {
+            parsePrgFile(fileEntry);
+        }
+        for (const auto& fileEntry : std::filesystem::recursive_directory_iterator(usbFileDirectory))
+        {
+            parsePrgFile(fileEntry);
+        }
+
+        for (const auto& [key, value] : programs)
+        {
+            programsAlphabeticSort.push_back(key);
+            programsRandomSort.push_back(key);
+        }
+        std::sort(programsAlphabeticSort.begin(), programsAlphabeticSort.end(), caseInsensitiveLess);
+    }
+    catch (...)
+    {
+        printf("Warning: Error during reading of .prg ilda file parameter files.\n");
+    }
+}
+
+std::string FilePlayer::getProgramListString()
+{
+    std::string result = "";
+    result.reserve(programs.size() * 60); // Best guess, small optimization
+
+    for (const auto& [key, value] : programs)
+    {
+        result += key;
+        result += ",";
+        result += std::to_string(value.dmxIndex);
+        result += ",";
+        result += value.filePath.string().rfind("/h") == 0 ? "i" : "e";
+        result += ",";
+        result += std::to_string(value.files.size());
+        result += "\n";
+
+        for (const IldaFile file : value.files)
+        {
+            result += getFilename(file.filePath);
+            result += ",";
+            result += std::to_string(file.parameters.speed);
+            result += ",";
+            result += std::to_string(file.parameters.speedType);
+            result += ",";
+            result += std::to_string(file.parameters.numRepetitions);
+            result += ",";
+            result += std::to_string(file.parameters.palette);
+            result += "\n";
+        }
+    }
+}
+
 void FilePlayer::doFileEndAction(bool dontAttemptRepeat)
 {
     if (mode == FILEPLAYER_MODE_REPEAT || state == FILEPLAYER_STATE_PAUSE)
@@ -873,13 +875,11 @@ void FilePlayer::doFileEndAction(bool dontAttemptRepeat)
         stop();
     else if (mode == FILEPLAYER_MODE_NEXT)
     {
-        std::string nextFile = nextAlphabeticalFile(currentProgramName, false);
+        std::string nextFile = nextAlphabeticalProgram(currentProgramName, false);
         if (getFilename(nextFile) == currentProgramName)
         {
             if (dontAttemptRepeat)
                 stop();
-
-            // todo use cache instead of reloading file
         }
         else
         {
@@ -891,14 +891,12 @@ void FilePlayer::doFileEndAction(bool dontAttemptRepeat)
     }
     else if (mode == FILEPLAYER_MODE_SHUFFLE)
     {
-        std::string nextFile = nextRandomFile(currentProgramName);
+        std::string nextFile = nextRandomProgram(currentProgramName);
 
         if (getFilename(nextFile) == currentProgramName)
         {
             if (dontAttemptRepeat)
                 stop();
-
-            // todo use cache instead of reloading file
         }
         else
         {
