@@ -387,8 +387,8 @@ void ManagementInterface::networkLoop(int sd) {
 					try
 					{
 						std::string programListString = filePlayer.getProgramListString();
-						strncpy(responseBuffer + 2, programListString.c_str(), UDP_MAXBUF - 2);
-						msgSize = programListString.size() + 2;
+						strncpy(responseBuffer + 2, programListString.c_str(), UDP_MAXBUF - 3);
+						msgSize = programListString.size() + 3;
 					}
 					catch (std::exception ex)
 					{

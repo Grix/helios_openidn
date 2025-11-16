@@ -3,6 +3,7 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:vm="clr-namespace:HeliosOpenIdnManager.ViewModels"
+             xmlns:local="clr-namespace:HeliosOpenIdnManager"
 			 xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
              mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="750" MinWidth="1000"
              x:Class="HeliosOpenIdnManager.Views.MainView"
@@ -153,7 +154,7 @@
 										</DockPanel>
 										<DockPanel Background="#EEEEEE" >
 											<TextBlock Margin="5,0,0,0" VerticalAlignment="Center" Text="Starting file:" MinWidth="120"/>
-											<AutoCompleteBox BorderThickness="1" Height="32" Text="{Binding FilePlayerStartingFilename}" ItemsSource="{Binding Files}" ValueMemberBinding="{Binding FileName, x:DataType=vm:HeliosFileViewModel}" Watermark="Random" FilterMode="Contains" Margin="10,0,0,0" MinWidth="150" ToolTip.Tip="If file player autoplay is enabled, this is the file that starts playing when the device powers up. If left blank, the starting file is randomized."></AutoCompleteBox>
+											<AutoCompleteBox BorderThickness="1" Height="32" Text="{Binding FilePlayerStartingFilename}" ItemsSource="{Binding Programs}" ValueMemberBinding="{Binding Name, x:DataType=vm:ProgramViewModel}" Watermark="Random" FilterMode="Contains" Margin="10,0,0,0" MinWidth="150" ToolTip.Tip="If file player autoplay is enabled, this is the file that starts playing when the device powers up. If left blank, the starting file is randomized."></AutoCompleteBox>
 										</DockPanel>
 
 										<TextBlock Margin="5,25,0,5" HorizontalAlignment="Left" Text="DMX" MinWidth="140" FontWeight="Bold"/>
@@ -172,21 +173,21 @@
 
 										<StackPanel Orientation="Horizontal" Spacing="20">
 											<Button Content="Upload .ILD files" Background="LightBlue" Margin="0,10,0,0" Click="SelectAndUploadFilesButton_Click" IsEnabled="{Binding HasSelectedServer}" HorizontalAlignment="Center" ToolTip.Tip="Click to select .ILD files to upload to the device so that they can be played back offline."></Button>
-											<Button Content="Refresh list of files on device" Margin="0,10,0,0" Command="{Binding RefreshFileList}" IsEnabled="{Binding HasSelectedServer}" HorizontalAlignment="Center" ToolTip.Tip="Click to refresh the list of .ILD files on the selected server. Files are searched for both in the device's internal storage, and on any connected USB dongles."></Button>
+											<Button Content="Refresh list of files on device" Margin="0,10,0,0" Command="{Binding RefreshFileList}" IsEnabled="{Binding HasSelectedServer}" HorizontalAlignment="Center" ToolTip.Tip="Click to refresh the list of .ILD files on the selected server. Programs are searched for both in the device's internal storage, and on any connected USB dongles."></Button>
 										</StackPanel>
 
 										<Border BorderThickness="1" BorderBrush="DarkGray" MinHeight="368" Margin="0,10,0,0">
 											<Grid>
 												<ScrollViewer Grid.Row="1" Margin="15,10">
-													<ListBox ItemsSource="{Binding Files}" SelectionMode="Single" SelectedIndex="{Binding SelectedFileIndex}">
+													<ListBox ItemsSource="{Binding Programs}" SelectionMode="Single" SelectedIndex="{Binding SelectedProgramIndex}">
 														<ListBox.ItemTemplate>
 															<DataTemplate>
-																<TextBlock Text="{Binding FileName}" VerticalAlignment="Center" Margin="20,0,0,0"></TextBlock>
+																<local:ProgramView Margin="-8,-6,-8,-8"></local:ProgramView>
 															</DataTemplate>
 														</ListBox.ItemTemplate>
 													</ListBox>
 												</ScrollViewer>
-												<materialIcons:MaterialIcon Kind="Loading" IsVisible="{Binding FileListIsRefreshing}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="DarkGray" Height="32" Width="32"/>
+												<materialIcons:MaterialIcon Kind="Loading" IsVisible="{Binding ProgramListIsRefreshing}" VerticalAlignment="Center" HorizontalAlignment="Center" Foreground="DarkGray" Height="32" Width="32"/>
 											</Grid>
 										</Border>
 

@@ -45,8 +45,9 @@ public:
 
     typedef struct IldaFile
     {
-        std::string filePath;
+        std::filesystem::path filePath;
         FileParameters parameters;
+        int errorCode = 0;
     } IldaFile;
 
     typedef struct Program
@@ -110,6 +111,7 @@ private:
     std::string getFilename(const std::string& filepath);
     //FileParameters getFileParameters(const std::string& filename);
     void parsePrgFile(const std::filesystem::directory_entry& fileEntry);
+    void parseIldFile(const std::filesystem::directory_entry& fileEntry);
     void doFileEndAction(bool dontAttemptRepeat);
 
     //std::vector<ISPDB25Point> pointBuffer;

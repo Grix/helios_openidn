@@ -32,4 +32,10 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </AvaloniaResource>
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Views\IldaFileView.axaml.cs">
+      <DependentUpon>IldaFileView.axaml</DependentUpon>
+    </Compile>
+  </ItemGroup>
 </Project>

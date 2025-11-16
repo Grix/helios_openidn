@@ -9,93 +9,92 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace HeliosOpenIdnManager.ViewModels
+namespace HeliosOpenIdnManager.ViewModels;
+
+public partial class IdnServerViewModel : ViewModelBase
 {
-    public partial class IdnServerViewModel : ViewModelBase
-    {
-        [ObservableProperty]
-        private string _title;
+    [ObservableProperty]
+    private string _title;
 
-        public IdnServerInfo ServerInfo { get; }
-        public string SoftwareVersion { get; }
-        private SftpClient? sftpClient = null;
-        public SftpClient? SftpClient { 
-            get 
-            {
-                // Client is set in a background thread. Try to wait until it is set before returning it
-                var timeoutTime = DateTime.Now.AddSeconds(7);
-                while (sftpClient == null || !sftpClient.IsConnected)
-                {
-                    if (DateTime.Now > timeoutTime)
-                        break;
-                    Thread.Sleep(50);
-                }
-                return sftpClient;
-            } 
-            private set { sftpClient = value; } 
-        }
-        private SshClient? sshClient = null;
-        public SshClient? SshClient
+    public IdnServerInfo ServerInfo { get; }
+    public string SoftwareVersion { get; }
+    private SftpClient? sftpClient = null;
+    public SftpClient? SftpClient { 
+        get 
         {
-            get
+            // Client is set in a background thread. Try to wait until it is set before returning it
+            var timeoutTime = DateTime.Now.AddSeconds(7);
+            while (sftpClient == null || !sftpClient.IsConnected)
             {
-                // Client is set in a background thread. Try to wait until it is set before returning it
-                var timeoutTime = DateTime.Now.AddSeconds(7);
-                while (sshClient == null || !sshClient.IsConnected)
-                {
-                    if (DateTime.Now > timeoutTime)
-                        break;
-                    Thread.Sleep(50);
-                }
-                return sshClient;
+                if (DateTime.Now > timeoutTime)
+                    break;
+                Thread.Sleep(50);
             }
-            private set { sshClient = value; }
-        }
-
-        bool isConnecting = false;
-
-        public IdnServerViewModel(IdnServerInfo serverInfo)
+            return sftpClient;
+        } 
+        private set { sftpClient = value; } 
+    }
+    private SshClient? sshClient = null;
+    public SshClient? SshClient
+    {
+        get
         {
-            ServerInfo = serverInfo;
-            Title = $"{serverInfo.Name} ({serverInfo.IpAddress})";
-
-            SoftwareVersion = HeliosOpenIdnUtilities.GetSoftwareVersion(serverInfo.IpAddress);
-        }
-
-        public async void Connect()
-        {
-            if (isConnecting)
-                return;
-
-            isConnecting = true;
-
-            await Task.Run(() =>
+            // Client is set in a background thread. Try to wait until it is set before returning it
+            var timeoutTime = DateTime.Now.AddSeconds(7);
+            while (sshClient == null || !sshClient.IsConnected)
             {
-                try
-                {
-                    SshClient = HeliosOpenIdnUtilities.GetSshConnection(ServerInfo.IpAddress);
-                    SftpClient = HeliosOpenIdnUtilities.GetSftpConnection(ServerInfo.IpAddress);
-                    SshClient.ConnectAsync(CancellationToken.None);
-                    SftpClient.ConnectAsync(CancellationToken.None);
-                }
-                catch
-                {
-                    SshClient?.Disconnect();
-                    SshClient = null;
-                    SftpClient?.Disconnect();
-                    SftpClient = null;
-                }
-            });
-
-            isConnecting = false;
+                if (DateTime.Now > timeoutTime)
+                    break;
+                Thread.Sleep(50);
+            }
+            return sshClient;
         }
+        private set { sshClient = value; }
+    }
 
-        ~IdnServerViewModel()
+    bool isConnecting = false;
+
+    public IdnServerViewModel(IdnServerInfo serverInfo)
+    {
+        ServerInfo = serverInfo;
+        Title = $"{serverInfo.Name} ({serverInfo.IpAddress})";
+
+        SoftwareVersion = HeliosOpenIdnUtilities.GetSoftwareVersion(serverInfo.IpAddress);
+    }
+
+    public async void Connect()
+    {
+        if (isConnecting)
+            return;
+
+        isConnecting = true;
+
+        await Task.Run(() =>
         {
-            SshClient?.Disconnect();
-            SshClient = null;
-            SftpClient?.Disconnect();
-            SftpClient = null;
-        }
+            try
+            {
+                SshClient = HeliosOpenIdnUtilities.GetSshConnection(ServerInfo.IpAddress);
+                SftpClient = HeliosOpenIdnUtilities.GetSftpConnection(ServerInfo.IpAddress);
+                SshClient.ConnectAsync(CancellationToken.None);
+                SftpClient.ConnectAsync(CancellationToken.None);
+            }
+            catch
+            {
+                SshClient?.Disconnect();
+                SshClient = null;
+                SftpClient?.Disconnect();
+                SftpClient = null;
+            }
+        });
+
+        isConnecting = false;
+    }
+
+    ~IdnServerViewModel()
+    {
+        SshClient?.Disconnect();
+        SshClient = null;
+        SftpClient?.Disconnect();
+        SftpClient = null;
     }
 }

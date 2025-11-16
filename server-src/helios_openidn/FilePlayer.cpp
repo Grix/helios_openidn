@@ -767,6 +767,7 @@ void FilePlayer::parsePrgFile(const std::filesystem::directory_entry& fileEntry)
                 file.parameters.speedType = isFps ? FILEPLAYER_PARAM_SPEEDTYPE_FPS : FILEPLAYER_PARAM_SPEEDTYPE_PPS;
                 file.parameters.speed = isFps ? speed : (speed * 1000);
                 file.parameters.numRepetitions = repetitions;
+                file.errorCode = 1; // Means file doesn't exist. This will be later cleared in parseIldFile() if the file does exist.
 
                 program.files.push_back(file);
 
@@ -788,6 +789,41 @@ void FilePlayer::parsePrgFile(const std::filesystem::directory_entry& fileEntry)
         printf("Warning: couldn't open .prg file %s\n", fileEntry.path());
     }
 
+}
+
+void FilePlayer::parseIldFile(const std::filesystem::directory_entry& fileEntry)
+{
+    if (!fileEntry.is_regular_file() || !hasIldExtension(fileEntry.path().filename()))
+        return;
+
+    std::filesystem::path filename = fileEntry.path().filename();
+
+    bool found = false;
+
+    for (auto& program : programs)
+    {
+        for (auto& file : program.second.files)
+        {
+            if (file.filePath.filename() == filename)
+            {
+                file.errorCode = 0; // Mark file as exists in the program list
+                found = true;
+            }
+        }
+    }
+
+    if (found) // File is missing an accompanying prg file, in which case we create a default one
+        return;
+
+    Program newProgram;
+    newProgram.filePath = fileEntry.path();
+    newProgram.filePath = newProgram.filePath.replace_extension(".prg");
+    IldaFile file;
+    file.filePath = fileEntry.path();
+    file.parameters = defaultParameters;
+    file.errorCode = 2; // = Missing PRG, using default
+    newProgram.files.push_back(file);
+    programs[newProgram.filePath.filename()] = newProgram;
 }
 
 bool caseInsensitiveLess(const std::string& a, const std::string& b) 
@@ -812,9 +848,17 @@ void FilePlayer::buildProgramMap()
         {
             parsePrgFile(fileEntry);
         }
+        for (const auto& fileEntry : std::filesystem::recursive_directory_iterator(localFileDirectory))
+        {
+            parseIldFile(fileEntry);
+        }
         for (const auto& fileEntry : std::filesystem::recursive_directory_iterator(usbFileDirectory))
         {
             parsePrgFile(fileEntry);
+        }
+        for (const auto& fileEntry : std::filesystem::recursive_directory_iterator(usbFileDirectory))
+        {
+            parseIldFile(fileEntry);
         }
 
         for (const auto& [key, value] : programs)
@@ -838,28 +882,31 @@ std::string FilePlayer::getProgramListString()
     for (const auto& [key, value] : programs)
     {
         result += key;
-        result += ",";
+        result += ";";
         result += std::to_string(value.dmxIndex);
-        result += ",";
+        result += ";";
         result += value.filePath.string().rfind("/h") == 0 ? "i" : "e";
-        result += ",";
+        result += ";";
         result += std::to_string(value.files.size());
         result += "\n";
 
         for (const IldaFile file : value.files)
         {
-            result += getFilename(file.filePath);
-            result += ",";
+            result += getFilename(getFilename(file.filePath));
+            result += ";";
             result += std::to_string(file.parameters.speed);
-            result += ",";
+            result += ";";
             result += std::to_string(file.parameters.speedType);
-            result += ",";
+            result += ";";
             result += std::to_string(file.parameters.numRepetitions);
-            result += ",";
+            result += ";";
             result += std::to_string(file.parameters.palette);
+            result += ";";
+            result += std::to_string(file.errorCode);
             result += "\n";
         }
     }
+    return result;
 }
 
 void FilePlayer::doFileEndAction(bool dontAttemptRepeat)
