@@ -462,7 +462,7 @@ public partial class MainViewModel : ViewModelBase
             Thread.Sleep(100);
 
             using var scpClient = HeliosOpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
-            //scpClient.Connect();
+            scpClient.Connect();
             scpClient.Upload(new FileInfo(ServerSoftwareUpdatePath), "/home/laser/openidn/helios_openidn");
             Thread.Sleep(100);
             sshClient.RunCommand("chmod +x /home/laser/openidn/helios_openidn");
@@ -810,11 +810,41 @@ public partial class MainViewModel : ViewModelBase
     {
         rawSettings ??= new();
 
-        rawSettings["network"]["ethernet_ip_addresses"] = EthernetIsDhcp ? "auto" : EthernetIpAddress;
-        rawSettings["network"]["wifi_enable"] = WifiIsEnabled ? "true" : "false";
-        rawSettings["network"]["wifi_ip_addresses"] = WifiIsDhcp ? "auto" : WifiIpAddress;
-        rawSettings["network"]["wifi_ssid"] = WifiSsid;
-        rawSettings["network"]["wifi_password"] = WifiPassword;
+        bool shouldUpdateNetworkData = false;
+
+        var ethernetIpAddress = EthernetIsDhcp ? "auto" : EthernetIpAddress;
+        if (rawSettings["network"]["ethernet_ip_addresses"] != ethernetIpAddress)
+        {
+            shouldUpdateNetworkData = true;
+            rawSettings["network"]["ethernet_ip_addresses"] = ethernetIpAddress;
+        }
+
+        var wifiEnable = WifiIsEnabled ? "true" : "false";
+        if (rawSettings["network"]["wifi_enable"] != wifiEnable)
+        {
+            shouldUpdateNetworkData = true;
+            rawSettings["network"]["wifi_enable"] = wifiEnable;
+        }
+
+        var wifiIpAddress = WifiIsDhcp ? "auto" : WifiIpAddress;
+        if (rawSettings["network"]["wifi_ip_addresses"] != wifiIpAddress)
+        {
+            shouldUpdateNetworkData = true;
+            rawSettings["network"]["wifi_ip_addresses"] = wifiIpAddress;
+        }
+
+        if (rawSettings["network"]["wifi_ssid"] != WifiSsid)
+        {
+            shouldUpdateNetworkData = true;
+            rawSettings["network"]["wifi_ssid"] = WifiSsid;
+        }
+
+        if (rawSettings["network"]["wifi_password"] != WifiPassword)
+        {
+            shouldUpdateNetworkData = true;
+            rawSettings["network"]["wifi_password"] = WifiPassword;
+        }
+
         rawSettings["idn_server"]["name"] = NewServerName;
 
         rawSettings["file_player"]["autoplay"] = FilePlayerAutoplay ? "true" : "false";
@@ -829,8 +859,11 @@ public partial class MainViewModel : ViewModelBase
 
         rawSettings["output"]["buffer_duration"] = BufferLengthMs.ToString(CultureInfo.InvariantCulture).Trim(',');
 
-        if (rawSettings["network"].ContainsKey("already_applied"))
-            rawSettings["network"].RemoveKey("already_applied"); // Otherwise it skips applying network settings
+        if (shouldUpdateNetworkData)
+        { 
+            if (rawSettings["network"].ContainsKey("already_applied"))
+                rawSettings["network"].RemoveKey("already_applied"); // Otherwise it skips applying network settings
+        }
 
         rawSettings.Configuration = new() { NewLineStr = "\n" }; // Since host computer is linux
     }
@@ -928,6 +961,22 @@ public partial class MainViewModel : ViewModelBase
         }
 
         return true;
+    }
+
+    static byte[] AssembleProgramSetCommand(IEnumerable<ProgramViewModel> updatedPrograms)
+    {
+        string command = "";
+
+        foreach (var program in updatedPrograms)
+        {
+            command += $"{program.Name};{program.DmxIndex};{(program.IsStoredInternally ? "i" : "e")};{program.IldaFiles.Count}\n";
+            foreach (var ildaFile in program.IldaFiles)
+            {
+                command += $"{ildaFile.FileName};{ildaFile.Speed};{ildaFile.SpeedType};{ildaFile.NumRepetitions};{ildaFile.Palette}\n";
+            }
+        }
+
+        return Encoding.UTF8.GetBytes(command);
     }
 
     public readonly string[] FilePlayerModes = { "next", "shuffle", "once", "repeat" };
