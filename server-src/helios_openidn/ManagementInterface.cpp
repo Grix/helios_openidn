@@ -400,6 +400,29 @@ void ManagementInterface::networkLoop(int sd) {
 					sendto(sd, &responseBuffer, msgSize, 0, (struct sockaddr*)&remote, len);
 					continue;
 				}
+				else if (buffer_in[1] == 0x6) // Create/update programs in program list
+				{
+					char responseBuffer[2] = { 0xE6, 0x6 };
+					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
+
+					try
+					{
+						if (num_bytes <= 2 || buffer_in[num_bytes - 1] != '\0')
+							continue;
+
+						std::string settingString;
+						settingString.reserve(num_bytes - 2);
+						settingString.append(buffer_in + 2);
+
+						filePlayer.updateProgramList(settingString);
+					}
+					catch (std::exception ex)
+					{
+						printf("WARNING: Error during set/update program list command: %s.\n", ex.what());
+					}
+
+					continue;
+					}
 			}
 		}
 

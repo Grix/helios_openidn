@@ -96,6 +96,8 @@ public:
     void readSettings(mINI::INIStructure ini);
     void buildProgramMap();
     std::string getProgramListString();
+    void updateProgramList(std::string settingString);
+
 
 private:
 

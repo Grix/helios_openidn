@@ -592,9 +592,9 @@ void FilePlayer::readSettings(mINI::INIStructure ini)
         if (!fileplayer_defaultpps.empty())
             defaultParameters.speed = std::stoi(fileplayer_defaultpps);
     }
-    catch (...)
+    catch (std::exception ex)
     {
-        printf("Warning: Error during parsing of fileplayer ini file settings\n");
+        printf("WARNING: Error during parsing of fileplayer ini file settings: %s.\n", ex.what());
     }
 
 }
@@ -739,7 +739,7 @@ void FilePlayer::parsePrgFile(const std::filesystem::directory_entry& fileEntry)
         {
             try
             {
-                std::stringstream lineStream{ line };
+                std::stringstream lineStream(line);
                 std::string field1, field2, field3;
                 double speed;
                 int repetitions;
@@ -775,8 +775,9 @@ void FilePlayer::parsePrgFile(const std::filesystem::directory_entry& fileEntry)
                 printf("PRG program %s with file %s, speed %d %s, reps %d\n", programName, file.filePath, speed * 1000, isFps ? "fps" : "pps", repetitions);
 #endif
             }
-            catch (...)
+            catch (std::exception ex)
             {
+                printf("Warning: Error during PRG file parsing: %s - %s\n", ex.what(), programName);
                 continue;
             }
         }
@@ -868,9 +869,9 @@ void FilePlayer::buildProgramMap()
         }
         std::sort(programsAlphabeticSort.begin(), programsAlphabeticSort.end(), caseInsensitiveLess);
     }
-    catch (...)
+    catch (std::exception ex)
     {
-        printf("Warning: Error during reading of .prg ilda file parameter files.\n");
+        printf("Warning: Error during reading of .prg ilda file parameter files: %s\n", ex.what());
     }
 }
 
@@ -892,7 +893,7 @@ std::string FilePlayer::getProgramListString()
 
         for (const IldaFile file : value.files)
         {
-            result += getFilename(getFilename(file.filePath));
+            result += getFilename(file.filePath);
             result += ";";
             result += std::to_string(file.parameters.speed);
             result += ";";
@@ -907,6 +908,74 @@ std::string FilePlayer::getProgramListString()
         }
     }
     return result;
+}
+
+void FilePlayer::updateProgramList(std::string settingString)
+{
+    std::stringstream settingStringStream(settingString);
+    std::string line;
+    std::filesystem::path prgDirectory;
+    int numIldaFilesToParse = 0;
+    std::vector<Program> programsToUpdate;
+    Program newProgram;
+
+    while (std::getline(settingStringStream, line))
+    {
+        try
+        {
+            std::stringstream lineStream(line);
+            std::string field1, field2, field3, field4, field5;
+            if (std::getline(lineStream, field1, ';'))
+            {
+                if (!std::getline(lineStream, field2, ';'))
+                    continue;
+                if (!std::getline(lineStream, field3, ';'))
+                    continue;
+                if (!std::getline(lineStream, field4, ';'))
+                    continue;
+
+                if (numIldaFilesToParse == 0)
+                {
+                    // Parse program line
+
+                    newProgram = Program();
+                    newProgram.filePath.clear();
+                    newProgram.dmxIndex = std::stoi(field2);
+                    prgDirectory = std::filesystem::path((field3 == "i") ? localFileDirectory : usbFileDirectory);
+                    newProgram.filePath = prgDirectory / field1;
+                    numIldaFilesToParse = std::stoi(field4);
+                }
+                else
+                {
+                    // Parse ilda file line
+
+                    if (!std::getline(lineStream, field5, ';'))
+                        continue;
+
+                    IldaFile ildaFile;
+                    ildaFile.errorCode = 0; // TODO check if file exists
+                    ildaFile.filePath = prgDirectory / field1;
+                    ildaFile.parameters.speed = std::stod(field2);
+                    ildaFile.parameters.speedType = std::stoi(field3);
+                    ildaFile.parameters.numRepetitions = std::stoi(field4);
+                    ildaFile.parameters.palette = std::stoi(field5);
+
+                    newProgram.files.push_back(ildaFile);
+
+                    numIldaFilesToParse--;
+
+                    if (numIldaFilesToParse == 0)
+                        programsToUpdate.push_back(newProgram);
+                }
+            }
+            else
+                continue;
+        }
+        catch (std::exception ex)
+        {
+            printf("WARNING: Other error during updateProgramList: %s.\n", ex.what());
+        }
+    }
 }
 
 void FilePlayer::doFileEndAction(bool dontAttemptRepeat)
