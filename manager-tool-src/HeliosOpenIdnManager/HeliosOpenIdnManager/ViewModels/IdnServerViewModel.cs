@@ -59,7 +59,7 @@ public partial class IdnServerViewModel : ViewModelBase
         ServerInfo = serverInfo;
         Title = $"{serverInfo.Name} ({serverInfo.IpAddress})";
 
-        SoftwareVersion = HeliosOpenIdnUtilities.GetSoftwareVersion(serverInfo.IpAddress);
+        SoftwareVersion = HeliosProUtilities.GetSoftwareVersion(serverInfo.IpAddress);
     }
 
     public async void Connect()
@@ -73,8 +73,8 @@ public partial class IdnServerViewModel : ViewModelBase
         {
             try
             {
-                SshClient = HeliosOpenIdnUtilities.GetSshConnection(ServerInfo.IpAddress);
-                SftpClient = HeliosOpenIdnUtilities.GetSftpConnection(ServerInfo.IpAddress);
+                SshClient = HeliosProUtilities.GetSshConnection(ServerInfo.IpAddress);
+                SftpClient = HeliosProUtilities.GetSftpConnection(ServerInfo.IpAddress);
                 SshClient.ConnectAsync(CancellationToken.None);
                 SftpClient.ConnectAsync(CancellationToken.None);
             }

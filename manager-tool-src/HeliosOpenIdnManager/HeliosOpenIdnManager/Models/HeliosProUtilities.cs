@@ -1,8 +1,11 @@
-﻿using Renci.SshNet;
+﻿using HeliosOpenIdnManager.ViewModels;
+using Renci.SshNet;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -14,8 +17,7 @@ using System.Threading.Tasks;
 
 namespace HeliosOpenIdnManager;
 
-
-public class HeliosOpenIdnUtilities
+public class HeliosProUtilities
 {
     public const int IDN_HELLO_PORT = 7255;
     public const int MANAGEMENT_PORT = 7355;
@@ -27,6 +29,9 @@ public class HeliosOpenIdnUtilities
     static string sshUser = "laser";
     static string sshPassword = "pen_pineapple";
     static string sshSudoPassword = "pen_pineapple";
+
+    const string remoteFileLibraryPath = "/home/laser/library/";
+    const string remoteFileUsbPath = "/media/usbdrive/";
 
     /// <summary>
     /// Finds IP addresses of Helios-OpenIDN servers on the network. NB: Doesn't use official IDN Hello protocol, only special protocol for Helios, so it cannot find generic IDN servers.
@@ -209,6 +214,161 @@ public class HeliosOpenIdnUtilities
 
         return "";
     }
+
+    /// <summary>
+    /// Uploads laser files (typically .ild and/or .prg) to the local internal storage on the device. Specific to Helios-OpenIDN, not part of the IDN protocol.
+    /// </summary>
+    /// <returns></returns>
+    static public async Task UploadFiles(IPAddress server, IEnumerable<FileInfo> files)
+    {
+        using var scpClient = GetScpConnection(server);
+        await scpClient.ConnectAsync(CancellationToken.None);
+        foreach (var file in files)
+        {
+            scpClient.Upload(file, remoteFileLibraryPath + file.Name);
+        }
+    }
+
+    static public async Task<List<ProgramViewModel>> GetProgramList(IPAddress server)
+    {
+        List<ProgramViewModel> programs = new();
+
+        // Try to get file list via UDP socket first
+        bool success = true;
+        try
+        {
+            using var udpClient = new UdpClient();
+            var data = new byte[] { 0xE5, 0x5 };
+            udpClient.Client.ReceiveTimeout = 600;
+            udpClient.Client.SendTimeout = 500;
+
+            var sendAddress = new IPEndPoint(server, MANAGEMENT_PORT);
+            await udpClient.SendAsync(data, data.Length, sendAddress);
+
+            var receiveAddress = new IPEndPoint(IPAddress.Any, sendAddress.Port);
+            var receivedData = udpClient.Receive(ref receiveAddress);
+
+            if (receivedData is not null && receivedData.Length > 4 && receivedData[0] == 0xE5 + 1 && receivedData[1] == 0x5)
+            {
+                receivedData[receivedData.Length - 1] = 0;
+                var fileListRaw = Encoding.UTF8.GetString(receivedData, 2, receivedData.Length - 2);
+
+                var lines = fileListRaw.Split('\n');
+
+                for (int i = 0; i < lines.Length; i++)
+                {
+                    var line = lines[i];
+                    var programLineFields = line.Split(';');
+                    if (programLineFields.Length >= 4)
+                    {
+                        ProgramViewModel program = new ProgramViewModel(programLineFields[0])
+                        {
+                            DmxIndex = int.Parse(programLineFields[1]),
+                            IsStoredInternally = programLineFields[2] == "i",
+                        };
+                        int numIldaFiles = int.Parse(programLineFields[3]);
+                        for (int ildaFileIndex = 0; ildaFileIndex < numIldaFiles; ildaFileIndex++)
+                        {
+                            i++;
+                            var ildaFileLine = lines[i];
+                            var ildaFileLineFields = ildaFileLine.Split(';');
+                            if (ildaFileLineFields.Length >= 6)
+                            {
+                                program.IldaFiles.Add(new IldaFileViewModel(program,
+                                                                            filename: ildaFileLineFields[0],
+                                                                            speed: double.Parse(ildaFileLineFields[1], CultureInfo.InvariantCulture),
+                                                                            speedType: int.Parse(ildaFileLineFields[2]),
+                                                                            numRepetitions: uint.Parse(ildaFileLineFields[3]),
+                                                                            palette: uint.Parse(ildaFileLineFields[4]),
+                                                                            errorCode: int.Parse(ildaFileLineFields[5])));
+                            }
+                            else
+                            {
+                                success = false;
+                                throw new Exception("Incorrectly formatted response: " + ildaFileLine);
+                            }
+                        }
+
+                        programs.Add(program);
+                    }
+                    else if (programLineFields.Length > 1)
+                    {
+                        success = false;
+                        throw new Exception("Incorrectly formatted response: " + line);
+                    }
+                }
+
+            }
+            else
+                throw new Exception("No valid response");
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Couldn't scan for files: " + ex.Message, ex);
+            success = false;
+        }
+
+        if (!success)
+        {
+            // TODO implement direct file scanning via sftp
+            /*try
+            {
+                var sftpClient = GetSftpConnection(server) ?? throw new Exception("Could not connect");
+                //await sftpClient.ConnectAsync(CancellationToken.None);
+                await ListDirectoryRecursively(sftpClient, remoteFileLibraryPath);
+                await ListDirectoryRecursively(sftpClient, remoteFileUsbPath);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Couldn't scan for files: " + ex.Message, ex);
+            }*/
+        }
+
+        return programs;
+
+
+        async Task ListDirectoryRecursively(SftpClient client, string path)
+        {
+            await foreach (var file in client.ListDirectoryAsync(path, CancellationToken.None))
+            {
+                if (file.FullName == path || file.FullName.EndsWith('.'))
+                    continue;
+
+                if (file.IsDirectory)
+                {
+                    await ListDirectoryRecursively(client, file.FullName);
+                }
+
+                if (!file.IsRegularFile)
+                    continue;
+
+                var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+                // TODO parse PRG
+                /*if (extension == ".ild" || extension == ".ilda")
+                {
+                    Programs.Add(new ProgramViewModel(file.FullName));
+                }*/
+            }
+        }
+    }
+
+    /// <summary>
+    /// Sets or updates existing program file list on the device, for example with changed parameters for ilda files, or new files altogether. 
+    /// </summary>
+    /// <param name="server"></param>
+    /// <param name="updatedListString">Special command string for program data. Can be found with MainViewModel.AssembleProgramSetCommand()</param>
+    static public void SetProgramList(IPAddress server, string updatedListString)
+    {
+        using var udpClient = new UdpClient();
+        var data = new List<byte>(updatedListString.Length + 2) { 0xE5, 0x6 };
+        data.AddRange(Encoding.UTF8.GetBytes(updatedListString));
+        udpClient.Client.ReceiveTimeout = 500;
+        udpClient.Client.SendTimeout = 500;
+
+        var sendAddress = new IPEndPoint(server, MANAGEMENT_PORT);
+        udpClient.Send(data.ToArray(), data.Count, sendAddress);
+    }
+
 
     /// <summary>
     /// Create and connect an SSH connection to a Helios OpenIDN server

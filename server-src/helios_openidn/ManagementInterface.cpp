@@ -422,7 +422,29 @@ void ManagementInterface::networkLoop(int sd) {
 					}
 
 					continue;
-					}
+				}
+				else if (buffer_in[1] == 0xF0) // Stop/lock output, can be used as emergency stop
+				{
+					char responseBuffer[2] = { 0xE6, 0xF0 };
+					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
+
+					/*for (auto& device : devices) // Todo force more immediate stop instead of waiting for chunk to finish
+					{
+						device->stop(true);
+					}*/
+					requestOutput(OUTPUT_MODE_FORCESTOP);
+
+					continue;
+				}
+				else if (buffer_in[1] == 0xF1) // Unlock output, to allow output again after a stop/lock command
+				{
+					char responseBuffer[2] = { 0xE6, 0xF1 };
+					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
+
+					relinquishOutput(OUTPUT_MODE_FORCESTOP);
+
+					continue;
+				}
 			}
 		}
 
@@ -671,34 +693,35 @@ bool ManagementInterface::requestOutput(int outputMode)
 	{
 		system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
 		system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness");
-		currentMode = outputMode;
 		return true;
 	}
 	else if (outputMode == OUTPUT_MODE_USB)
 	{
 		system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness");
 		system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
-		currentMode = outputMode;
 		return true;
 	}
 	else if (outputMode == OUTPUT_MODE_FILE)
 	{
 		system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
 		system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
-		currentMode = outputMode;
-		return true;
 	}
 	else if (outputMode == OUTPUT_MODE_DMX)
 	{
 		system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
 		system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
-		currentMode = outputMode;
-		return true;
 	}
-	else return false;
+	else if (outputMode == OUTPUT_MODE_FORCESTOP)
+	{
+		system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness");
+		system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness");
+	}
+
+	currentMode = outputMode;
+	return true;
 }
 
-void ManagementInterface::stopOutput(int outputMode)
+void ManagementInterface::relinquishOutput(int outputMode)
 {
 	if (currentMode != outputMode)
 		return;

@@ -6,12 +6,26 @@
              mc:Ignorable="d" d:DesignWidth="400" 
              x:Class="HeliosOpenIdnManager.IldaFileView"
              x:DataType="vm:IldaFileViewModel">
-	<Expander HorizontalAlignment="Stretch" MinHeight="30">
+	<Expander HorizontalAlignment="Stretch" MinHeight="30" Padding="10,5">
         <Expander.Header>
             <DockPanel>
 			    <TextBlock Text="{Binding FileName, FallbackValue=Filename}" HorizontalAlignment="Left" />
-			    <TextBlock Text="{Binding ParameterString, FallbackValue=30kpps}" HorizontalAlignment="Right" Margin="20,0,0,0" />
+			    <TextBlock Text="{Binding ParameterString, FallbackValue=30kpps\, 1 reps.}" HorizontalAlignment="Right" Margin="20,0,0,0" />
             </DockPanel>
         </Expander.Header>
+        <Grid ColumnDefinitions="*,50" RowDefinitions="*,*">
+            <StackPanel Orientation="Horizontal" Grid.Column="0" Grid.Row="0">
+                <TextBlock Text="Speed: " VerticalAlignment="Center"></TextBlock>
+                <TextBox Text="{Binding Speed}" Watermark="Speed" Width="80" ToolTip.Tip="The speed the .ILD file should play at. This can either be a constant point rate (kpps), or a constant framerate (fps)."/>
+                <ComboBox SelectedIndex="{Binding SpeedType, FallbackValue=0}" ToolTip.Tip="The speed the .ILD file should play at. This can either be a constant point rate (kpps), or a constant framerate (fps).">
+                    <TextBlock Text="kpps"/>
+                    <TextBlock Text="fps"/>
+                </ComboBox>
+                
+                <TextBlock Text="Reps.: " VerticalAlignment="Center" Margin="20,0,0,0"></TextBlock>
+                <TextBox Text="{Binding NumRepetitions}" Watermark="1" Width="80" ToolTip.Tip="How many times each frame should be repeated in the animation. Essentially the higher this is, the slower the animation will be. Default is 1."/>
+            
+            </StackPanel>
+        </Grid>
     </Expander>
 </UserControl>

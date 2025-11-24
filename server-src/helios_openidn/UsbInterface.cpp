@@ -54,7 +54,7 @@ void UsbInterface::outputLoop()
             if (tdif > 500000000) // 500ms timeout
             {
                 delay.tv_nsec = 2000000; // 2 ms
-                management->stopOutput(OUTPUT_MODE_USB);
+                management->relinquishOutput(OUTPUT_MODE_USB);
             }
 
             nanosleep(&delay, &dummy);
@@ -112,7 +112,7 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
                 while (!queue.empty())
                     queue.pop_front();
             }
-            management->stopOutput(OUTPUT_MODE_USB);
+            management->relinquishOutput(OUTPUT_MODE_USB);
         }
         hasStarted = false;
     }

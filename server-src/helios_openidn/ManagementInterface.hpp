@@ -21,7 +21,8 @@
 #define OUTPUT_MODE_USB 1
 #define OUTPUT_MODE_FILE 2
 #define OUTPUT_MODE_DMX 3
-#define OUTPUT_MODE_MAX OUTPUT_MODE_DMX
+#define OUTPUT_MODE_FORCESTOP 4
+#define OUTPUT_MODE_MAX OUTPUT_MODE_FORCESTOP
 
 #define HARDWARE_UNKNOWN 0
 #define HARDWARE_ROCKPIS 1
@@ -45,7 +46,7 @@ public:
 	//int getMode();
 	static int getHardwareType();
 	bool requestOutput(int outputMode);
-	void stopOutput(int outputMode);
+	void relinquishOutput(int outputMode);
 	void unmountUsbDrive();
 	void runStartup();
 
@@ -53,7 +54,7 @@ public:
 	const char softwareVersion[10] = "0.9.8";
 	const unsigned char softwareVersionUsb = 98;
 	std::shared_ptr<IDNServer> idnServer;
-	int modePriority[OUTPUT_MODE_MAX + 1] = { 4, 3, 1, 2 }; // If <=0, disable entirely
+	int modePriority[OUTPUT_MODE_MAX + 1] = { 4, 3, 1, 2, 100000 }; // If <=0, disable entirely
 	std::vector<std::shared_ptr<DACHWInterface>> devices;
 	std::vector<V1LaproGraphicOutput*> outputs; // not used right now
 	std::vector<std::shared_ptr<HWBridge>> driverBridges; // only used for buffer duration setting, look into refactoring

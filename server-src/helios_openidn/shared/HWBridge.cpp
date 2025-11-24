@@ -156,7 +156,7 @@ void HWBridge::driverLoop()
 				nanosleep(&delay, &dummy);
 
 				if (!hasStopped)
-					management->stopOutput(OUTPUT_MODE_IDN);
+					management->relinquishOutput(OUTPUT_MODE_IDN);
 				hasStopped = true;
 			}
 			else

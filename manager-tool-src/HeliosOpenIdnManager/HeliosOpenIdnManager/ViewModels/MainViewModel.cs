@@ -27,6 +27,8 @@ namespace HeliosOpenIdnManager.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {
+    static public MainViewModel? Singleton { get; private set; }
+
     [ObservableProperty]
     private string _selectedServerTitle = "";
 
@@ -146,11 +148,10 @@ public partial class MainViewModel : ViewModelBase
 
     private IniData? rawSettings;
 
-    const string remoteFileLibraryPath = "/home/laser/library/";
-    const string remoteFileUsbPath = "/media/usbdrive/";
-
     public MainViewModel()
     {
+        Singleton = this;
+
         CurrentManagerVersion = Assembly.GetExecutingAssembly().GetName().Version!.ToString().Split('-')[0][0..^2];
         CheckForManagerUpdates();
         CheckForServerUpdates();
@@ -165,11 +166,11 @@ public partial class MainViewModel : ViewModelBase
 
         try
         {
-            foreach (var ipAddress in HeliosOpenIdnUtilities.ScanForServers())
+            foreach (var ipAddress in HeliosProUtilities.ScanForServers())
             {
                 try
                 {
-                    if (HeliosOpenIdnUtilities.GetServerInfo(ipAddress) is not IdnServerInfo serverInfo)
+                    if (HeliosProUtilities.GetServerInfo(ipAddress) is not IdnServerInfo serverInfo)
                         continue;
 
                     Servers.Add(new IdnServerViewModel(serverInfo));
@@ -235,7 +236,7 @@ public partial class MainViewModel : ViewModelBase
             // Use SCP transfer to get settings file if UDP socket fails
             if (!success)
             {
-                using var scpClient = HeliosOpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
+                using var scpClient = HeliosProUtilities.GetScpConnection(server.ServerInfo.IpAddress);
                 scpClient.Connect();
 
                 using var settingsStream = new MemoryStream();
@@ -367,7 +368,7 @@ public partial class MainViewModel : ViewModelBase
         {
             var server = Servers[SelectedServerIndex];
 
-            using var scpClient = HeliosOpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
+            using var scpClient = HeliosProUtilities.GetScpConnection(server.ServerInfo.IpAddress);
             scpClient.Connect();
 
             using var settingsStream = new MemoryStream();
@@ -461,7 +462,7 @@ public partial class MainViewModel : ViewModelBase
             sshClient.RunCommand("mv /home/laser/openidn/helios_openidn /home/laser/openidn/helios_openidn_backup");
             Thread.Sleep(100);
 
-            using var scpClient = HeliosOpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
+            using var scpClient = HeliosProUtilities.GetScpConnection(server.ServerInfo.IpAddress);
             scpClient.Connect();
             scpClient.Upload(new FileInfo(ServerSoftwareUpdatePath), "/home/laser/openidn/helios_openidn");
             Thread.Sleep(100);
@@ -490,11 +491,11 @@ public partial class MainViewModel : ViewModelBase
             var sshClient = server.SshClient ?? throw new Exception("Could not connect");
             //sshClient.Connect();
 
-            using var scpClient = HeliosOpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
+            using var scpClient = HeliosProUtilities.GetScpConnection(server.ServerInfo.IpAddress);
             scpClient.Connect();
             scpClient.Upload(new FileInfo(McuFirmwareUpdatePath), "/home/laser/"+Path.GetFileName(McuFirmwareUpdatePath));
             Thread.Sleep(100);
-            sshClient.RunCommand(HeliosOpenIdnUtilities.GetSudoSshCommand($"/home/laser/picberry -f dspic33ck -w {Path.GetFileName(McuFirmwareUpdatePath)} & "));
+            sshClient.RunCommand(HeliosProUtilities.GetSudoSshCommand($"/home/laser/picberry -f dspic33ck -w {Path.GetFileName(McuFirmwareUpdatePath)} & "));
             Thread.Sleep(20000);
 
             RestartServer();
@@ -617,7 +618,7 @@ public partial class MainViewModel : ViewModelBase
         try
         {
             // This will fail anyway, so put it in its own try-catch block without error handling.
-            var command = sshClient.RunCommand(HeliosOpenIdnUtilities.GetSudoSshCommand("reboot"));
+            var command = sshClient.RunCommand(HeliosProUtilities.GetSudoSshCommand("reboot"));
         }
         catch { }
     }
@@ -643,120 +644,19 @@ public partial class MainViewModel : ViewModelBase
         ProgramListIsRefreshing = true;
         var server = Servers[SelectedServerIndex];
 
-        // Try to get file list via UDP socket first
-        bool success = true;
         try
         {
-            using var udpClient = new UdpClient();
-            var data = new byte[] { 0xE5, 0x5 };
-            udpClient.Client.ReceiveTimeout = 700;
-            udpClient.Client.SendTimeout = 500;
-
-            var sendAddress = new IPEndPoint(server.ServerInfo.IpAddress, 7355);
-            udpClient.Send(data, data.Length, sendAddress);
-
-            var receiveAddress = new IPEndPoint(IPAddress.Any, sendAddress.Port);
-            var receivedData = udpClient.Receive(ref receiveAddress);
-
-            if (receivedData is not null && receivedData.Length > 4 && receivedData[0] == 0xE5 + 1 && receivedData[1] == 0x5)
-            {
-                receivedData[receivedData.Length - 1] = 0;
-                var fileListRaw = Encoding.UTF8.GetString(receivedData, 2, receivedData.Length - 2);
-
-                var lines = fileListRaw.Split('\n');
-
-                for (int i = 0; i < lines.Length; i++)
-                {
-                    var line = lines[i];
-                    var programLineFields = line.Split(';');
-                    if (programLineFields.Length >= 4)
-                    {
-                        ProgramViewModel program = new ProgramViewModel(programLineFields[0])
-                        {
-                            DmxIndex = int.Parse(programLineFields[1]),
-                            IsStoredInternally = programLineFields[2] == "i",
-                        };
-                        int numIldaFiles = int.Parse(programLineFields[3]);
-                        for (int ildaFileIndex = 0; ildaFileIndex < numIldaFiles; ildaFileIndex++)
-                        {
-                            i++;
-                            var ildaFileLine = lines[i];
-                            var ildaFileLineFields = ildaFileLine.Split(';');
-                            if (ildaFileLineFields.Length >= 6)
-                            {
-                                program.IldaFiles.Add(new IldaFileViewModel()
-                                {
-                                    FileName = ildaFileLineFields[0],
-                                    Speed = double.Parse(ildaFileLineFields[1], CultureInfo.InvariantCulture),
-                                    SpeedType = int.Parse(ildaFileLineFields[2]),
-                                    NumRepetitions = int.Parse(ildaFileLineFields[3]),
-                                    Palette = int.Parse(ildaFileLineFields[4]),
-                                    ErrorCode = int.Parse(ildaFileLineFields[5]),
-                                });
-                            }
-                            else
-                            {
-                                success = false;
-                                continue;
-                            }
-                        }
-
-                        Programs.Add(program);
-                    }
-                    else if (programLineFields.Length > 1)
-                    {
-                        success = false;
-                        break;
-                    }
-                }
-
-            }
+            var newPrograms = await HeliosProUtilities.GetProgramList(server.ServerInfo.IpAddress);
+            foreach (var program in newPrograms)
+                Programs.Add(program);
         }
-        catch 
-        { 
-            success = false; 
-        }
-
-        if (!success)
+        catch (Exception ex)
         {
-            try
-            {
-                var sftpClient = server.SftpClient ?? throw new Exception("Could not connect");
-                //await sftpClient.ConnectAsync(CancellationToken.None);
-                await ListDirectoryRecursively(sftpClient, remoteFileLibraryPath);
-                await ListDirectoryRecursively(sftpClient, remoteFileUsbPath);
-            }
-            catch (Exception ex)
-            {
-                ErrorMessage = "Couldn't scan for files: " + ex.Message;
-            }
+            ErrorMessage = ex.Message;
         }
-
-        ProgramListIsRefreshing = false;
-
-
-        async Task ListDirectoryRecursively(SftpClient client, string path)
+        finally
         {
-            await foreach (var file in client.ListDirectoryAsync(path, CancellationToken.None))
-            {
-                if (file.FullName == path || file.FullName.EndsWith('.'))
-                    continue;
-
-                if (file.IsDirectory)
-                {
-                    await ListDirectoryRecursively(client, file.FullName);
-                }
-
-                if (!file.IsRegularFile)
-                    continue;
-
-                var extension = Path.GetExtension(file.Name).ToLowerInvariant();
-                // TODO PRG
-                /*if (extension == ".ild" || extension == ".ilda")
-                {
-                    Programs.Add(new ProgramViewModel(file.FullName));
-                }*/
-            }
+            ProgramListIsRefreshing = false;
         }
 
     }
@@ -778,24 +678,13 @@ public partial class MainViewModel : ViewModelBase
     }*/
 
     [RelayCommand]
-    public async Task<FileUploadResult> UploadFiles()
+    public async Task UploadFiles()
     {
-        bool success = false;
-        //bool detectedIldaFileWithoutPrgFile = false;
         ErrorMessage = null;
         try
         {
             var server = Servers[SelectedServerIndex];
-            using var scpClient = HeliosOpenIdnUtilities.GetScpConnection(server.ServerInfo.IpAddress);
-            var connectTask = scpClient.ConnectAsync(CancellationToken.None);
-            //var analyzeFilesTask = AnalyzeAndFixFilesBeforeUpload();
-            await connectTask;
-            //await analyzeFilesTask;
-            foreach (var file in FilesToUpload)
-            {
-                scpClient.Upload(file, remoteFileLibraryPath + file.Name);
-            }
-            success = true;
+            await HeliosProUtilities.UploadFiles(server.ServerInfo.IpAddress, FilesToUpload);
             await Task.Delay(500);
             await RefreshFileList();
         }
@@ -803,7 +692,6 @@ public partial class MainViewModel : ViewModelBase
         {
             ErrorMessage = "Couldn't upload files: " + ex.Message;
         }
-        return new FileUploadResult(success);//, detectedIldaFileWithoutPrgFile);
     }
 
     void UpdateRawSettingsData()
@@ -963,7 +851,7 @@ public partial class MainViewModel : ViewModelBase
         return true;
     }
 
-    static byte[] AssembleProgramSetCommand(IEnumerable<ProgramViewModel> updatedPrograms)
+    public static string AssembleProgramSetCommand(IEnumerable<ProgramViewModel> updatedPrograms)
     {
         string command = "";
 
@@ -976,20 +864,8 @@ public partial class MainViewModel : ViewModelBase
             }
         }
 
-        return Encoding.UTF8.GetBytes(command);
+        return command;
     }
 
     public readonly string[] FilePlayerModes = { "next", "shuffle", "once", "repeat" };
-}
-
-public struct FileUploadResult
-{
-    public bool IsSuccessful = true;
-    //public bool HadIldFileWithoutPrgFile = false;
-
-    public FileUploadResult(bool isSuccessful)//, bool hadIldFileWithoutPrgFile)
-    {
-        IsSuccessful = isSuccessful;
-        //HadIldFileWithoutPrgFile = hadIldFileWithoutPrgFile;
-    }
 }

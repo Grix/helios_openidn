@@ -50,7 +50,7 @@ void FilePlayer::start()
 void FilePlayer::stop()
 {
 	state = FILEPLAYER_STATE_STOP;
-    management->stopOutput(OUTPUT_MODE_FILE);
+    management->relinquishOutput(OUTPUT_MODE_FILE);
     std::lock_guard<std::mutex> lock(threadLock);
     queue.clear();
 }
@@ -975,6 +975,11 @@ void FilePlayer::updateProgramList(std::string settingString)
         {
             printf("WARNING: Other error during updateProgramList: %s.\n", ex.what());
         }
+    }
+
+    for (auto& programToUpdate : programsToUpdate)
+    {
+        // todo
     }
 }
 
