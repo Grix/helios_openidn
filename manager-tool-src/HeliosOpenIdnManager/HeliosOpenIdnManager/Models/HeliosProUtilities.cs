@@ -361,7 +361,7 @@ public class HeliosProUtilities
     {
         using var udpClient = new UdpClient();
         var data = new List<byte>(updatedListString.Length + 2) { 0xE5, 0x6 };
-        data.AddRange(Encoding.UTF8.GetBytes(updatedListString));
+        data.AddRange(Encoding.UTF8.GetBytes(updatedListString + "\0"));
         udpClient.Client.ReceiveTimeout = 500;
         udpClient.Client.SendTimeout = 500;
 

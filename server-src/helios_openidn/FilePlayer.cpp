@@ -125,7 +125,7 @@ int FilePlayer::playFile(std::string programName)
         fseek(fpIDTF, filePos, SEEK_SET);
 
 #ifndef NDEBUG
-        printf("Playing file %s, speed %f %s, reps %d\n", filename, ildaFile.parameters.speed, ildaFile.parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_FPS ? "fps" : "pps", ildaFile.parameters.numRepetitions);
+        printf("Playing file %s, speed %g %s, reps %d\n", filename, ildaFile.parameters.speed, ildaFile.parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_FPS ? "fps" : "pps", ildaFile.parameters.numRepetitions);
 #endif
 
         // -------------------------------------------------------------------------
@@ -300,7 +300,7 @@ int FilePlayer::playFile(std::string programName)
                         if (ildaFile.parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_PPS)
                             chunk->pps = ildaFile.parameters.speed;
                         else // if (parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_FPS)
-                            chunk->pps = ildaFile.parameters.speed * chunk->buffer.size();
+                            chunk->pps = ildaFile.parameters.speed * recordCnt;
 
                         {
                             //std::lock_guard<std::mutex> lock(threadLock);
@@ -345,7 +345,7 @@ int FilePlayer::playFile(std::string programName)
                     if (ildaFile.parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_PPS)
                         chunk->pps = ildaFile.parameters.speed;
                     else // if (parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_FPS)
-                        chunk->pps = ildaFile.parameters.speed * chunk->buffer.size();
+                        chunk->pps = ildaFile.parameters.speed * recordCnt;
 
                     {
                         //std::lock_guard<std::mutex> lock(threadLock);
@@ -757,6 +757,8 @@ void FilePlayer::parsePrgFile(const std::filesystem::directory_entry& fileEntry)
                     isFps = fpsSubstringPos != std::string::npos;
 
                     speed = std::stod(isFps ? field2.substr(0, fpsSubstringPos) : field2);
+                    if (!isFps)
+                        speed *= 1000;
                     repetitions = std::stoi(field3);
                 }
                 else
@@ -765,19 +767,19 @@ void FilePlayer::parsePrgFile(const std::filesystem::directory_entry& fileEntry)
                 IldaFile file;
                 file.filePath = fileEntry.path().parent_path() / field1;
                 file.parameters.speedType = isFps ? FILEPLAYER_PARAM_SPEEDTYPE_FPS : FILEPLAYER_PARAM_SPEEDTYPE_PPS;
-                file.parameters.speed = isFps ? speed : (speed * 1000);
+                file.parameters.speed = speed;
                 file.parameters.numRepetitions = repetitions;
                 file.errorCode = 1; // Means file doesn't exist. This will be later cleared in parseIldFile() if the file does exist.
 
                 program.files.push_back(file);
 
 #ifndef NDEBUG
-                printf("PRG program %s with file %s, speed %d %s, reps %d\n", programName, file.filePath, speed * 1000, isFps ? "fps" : "pps", repetitions);
+                printf("PRG program %s with file %s, speed %g %s, reps %d\n", programName.c_str(), file.filePath.c_str(), speed * 1000, isFps ? "fps" : "pps", repetitions);
 #endif
             }
             catch (std::exception ex)
             {
-                printf("Warning: Error during PRG file parsing: %s - %s\n", ex.what(), programName);
+                printf("Warning: Error during PRG file parsing: %s - %s\n", ex.what(), programName.c_str());
                 continue;
             }
         }
@@ -878,7 +880,7 @@ void FilePlayer::buildProgramMap()
 std::string FilePlayer::getProgramListString()
 {
     std::string result = "";
-    result.reserve(programs.size() * 60); // Best guess, small optimization
+    result.reserve(programs.size() * 60);
 
     for (const auto& [key, value] : programs)
     {
@@ -891,11 +893,11 @@ std::string FilePlayer::getProgramListString()
         result += std::to_string(value.files.size());
         result += "\n";
 
-        for (const IldaFile file : value.files)
+        for (const IldaFile& file : value.files)
         {
             result += getFilename(file.filePath);
             result += ";";
-            result += std::to_string(file.parameters.speed);
+            result += std::to_string(file.parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_PPS ? file.parameters.speed / 1000 : file.parameters.speed);
             result += ";";
             result += std::to_string(file.parameters.speedType);
             result += ";";
@@ -910,7 +912,7 @@ std::string FilePlayer::getProgramListString()
     return result;
 }
 
-void FilePlayer::updateProgramList(std::string settingString)
+void FilePlayer::writeProgramList(std::string settingString)
 {
     std::stringstream settingStringStream(settingString);
     std::string line;
@@ -953,10 +955,10 @@ void FilePlayer::updateProgramList(std::string settingString)
                         continue;
 
                     IldaFile ildaFile;
-                    ildaFile.errorCode = 0; // TODO check if file exists
                     ildaFile.filePath = prgDirectory / field1;
-                    ildaFile.parameters.speed = std::stod(field2);
+                    ildaFile.errorCode = std::filesystem::exists(ildaFile.filePath) ? 0 : 1;
                     ildaFile.parameters.speedType = std::stoi(field3);
+                    ildaFile.parameters.speed = (ildaFile.parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_PPS) ? std::stod(field2)*1000 : std::stod(field2);
                     ildaFile.parameters.numRepetitions = std::stoi(field4);
                     ildaFile.parameters.palette = std::stoi(field5);
 
@@ -979,7 +981,8 @@ void FilePlayer::updateProgramList(std::string settingString)
 
     for (auto& programToUpdate : programsToUpdate)
     {
-        // todo
+        programs[programToUpdate.filePath.filename()] = programToUpdate;
+        savePrgFile(programToUpdate.filePath.filename());
     }
 }
 
@@ -1028,3 +1031,35 @@ void FilePlayer::doFileEndAction(bool dontAttemptRepeat)
         }
     }
 }
+
+void FilePlayer::savePrgFile(const std::string& name)
+{
+    if (programs.count(name) <= 0)
+    {
+        std::printf("Warning: Attempted to save prg file for program that doesn't exist.\n");
+        return;
+    }
+    try
+    {
+        Program program = programs[name];
+        std::ofstream prgFileStream = std::ofstream(program.filePath, std::ios::trunc);
+        char line[256];
+        for (auto& ildaFile : program.files)
+        {
+            std::sprintf(line, "%s,%g%s,%d\n",
+                ildaFile.filePath.filename().c_str(),
+                ildaFile.parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_PPS ? ildaFile.parameters.speed / 1000 : ildaFile.parameters.speed,
+                ildaFile.parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_PPS ? "" : "fps",
+                ildaFile.parameters.numRepetitions);
+            prgFileStream << line;
+        }
+        if (program.dmxIndex >= 0)
+            std::sprintf(line, "#dmx_index,%d\n", program.dmxIndex);
+        prgFileStream.close();
+    }
+    catch (std::exception ex)
+    {
+        std::printf("Warning: Failed to to save prg file: %s.\n", ex.what());
+    }
+}
+

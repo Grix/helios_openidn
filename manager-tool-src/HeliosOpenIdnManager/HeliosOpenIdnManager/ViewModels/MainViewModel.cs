@@ -157,6 +157,8 @@ public partial class MainViewModel : ViewModelBase
         CheckForServerUpdates();
 
         LoadDefaultConfig();
+
+        // Todo ensure decimal . for culture
     }
 
     [RelayCommand]

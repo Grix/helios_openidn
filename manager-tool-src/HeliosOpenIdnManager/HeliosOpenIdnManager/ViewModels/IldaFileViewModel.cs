@@ -15,7 +15,7 @@ public partial class IldaFileViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ParameterString))]
-    private double _speed = 30000;
+    private double _speed = 30;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ParameterString))]
@@ -97,7 +97,7 @@ public partial class IldaFileViewModel : ViewModelBase
     {
         if (!ready)
             return;
-        if (newValue < 10 || newValue > 100000)
+        if (newValue < 0.1 || newValue > 100)
         {
             Speed = 30;
             return;

@@ -414,7 +414,7 @@ void ManagementInterface::networkLoop(int sd) {
 						settingString.reserve(num_bytes - 2);
 						settingString.append(buffer_in + 2);
 
-						filePlayer.updateProgramList(settingString);
+						filePlayer.writeProgramList(settingString);
 					}
 					catch (std::exception ex)
 					{

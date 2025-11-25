@@ -96,7 +96,7 @@ public:
     void readSettings(mINI::INIStructure ini);
     void buildProgramMap();
     std::string getProgramListString();
-    void updateProgramList(std::string settingString);
+    void writeProgramList(std::string settingString);
 
 
 private:
@@ -115,6 +115,7 @@ private:
     void parsePrgFile(const std::filesystem::directory_entry& fileEntry);
     void parseIldFile(const std::filesystem::directory_entry& fileEntry);
     void doFileEndAction(bool dontAttemptRepeat);
+    void savePrgFile(const std::string& name);
 
     //std::vector<ISPDB25Point> pointBuffer;
     //SliceBuf queue;
