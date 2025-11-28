@@ -14,11 +14,12 @@ double HWBridge::calculateSpeedfactor(double currentSpeed, std::shared_ptr<Slice
 		double offCenter = error * error * error / center;
 		this->accumOC += offCenter;
 
-		double newSpeed = (1.0 + 0.001 * (center / 40) * offCenter + 0.000*accumOC); // Accumulator entirely nullified for now
-		newSpeed = (newSpeed + ((sm-1)*currentSpeed))/sm;
+		double newSpeed = (1.0 + 0.0002 * (center / 40) * offCenter + 0.000*accumOC); // Accumulator entirely nullified for now
+		if (currentSpeed > 0)
+			newSpeed = (newSpeed + ((sm-1)*currentSpeed))/sm;
 
-		//if (debug == DEBUGSIMPLE)
-			//printf("Calculating speed factor: center %.2f, bufUsageMs %.2f, buffer->size() %.2f, buffer->front()->durationUs %.2f, accumOC %.2f, newSpeed %.2f \n", center, bufUsageMs, (double)buffer->size(), (double)buffer->front()->durationUs, this->accumOC, newSpeed);
+		if (debug == DEBUGSIMPLE)
+			printf("Calculating speed factor: center %.2f, bufUsageMs %.2f, buffer->size() %.2f, buffer->front()->durationUs %.2f, accumOC %.2f, newSpeed %.2f \n", center, bufUsageMs, (double)buffer->size(), (double)buffer->front()->durationUs, this->accumOC, newSpeed);
 
 		//return 1;
 		return std::min(1.3, std::max(0.8, newSpeed));
@@ -148,7 +149,7 @@ void HWBridge::driverLoop()
 			{
 				//outputEmptyPoint();
 				//device->bexResetBuffers();
-				speedFactor = 1.0;
+				speedFactor = -1;
 				this->accumOC = 0;
 				struct timespec delay, dummy; // Prevents hogging 100% CPU use when idle
 				delay.tv_sec = 0;
