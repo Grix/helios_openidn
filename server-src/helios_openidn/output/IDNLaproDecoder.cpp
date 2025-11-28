@@ -451,6 +451,21 @@ void IDNLaproDecoder::decode(uint8_t *dstPtr, uint8_t *srcPtr)
                     offset = read_uint8(srcPtr, srcLen, offset, (uint8_t*)&(dstPoint->b));
                     dstPoint->b = ((dstPoint->b << 8) & 0xff00) | (dstPoint->b & 0x00ff);
                 }
+                else if (tag->wavelength == ISP_DB25_U1_WAVELENGTH)
+                {
+                    offset = read_uint8(srcPtr, srcLen, offset, (uint8_t*)&(dstPoint->u1));
+                    dstPoint->u1 = ((dstPoint->u1 << 8) & 0xff00) | (dstPoint->u1 & 0x00ff);
+                }
+                else if (tag->wavelength == ISP_DB25_U2_WAVELENGTH)
+                {
+                    offset = read_uint8(srcPtr, srcLen, offset, (uint8_t*)&(dstPoint->u2));
+                    dstPoint->u2 = ((dstPoint->u2 << 8) & 0xff00) | (dstPoint->u2 & 0x00ff);
+                }
+                else if (tag->wavelength == ISP_DB25_U3_WAVELENGTH)
+                {
+                    offset = read_uint8(srcPtr, srcLen, offset, (uint8_t*)&(dstPoint->u3));
+                    dstPoint->u3 = ((dstPoint->u3 << 8) & 0xff00) | (dstPoint->u3 & 0x00ff);
+                }
                 else
                 {
                     offset++;
