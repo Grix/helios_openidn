@@ -458,6 +458,42 @@ void ManagementInterface::networkLoop(int sd) {
 						continue;
 					}
 				}
+				else if (buffer_in[1] == 0x08) // Stop button
+				{
+					char responseBuffer[2] = { 0xE6, 0x08 };
+					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
+
+					emitEscButtonPressed();
+
+					continue;
+				}
+				else if (buffer_in[1] == 0x09) // Play button
+				{
+					char responseBuffer[2] = { 0xE6, 0x09 };
+					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
+
+					emitEnterButtonPressed();
+
+					continue;
+				}
+				else if (buffer_in[1] == 0x10) // Up button
+				{
+					char responseBuffer[2] = { 0xE6, 0x10 };
+					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
+
+					emitUpButtonPressed();
+
+					continue;
+				}
+				else if (buffer_in[1] == 0x11) // Down button
+				{
+					char responseBuffer[2] = { 0xE6, 0x11 };
+					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
+
+					emitDownButtonPressed();
+
+					continue;
+				}
 				else if (buffer_in[1] == 0xF0) // Stop/lock output, can be used as emergency stop
 				{
 					char responseBuffer[2] = { 0xE6, 0xF0 };
