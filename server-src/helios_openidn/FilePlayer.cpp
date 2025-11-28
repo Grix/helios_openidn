@@ -434,7 +434,6 @@ void FilePlayer::outputLoop()
         if (state == FILEPLAYER_STATE_STOP)
         {
 
-
             delay.tv_nsec = 5000000; // 5 ms
         }
         else if (state == FILEPLAYER_STATE_PLAY || state == FILEPLAYER_STATE_PAUSE)
@@ -727,7 +726,7 @@ void FilePlayer::parsePrgFile(const std::filesystem::directory_entry& fileEntry)
     if (programs.count(fileEntry.path().filename()) != 0)
         return;
 
-    std::fstream fileStream(fileEntry.path(), std::ios_base::in);
+    std::ifstream fileStream(fileEntry.path());
     std::string line;
 
     if (fileStream)
@@ -774,7 +773,7 @@ void FilePlayer::parsePrgFile(const std::filesystem::directory_entry& fileEntry)
                 program.files.push_back(file);
 
 #ifndef NDEBUG
-                printf("PRG program %s with file %s, speed %g %s, reps %d\n", programName.c_str(), file.filePath.c_str(), speed * 1000, isFps ? "fps" : "pps", repetitions);
+                printf("PRG program %s with file %s, speed %g %s, reps %d\n", programName.c_str(), file.filePath.c_str(), speed, isFps ? "fps" : "pps", repetitions);
 #endif
             }
             catch (std::exception ex)
@@ -1056,6 +1055,7 @@ void FilePlayer::savePrgFile(const std::string& name)
         if (program.dmxIndex >= 0)
             std::sprintf(line, "#dmx_index,%d\n", program.dmxIndex);
         prgFileStream.close();
+        chmod(program.filePath.c_str(), 0666);
     }
     catch (std::exception ex)
     {

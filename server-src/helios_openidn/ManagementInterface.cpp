@@ -333,12 +333,12 @@ void ManagementInterface::networkLoop(int sd) {
 						}
 						catch (std::exception ex)
 						{
-							printf("WARNING: Failed to save settings file with new name.\n");
+							printf("WARNING: Failed to save settings file with new name: %s.\n", ex.what());
 							continue;
 						}
 					}
 				}
-				else if (buffer_in[1] == 0x4) // Get settings file
+				else if (buffer_in[1] == 0x4) // Get settings
 				{
 					char responseBuffer[UDP_MAXBUF] = { 0xE6, 0x4, 0, 1 };
 					size_t msgSize = 4;
@@ -400,7 +400,7 @@ void ManagementInterface::networkLoop(int sd) {
 					sendto(sd, &responseBuffer, msgSize, 0, (struct sockaddr*)&remote, len);
 					continue;
 				}
-				else if (buffer_in[1] == 0x6) // Create/update programs in program list
+				else if (buffer_in[1] == 0x6) // Set/update program list
 				{
 					char responseBuffer[2] = { 0xE6, 0x6 };
 					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
@@ -422,6 +422,41 @@ void ManagementInterface::networkLoop(int sd) {
 					}
 
 					continue;
+				}
+				else if (buffer_in[1] == 0x7) // Set/update settings
+				{
+					char responseBuffer[2] = { 0xE6, 0x7 };
+					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
+
+					try
+					{
+						if (num_bytes <= 2 || buffer_in[num_bytes - 1] != '\0')
+							continue;
+
+						std::string settingString;
+						settingString.reserve(num_bytes - 2);
+						settingString.append(buffer_in + 2);
+
+						std::ofstream tempFile(settingsPath + "_new");
+						tempFile << settingString;
+						tempFile.close();
+
+						// Try to open the temp file to check whether it's a valid INI file
+						mINI::INIFile file(settingsPath + "_new");
+						mINI::INIStructure ini;
+						if (!file.read(ini))
+						{
+							printf("WARNING: Could not find/open temp settings file during set settings command.\n");
+							continue;
+						}
+
+						std::filesystem::rename(settingsPath + "_new", settingsPath);
+					}
+					catch (std::exception ex)
+					{
+						printf("WARNING: Failed to save settings file after set settings command: %s.\n", ex.what());
+						continue;
+					}
 				}
 				else if (buffer_in[1] == 0xF0) // Stop/lock output, can be used as emergency stop
 				{
@@ -484,6 +519,7 @@ void ManagementInterface::mountUsbDrive()
 void ManagementInterface::emitEnterButtonPressed()
 {
 	printf("Enter button\n");
+	relinquishOutput(OUTPUT_MODE_FORCESTOP);
 	filePlayer.playButtonPress();
 }
 
