@@ -383,6 +383,18 @@ void IDNLaproDecoder::decode(uint8_t *dstPtr, uint8_t *srcPtr)
                 {
                     offset = read_uint16(srcPtr, srcLen, offset, &(dstPoint->b));
                 }
+                else if (tag->wavelength == ISP_DB25_U1_WAVELENGTH)
+                {
+                    offset = read_uint16(srcPtr, srcLen, offset, &(dstPoint->u1));
+                }
+                else if (tag->wavelength == ISP_DB25_U2_WAVELENGTH)
+                {
+                    offset = read_uint16(srcPtr, srcLen, offset, &(dstPoint->u2));
+                }
+                else if (tag->wavelength == ISP_DB25_U3_WAVELENGTH)
+                {
+                    offset = read_uint16(srcPtr, srcLen, offset, &(dstPoint->u3));
+                }
                 else
                 {
                     offset += 2;

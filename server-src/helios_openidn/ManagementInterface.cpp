@@ -729,13 +729,11 @@ bool ManagementInterface::requestOutput(int outputMode)
 	{
 		system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
 		system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness");
-		return true;
 	}
 	else if (outputMode == OUTPUT_MODE_USB)
 	{
 		system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness");
 		system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
-		return true;
 	}
 	else if (outputMode == OUTPUT_MODE_FILE)
 	{
