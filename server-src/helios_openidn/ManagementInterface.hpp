@@ -51,10 +51,10 @@ public:
 	void runStartup();
 
 	std::string settingIdnHostname = "HeliosPRO";
-	const char softwareVersion[10] = "0.9.8";
-	const unsigned char softwareVersionUsb = 98;
+	const char softwareVersion[10] = "0.9.9";
+	const unsigned char softwareVersionUsb = 99;
 	std::shared_ptr<IDNServer> idnServer;
-	int modePriority[OUTPUT_MODE_MAX + 1] = { 4, 3, 1, 2, 100000 }; // If <=0, disable entirely
+	int modePriority[OUTPUT_MODE_MAX + 1] = { 4, 3, 1, 2, 100 }; // If <=0, disable entirely
 	std::vector<std::shared_ptr<DACHWInterface>> devices;
 	std::vector<V1LaproGraphicOutput*> outputs; // not used right now
 	std::vector<std::shared_ptr<HWBridge>> driverBridges; // only used for buffer duration setting, look into refactoring

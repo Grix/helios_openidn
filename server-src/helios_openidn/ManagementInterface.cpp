@@ -303,7 +303,7 @@ void ManagementInterface::networkLoop(int sd) {
 					char responseBuffer[20] = { 0 };
 					responseBuffer[0] = 0xE6;
 					responseBuffer[1] = 0x2;
-					strcpy(responseBuffer + 2, softwareVersion);
+					strncpy(responseBuffer + 2, softwareVersion, 10);
 					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
 				}
 				else if (buffer_in[1] == 0x3) // Set name
@@ -491,6 +491,17 @@ void ManagementInterface::networkLoop(int sd) {
 					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
 
 					emitDownButtonPressed();
+
+					continue;
+				}
+				else if (buffer_in[1] == 0x12) // Get status
+				{
+					char responseBuffer[128] = { 0 };
+					responseBuffer[0] = 0xE6;
+					responseBuffer[1] = 0x12;
+					responseBuffer[2] = (char)currentMode;
+					strncpy(responseBuffer + 10, filePlayer.currentProgramName.c_str(), 100);
+					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
 
 					continue;
 				}
@@ -761,6 +772,8 @@ bool ManagementInterface::requestOutput(int outputMode)
 
 	printf("Switching output to mode %d\n", outputMode);
 
+	currentMode = outputMode;
+
 	if (outputMode == OUTPUT_MODE_IDN)
 	{
 		system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
@@ -787,7 +800,6 @@ bool ManagementInterface::requestOutput(int outputMode)
 		system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness");
 	}
 
-	currentMode = outputMode;
 	return true;
 }
 
