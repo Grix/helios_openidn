@@ -1,0 +1,30 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:HeliosOpenIdnManager.ViewModels"
+             xmlns:local="clr-namespace:HeliosOpenIdnManager"
+			 xmlns:materialIcons="clr-namespace:Material.Icons.Avalonia;assembly=Material.Icons.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="400" 
+             x:Class="HeliosOpenIdnManager.ProgramView"
+             x:DataType="vm:ProgramViewModel">
+	<Expander MinHeight="30" HorizontalAlignment="Stretch" Header="{Binding Name, FallbackValue=Program Name}" Padding="2">
+        <StackPanel>
+
+            <Button IsVisible="{Binding SettingsAreChanged, FallbackValue=x:True}" Command="{Binding SaveCommand}" Background="Transparent" FontSize="16" Margin="0, 0, 0, 0" ToolTip.ShowDelay="0" ToolTip.Tip="Save changes that you have made to this file. Without saving, changes will not be applied.">
+				<StackPanel Orientation="Horizontal">
+					<materialIcons:MaterialIcon Kind="FloppyDisc" VerticalAlignment="Center" Foreground="Green" Height="20" Width="20" HorizontalAlignment="Left"/>
+					<TextBlock Text=" Save changes" VerticalAlignment="Center"></TextBlock>
+				</StackPanel>
+			</Button>
+
+            <ListBox ItemsSource="{Binding IldaFiles}" Padding="0">
+		        <ListBox.ItemTemplate>
+			        <DataTemplate>
+				        <local:IldaFileView Margin="-8,-6,-8,-8"></local:IldaFileView>
+			        </DataTemplate>
+		        </ListBox.ItemTemplate>
+            </ListBox>
+        </StackPanel>
+    </Expander>
+</UserControl>

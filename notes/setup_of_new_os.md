@@ -16,6 +16,7 @@
 	mv helios_openidn_v0.9.1.bin openidn/helios_openidn
 	chmod +x openidn/helios_openidn
 	touch openidn/settings.ini
+	mkdir library
 	```
 	
 4. Make autostart service
@@ -62,3 +63,8 @@
 	
 
 (Todo: SPI if needed, use rk3308-spi2-spidev_WORKING.dts)
+```
+sudo armbian-add-overlay rk3308-spi2-spidev.dts
+In /boot/armbianEnv.txt:
+param_spidev_spi_bus=2
+```

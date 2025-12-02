@@ -18,6 +18,166 @@
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Display.cpp" />
+    <ClCompile Include="dummy\DummyAdapter.cpp" />
+    <ClCompile Include="FilePlayer.cpp" />
+    <ClCompile Include="hardware\HeliosPro\HeliosProAdapter.cpp" />
+    <ClCompile Include="hardware\Helios\HeliosAdapter.cpp" />
+    <ClCompile Include="hardware\Helios\HeliosDac.cpp" />
+    <ClCompile Include="ManagementInterface.cpp" />
+    <ClCompile Include="OlaDmxInterface.cpp" />
+    <ClCompile Include="output\IDNLaproDecoder.cpp" />
+    <ClCompile Include="output\IdtfDecoder.cpp" />
+    <ClCompile Include="output\NOPLaproGraphOut.cpp" />
+    <ClCompile Include="output\RTLaproGraphOut.cpp" />
+    <ClCompile Include="output\RTOutput.cpp" />
+    <ClCompile Include="output\STDLaproGraphOut.cpp" />
+    <ClCompile Include="output\V1LaproGraphOut.cpp" />
+    <ClCompile Include="server\IDNLaproGraConInlet.cpp" />
+    <ClCompile Include="server\IDNLaproGraDisInlet.cpp" />
+    <ClCompile Include="server\IDNLaproService.cpp" />
+    <ClCompile Include="server\IDNServer.cpp" />
+    <ClCompile Include="server\IDNService.cpp" />
+    <ClCompile Include="server\IDNSession.cpp" />
+    <ClCompile Include="shared\AdapterBase.cpp" />
+    <ClCompile Include="shared\DACHWInterface.cpp" />
+    <ClCompile Include="shared\DecoderBase.cpp" />
+    <ClCompile Include="shared\HWBridge.cpp" />
+    <ClCompile Include="shared\LaproAdapter.cpp" />
+    <ClCompile Include="shared\ODFTools.cpp" />
+    <ClCompile Include="stage\main.cpp" />
+    <ClCompile Include="stage\SockIDNServer.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\canvas\canvas.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\canvas\font.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\canvas\fonts\fonts.c" />
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\interface.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\linux\linux_i2c.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\linux\linux_spi.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\linux\platform.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\linux\sdl_i2c.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\linux\sdl_spi.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\gui\button.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\gui\menu.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\gui\yesno.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\lcdany\lcd_any.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\lcdwio\lcd_wio.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\lcd_common.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ssd1306\lcd_ssd1306.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ssd1325\lcd_ssd1325.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ssd1327\lcd_ssd1327.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ssd1331\lcd_ssd1331.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ssd1351\lcd_ssd1351.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\nano_engine\core.cpp" />
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\utf8.c" />
+    <ClCompile Include="UsbGadget.c" />
+    <ClCompile Include="UsbInterface.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Display.hpp" />
+    <ClInclude Include="dummy\DummyAdapter.hpp" />
+    <ClInclude Include="FilePlayer.hpp" />
+    <ClInclude Include="hardware\HeliosPro\HeliosProAdapter.hpp" />
+    <ClInclude Include="hardware\Helios\HeliosAdapter.hpp" />
+    <ClInclude Include="hardware\Helios\HeliosDac.hpp" />
+    <ClInclude Include="hardware\Helios\libusb.h" />
+    <ClInclude Include="ini.hpp" />
+    <ClInclude Include="ManagementInterface.hpp" />
+    <ClInclude Include="OlaDmxInterface.hpp" />
+    <ClInclude Include="output\IDNLaproDecoder.hpp" />
+    <ClInclude Include="output\IdtfDecoder.hpp" />
+    <ClInclude Include="output\NOPLaproGraphOut.hpp" />
+    <ClInclude Include="output\RTLaproGraphOut.hpp" />
+    <ClInclude Include="output\RTOutput.hpp" />
+    <ClInclude Include="output\STDLaproGraphOut.hpp" />
+    <ClInclude Include="output\V1LaproGraphOut.hpp" />
+    <ClInclude Include="server\idn-hello.h" />
+    <ClInclude Include="server\idn-stream.h" />
+    <ClInclude Include="server\idn.h" />
+    <ClInclude Include="server\IDNLaproGraConInlet.hpp" />
+    <ClInclude Include="server\IDNLaproGraDisInlet.hpp" />
+    <ClInclude Include="server\IDNLaproService.hpp" />
+    <ClInclude Include="server\IDNServer.hpp" />
+    <ClInclude Include="server\IDNService.hpp" />
+    <ClInclude Include="server\IDNSession.hpp" />
+    <ClInclude Include="server\LLNode.hpp" />
+    <ClInclude Include="server\PEVFlags.h" />
+    <ClInclude Include="shared\AdapterBase.hpp" />
+    <ClInclude Include="shared\DACHWInterface.hpp" />
+    <ClInclude Include="shared\DecoderBase.hpp" />
+    <ClInclude Include="shared\HWBridge.hpp" />
+    <ClInclude Include="shared\ISPDB25Point.h" />
+    <ClInclude Include="shared\LaproAdapter.hpp" />
+    <ClInclude Include="shared\ODFEnvironment.hpp" />
+    <ClInclude Include="shared\ODFTaxiBuffer.hpp" />
+    <ClInclude Include="shared\ODFTools.hpp" />
+    <ClInclude Include="shared\types.h" />
+    <ClInclude Include="stage\SockIDNServer.hpp" />
+    <ClInclude Include="stage\SockTaxiBuffer.hpp" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\adafruit.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\canvas.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\canvas_types.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\font.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\fonts\fonts.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\internal\canvas_types_int.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\point.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\rect.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\UserSettings.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcdgfx.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcdgfx_gui.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\custom_interface.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\interface.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\io.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\Arduino.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\avr\interrupt.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\avr\pgmspace.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\avr\sleep.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\Print.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\Wire.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\io.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\linux_i2c.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\linux_spi.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\sdl_i2c.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\sdl_spi.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\Print_internal.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\UserSettings.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\nano_engine_v2.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\nano_gfx_types.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\gui\button.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\gui\menu.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\gui\yesno.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\base\display.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\base\display_base.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\lcdany\lcd_any.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\lcdwio\lcd_wio.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\lcd_common.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ssd1306\lcd_ssd1306.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ssd1325\lcd_ssd1325.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ssd1327\lcd_ssd1327.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ssd1331\lcd_ssd1331.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ssd1351\lcd_ssd1351.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\core.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\menu.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\menu_items.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\object.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\sprite.h" />
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\tiler.h" />
+    <ClInclude Include="UsbInterface.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="thirdparty\lcdgfx\src\README.md" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\base\ssd1306_16bit.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\base\ssd1306_1bit.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\base\ssd1306_4bit.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\base\ssd1306_8bit.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\base\ssd1306_common.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\lcd_common.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\ssd1306\lcd_ssd1306.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\ssd1325\lcd_ssd1325.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\ssd1327\lcd_ssd1327.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\ssd1331\lcd_ssd1331.inl" />
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\ssd1351\lcd_ssd1351.inl" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{98e3da4e-c528-406b-95d3-ac02baae62b1}</ProjectGuid>
     <Keyword>Linux</Keyword>
@@ -46,6 +206,12 @@
   <ImportGroup Label="Shared" />
   <ImportGroup Label="PropertySheets" />
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <IncludePath>$(ProjectDir)thirdparty\lcdgfx\src;$(IncludePath)</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <IncludePath>$(ProjectDir)thirdparty\lcdgfx\src;$(IncludePath)</IncludePath>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <Link>
       <LibraryDependencies>usb-1.0 pthread</LibraryDependencies>
@@ -63,42 +229,10 @@
       <Command>gpio export 17 out</Command>
       <Message>export pin 17 using the gpio utility so that we can execute the blink program without sudo</Message>
     </RemotePostBuildEvent>
+    <ClCompile>
+      <CppLanguageStandard>c++20</CppLanguageStandard>
+    </ClCompile>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <ClCompile Include="BEX.cpp" />
-    <ClCompile Include="DummyAdapter.cpp" />
-    <ClCompile Include="HeliosAdapter.cpp" />
-    <ClCompile Include="HeliosDac.cpp" />
-    <ClCompile Include="HWBridge.cpp" />
-    <ClCompile Include="IDNServer.cpp" />
-    <ClCompile Include="IDNSession.cpp" />
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="ManagementInterface.cpp" />
-    <ClCompile Include="OpenIDN.cpp" />
-    <ClCompile Include="Service.cpp" />
-    <ClCompile Include="SPIDevAdapter.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="BEX.h" />
-    <ClInclude Include="DACHWInterface.h" />
-    <ClInclude Include="DummyAdapter.h" />
-    <ClInclude Include="HeliosAdapter.hpp" />
-    <ClInclude Include="HeliosDac.h" />
-    <ClInclude Include="HWBridge.h" />
-    <ClInclude Include="idn-hello.h" />
-    <ClInclude Include="idn-stream.h" />
-    <ClInclude Include="idn.h" />
-    <ClInclude Include="IDNServer.hpp" />
-    <ClInclude Include="IDNSession.hpp" />
-    <ClInclude Include="ini.h" />
-    <ClInclude Include="libusb.h" />
-    <ClInclude Include="LLNode.hpp" />
-    <ClInclude Include="ManagementInterface.h" />
-    <ClInclude Include="OpenIDN.hpp" />
-    <ClInclude Include="Service.hpp" />
-    <ClInclude Include="SPIDevAdapter.h" />
-    <ClInclude Include="types.h" />
-  </ItemGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <ClCompile>
       <CppLanguageStandard>c++14</CppLanguageStandard>
@@ -107,17 +241,19 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
+      <PreprocessorDefinitions>ODF_USE_TAXI_SOCK</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <LibraryDependencies>usb-1.0;pthread;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>usb-1.0;ola;olacommon;protobuf;pthread;%(LibraryDependencies)</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
+      <PreprocessorDefinitions>ODF_USE_TAXI_SOCK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <Link>
-      <LibraryDependencies>usb-1.0;pthread;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>usb-1.0;ola;olacommon;protobuf;pthread;%(LibraryDependencies)</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

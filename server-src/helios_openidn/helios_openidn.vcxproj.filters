@@ -1,0 +1,335 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="thirdparty\lcdgfx\src\canvas\canvas.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\canvas\font.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\canvas\fonts\fonts.c">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\interface.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\linux\linux_i2c.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\linux\linux_spi.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\linux\platform.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\linux\sdl_i2c.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\lcd_hal\linux\sdl_spi.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\gui\button.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\gui\menu.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\gui\yesno.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\lcdany\lcd_any.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\lcdwio\lcd_wio.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\lcd_common.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ssd1306\lcd_ssd1306.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ssd1325\lcd_ssd1325.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ssd1327\lcd_ssd1327.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ssd1331\lcd_ssd1331.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\lcd\ssd1351\lcd_ssd1351.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\nano_engine\core.cpp">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="thirdparty\lcdgfx\src\v2\utf8.c">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClCompile>
+    <ClCompile Include="FilePlayer.cpp" />
+    <ClCompile Include="ManagementInterface.cpp" />
+    <ClCompile Include="UsbGadget.c" />
+    <ClCompile Include="UsbInterface.cpp" />
+    <ClCompile Include="OlaDmxInterface.cpp" />
+    <ClCompile Include="shared\AdapterBase.cpp" />
+    <ClCompile Include="shared\DACHWInterface.cpp" />
+    <ClCompile Include="shared\DecoderBase.cpp" />
+    <ClCompile Include="shared\HWBridge.cpp" />
+    <ClCompile Include="shared\LaproAdapter.cpp" />
+    <ClCompile Include="shared\ODFTools.cpp" />
+    <ClCompile Include="stage\main.cpp" />
+    <ClCompile Include="stage\SockIDNServer.cpp" />
+    <ClCompile Include="dummy\DummyAdapter.cpp" />
+    <ClCompile Include="hardware\Helios\HeliosAdapter.cpp" />
+    <ClCompile Include="hardware\Helios\HeliosDac.cpp" />
+    <ClCompile Include="hardware\HeliosPro\HeliosProAdapter.cpp" />
+    <ClCompile Include="output\IDNLaproDecoder.cpp" />
+    <ClCompile Include="output\IdtfDecoder.cpp" />
+    <ClCompile Include="output\NOPLaproGraphOut.cpp" />
+    <ClCompile Include="output\RTLaproGraphOut.cpp" />
+    <ClCompile Include="output\RTOutput.cpp" />
+    <ClCompile Include="output\STDLaproGraphOut.cpp" />
+    <ClCompile Include="output\V1LaproGraphOut.cpp" />
+    <ClCompile Include="server\IDNLaproGraConInlet.cpp" />
+    <ClCompile Include="server\IDNLaproGraDisInlet.cpp" />
+    <ClCompile Include="server\IDNLaproService.cpp" />
+    <ClCompile Include="server\IDNServer.cpp" />
+    <ClCompile Include="server\IDNService.cpp" />
+    <ClCompile Include="server\IDNSession.cpp" />
+    <ClCompile Include="Display.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcdgfx.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcdgfx_gui.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\nano_engine_v2.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\nano_gfx_types.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\adafruit.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\canvas.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\canvas_types.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\font.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\fonts\fonts.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\internal\canvas_types_int.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\point.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\rect.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\canvas\UserSettings.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\custom_interface.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\interface.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\io.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\Arduino.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\avr\interrupt.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\avr\pgmspace.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\avr\sleep.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\Print.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\arduino\Wire.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\io.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\linux_i2c.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\linux_spi.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\sdl_i2c.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\linux\sdl_spi.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\Print_internal.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\lcd_hal\UserSettings.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\gui\button.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\gui\menu.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\gui\yesno.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\base\display.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\base\display_base.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\lcdany\lcd_any.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\lcdwio\lcd_wio.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\lcd_common.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ssd1306\lcd_ssd1306.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ssd1325\lcd_ssd1325.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ssd1327\lcd_ssd1327.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ssd1331\lcd_ssd1331.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\lcd\ssd1351\lcd_ssd1351.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\core.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\menu.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\menu_items.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\object.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\sprite.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="thirdparty\lcdgfx\src\v2\nano_engine\tiler.h">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </ClInclude>
+    <ClInclude Include="FilePlayer.hpp" />
+    <ClInclude Include="ini.hpp" />
+    <ClInclude Include="ManagementInterface.hpp" />
+    <ClInclude Include="UsbInterface.hpp" />
+    <ClInclude Include="OlaDmxInterface.hpp" />
+    <ClInclude Include="shared\AdapterBase.hpp" />
+    <ClInclude Include="shared\DACHWInterface.hpp" />
+    <ClInclude Include="shared\DecoderBase.hpp" />
+    <ClInclude Include="shared\HWBridge.hpp" />
+    <ClInclude Include="shared\ISPDB25Point.h" />
+    <ClInclude Include="shared\LaproAdapter.hpp" />
+    <ClInclude Include="shared\ODFEnvironment.hpp" />
+    <ClInclude Include="shared\ODFTaxiBuffer.hpp" />
+    <ClInclude Include="shared\ODFTools.hpp" />
+    <ClInclude Include="shared\types.h" />
+    <ClInclude Include="stage\SockIDNServer.hpp" />
+    <ClInclude Include="stage\SockTaxiBuffer.hpp" />
+    <ClInclude Include="dummy\DummyAdapter.hpp" />
+    <ClInclude Include="hardware\Helios\HeliosAdapter.hpp" />
+    <ClInclude Include="hardware\Helios\HeliosDac.hpp" />
+    <ClInclude Include="hardware\Helios\libusb.h" />
+    <ClInclude Include="hardware\HeliosPro\HeliosProAdapter.hpp" />
+    <ClInclude Include="output\IDNLaproDecoder.hpp" />
+    <ClInclude Include="output\IdtfDecoder.hpp" />
+    <ClInclude Include="output\NOPLaproGraphOut.hpp" />
+    <ClInclude Include="output\RTLaproGraphOut.hpp" />
+    <ClInclude Include="output\RTOutput.hpp" />
+    <ClInclude Include="output\STDLaproGraphOut.hpp" />
+    <ClInclude Include="output\V1LaproGraphOut.hpp" />
+    <ClInclude Include="server\idn-hello.h" />
+    <ClInclude Include="server\idn-stream.h" />
+    <ClInclude Include="server\idn.h" />
+    <ClInclude Include="server\IDNLaproGraConInlet.hpp" />
+    <ClInclude Include="server\IDNLaproGraDisInlet.hpp" />
+    <ClInclude Include="server\IDNLaproService.hpp" />
+    <ClInclude Include="server\IDNServer.hpp" />
+    <ClInclude Include="server\IDNService.hpp" />
+    <ClInclude Include="server\IDNSession.hpp" />
+    <ClInclude Include="server\LLNode.hpp" />
+    <ClInclude Include="server\PEVFlags.h" />
+    <ClInclude Include="Display.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="thirdparty">
+      <UniqueIdentifier>{6335042e-074c-4999-a1d8-019983fe72ff}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="thirdparty\lcdgfx">
+      <UniqueIdentifier>{654bb2f0-ed40-48df-94e9-6c79184378ca}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="thirdparty\lcdgfx\src\README.md">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </None>
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\base\ssd1306_16bit.inl">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </None>
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\base\ssd1306_1bit.inl">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </None>
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\base\ssd1306_4bit.inl">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </None>
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\base\ssd1306_8bit.inl">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </None>
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\base\ssd1306_common.inl">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </None>
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\lcd_common.inl">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </None>
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\ssd1306\lcd_ssd1306.inl">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </None>
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\ssd1325\lcd_ssd1325.inl">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </None>
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\ssd1327\lcd_ssd1327.inl">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </None>
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\ssd1331\lcd_ssd1331.inl">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </None>
+    <None Include="thirdparty\lcdgfx\src\v2\lcd\ssd1351\lcd_ssd1351.inl">
+      <Filter>thirdparty\lcdgfx</Filter>
+    </None>
+  </ItemGroup>
+</Project>

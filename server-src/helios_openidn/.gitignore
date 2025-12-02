@@ -1,0 +1,4 @@
+build/
+prog
+.vscode/
+*.ini
