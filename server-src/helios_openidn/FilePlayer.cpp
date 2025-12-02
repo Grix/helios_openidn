@@ -480,7 +480,7 @@ void FilePlayer::outputLoop()
                 {
                     TimeSlice slice;
                     slice.dataChunk = management->devices.front()->convertPoints(frame->buffer);
-                    slice.durationUs = (double)(1000000 * numOfPoints) / frame->pps;
+                    slice.durationUs = std::round((double)(1000000 * numOfPoints) / frame->pps);
 
                     management->devices.front()->writeFrame(slice, slice.durationUs);
                 }
@@ -591,7 +591,7 @@ void FilePlayer::readSettings(mINI::INIStructure ini)
         if (!fileplayer_defaultpps.empty())
             defaultParameters.speed = std::stoi(fileplayer_defaultpps);
     }
-    catch (std::exception ex)
+    catch (std::exception& ex)
     {
         printf("WARNING: Error during parsing of fileplayer ini file settings: %s.\n", ex.what());
     }
@@ -776,7 +776,7 @@ void FilePlayer::parsePrgFile(const std::filesystem::directory_entry& fileEntry)
                 printf("PRG program %s with file %s, speed %g %s, reps %d\n", programName.c_str(), file.filePath.c_str(), speed, isFps ? "fps" : "pps", repetitions);
 #endif
             }
-            catch (std::exception ex)
+            catch (std::exception& ex)
             {
                 printf("Warning: Error during PRG file parsing: %s - %s\n", ex.what(), programName.c_str());
                 continue;
@@ -870,7 +870,7 @@ void FilePlayer::buildProgramMap()
         }
         std::sort(programsAlphabeticSort.begin(), programsAlphabeticSort.end(), caseInsensitiveLess);
     }
-    catch (std::exception ex)
+    catch (std::exception& ex)
     {
         printf("Warning: Error during reading of .prg ilda file parameter files: %s\n", ex.what());
     }
@@ -972,7 +972,7 @@ void FilePlayer::writeProgramList(std::string settingString)
             else
                 continue;
         }
-        catch (std::exception ex)
+        catch (std::exception& ex)
         {
             printf("WARNING: Other error during updateProgramList: %s.\n", ex.what());
         }
@@ -1057,7 +1057,7 @@ void FilePlayer::savePrgFile(const std::string& name)
         prgFileStream.close();
         chmod(program.filePath.c_str(), 0666);
     }
-    catch (std::exception ex)
+    catch (std::exception& ex)
     {
         std::printf("Warning: Failed to to save prg file: %s.\n", ex.what());
     }

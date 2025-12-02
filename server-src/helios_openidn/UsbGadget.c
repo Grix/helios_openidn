@@ -68,11 +68,6 @@
 //make this configurable
 #define WU_VENDOR_CODE     0xcd    //choose something fitting to your purposes
 
-#define VERSION  "1.0.1"
-
-// Specific to controller
-//#define USB_DEV "/dev/gadget/dwc2"
-
 // this will be generated, after /dev/gadget is created
 #define USB_DEV "/dev/gadget/ff400000.usb"        
 
@@ -340,8 +335,6 @@ int init_usb_gadget()
     verbosity = 2;
 #endif
 
-    if (verbosity)
-        printf("wug V"VERSION"\n");
 
     fd = open(USB_DEV, O_RDWR | O_SYNC);
 

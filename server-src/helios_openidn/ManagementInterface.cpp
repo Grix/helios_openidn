@@ -20,6 +20,8 @@ ManagementInterface::ManagementInterface()
 
 	if (getHardwareType() == HARDWARE_ROCKS0)
 	{
+		display = new Display();
+
 		//graphicsEngine = new GraphicsEngine(*display);
 		/*graphicsEngine->begin();
 		graphicsEngine->setFrameRate(20);
@@ -40,7 +42,7 @@ ManagementInterface::ManagementInterface()
 		system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness"); // turn LED off
 		system("echo 0 > /sys/class/leds/rock-s0:orange:user5/brightness"); // turn LED off
 
-		if (pthread_create(&keyboardThread, NULL, &keyboardThreadFunction, NULL) != 0) {
+		if (pthread_create(&keyboardThread, NULL, &keyboardThreadFunction, this) != 0) {
 			printf("WARNING: failed to create keyboard thread, buttons will not work\n");
 		}
 	}
@@ -273,8 +275,14 @@ void ManagementInterface::readSettingsFile()
 
 	printf("Finished reading main settings.\n");
 
-	display.FinishInitialization();
-	system("echo 1 > /sys/class/leds/rock-s0:orange:user5/brightness");
+	if (getHardwareType() == HARDWARE_ROCKS0)
+	{
+		system("echo 1 > /sys/class/leds/rock-s0:orange:user5/brightness");
+		if (display)
+			display->FinishInitialization();
+	}
+	else if (getHardwareType() == HARDWARE_ROCKPIS)
+		system("echo 1 > /sys/class/leds/rockpis:blue:user/brightness");
 }
 
 void ManagementInterface::networkLoop(int sd) {
@@ -331,7 +339,7 @@ void ManagementInterface::networkLoop(int sd) {
 							ini["idn_server"]["name"] = settingIdnHostname;
 							file.write(ini);
 						}
-						catch (std::exception ex)
+						catch (std::exception& ex)
 						{
 							printf("WARNING: Failed to save settings file with new name: %s.\n", ex.what());
 							continue;
@@ -368,7 +376,7 @@ void ManagementInterface::networkLoop(int sd) {
 							msgSize = 2 + settingsStringLength;
 						}
 					}
-					catch (std::exception ex)
+					catch (std::exception& ex)
 					{
 						printf("WARNING: Other error during get settings file command: %s.\n", ex.what());
 						responseBuffer[2] = 0;
@@ -390,7 +398,7 @@ void ManagementInterface::networkLoop(int sd) {
 						strncpy(responseBuffer + 2, programListString.c_str(), UDP_MAXBUF - 3);
 						msgSize = programListString.size() + 3;
 					}
-					catch (std::exception ex)
+					catch (std::exception& ex)
 					{
 						printf("WARNING: Error during get program list command: %s.\n", ex.what());
 						responseBuffer[2] = 0;
@@ -416,7 +424,7 @@ void ManagementInterface::networkLoop(int sd) {
 
 						filePlayer.writeProgramList(settingString);
 					}
-					catch (std::exception ex)
+					catch (std::exception& ex)
 					{
 						printf("WARNING: Error during set/update program list command: %s.\n", ex.what());
 					}
@@ -452,7 +460,7 @@ void ManagementInterface::networkLoop(int sd) {
 
 						std::filesystem::rename(settingsPath + "_new", settingsPath);
 					}
-					catch (std::exception ex)
+					catch (std::exception& ex)
 					{
 						printf("WARNING: Failed to save settings file after set settings command: %s.\n", ex.what());
 						continue;
@@ -565,26 +573,38 @@ void ManagementInterface::mountUsbDrive()
 
 void ManagementInterface::emitEnterButtonPressed()
 {
+#ifndef NDEBUG
 	printf("Enter button\n");
+#endif
+
 	relinquishOutput(OUTPUT_MODE_FORCESTOP);
 	filePlayer.playButtonPress();
 }
 
 void ManagementInterface::emitEscButtonPressed()
 {
-	printf("Esc button\n");
+#ifndef NDEBUG
+	printf("Esc button\n"); 
+#endif
+
 	filePlayer.stopButtonPress();
 }
 
 void ManagementInterface::emitUpButtonPressed()
 {
+#ifndef NDEBUG
 	printf("Up button\n");
+#endif
+
 	filePlayer.upButtonPress();
 }
 
 void ManagementInterface::emitDownButtonPressed()
 {
+#ifndef NDEBUG
 	printf("Down button\n");
+#endif
+
 	filePlayer.downButtonPress();
 }
 
@@ -774,30 +794,33 @@ bool ManagementInterface::requestOutput(int outputMode)
 
 	currentMode = outputMode;
 
-	if (outputMode == OUTPUT_MODE_IDN)
+	if (getHardwareType() == HARDWARE_ROCKS0)
 	{
-		system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
-		system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness");
-	}
-	else if (outputMode == OUTPUT_MODE_USB)
-	{
-		system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness");
-		system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
-	}
-	else if (outputMode == OUTPUT_MODE_FILE)
-	{
-		system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
-		system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
-	}
-	else if (outputMode == OUTPUT_MODE_DMX)
-	{
-		system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
-		system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
-	}
-	else if (outputMode == OUTPUT_MODE_FORCESTOP)
-	{
-		system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness");
-		system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness");
+		if (outputMode == OUTPUT_MODE_IDN)
+		{
+			system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
+			system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness");
+		}
+		else if (outputMode == OUTPUT_MODE_USB)
+		{
+			system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness");
+			system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
+		}
+		else if (outputMode == OUTPUT_MODE_FILE)
+		{
+			system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
+			system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
+		}
+		else if (outputMode == OUTPUT_MODE_DMX)
+		{
+			system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
+			system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
+		}
+		else if (outputMode == OUTPUT_MODE_FORCESTOP)
+		{
+			system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness");
+			system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness");
+		}
 	}
 
 	return true;

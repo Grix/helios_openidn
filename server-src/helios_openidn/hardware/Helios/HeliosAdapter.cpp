@@ -83,7 +83,7 @@ int HeliosAdapter::writeFrame(const TimeSlice& slice, double duration) {
 	int heliosId;
 	if (this->id == 0)
 		heliosId = indexFirstDevice;
-	else if (this->id == 0)
+	else if (this->id == 1)
 		heliosId = indexSecondDevice;
 	else
 		heliosId = this->id;
@@ -209,7 +209,7 @@ void HeliosAdapter::getName(char *nameBufferPtr, unsigned nameBufferSize)
 	int heliosId;
 	if (this->id == 0)
 		heliosId = indexFirstDevice;
-	else if (this->id == 0)
+	else if (this->id == 1)
 		heliosId = indexSecondDevice;
 	else
 		heliosId = this->id;

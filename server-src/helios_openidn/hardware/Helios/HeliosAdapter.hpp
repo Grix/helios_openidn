@@ -35,6 +35,8 @@ public:
 	HeliosAdapter(int id);
 	~HeliosAdapter();
 
+	static bool firstServiceIsAlwaysVisible;
+
 private:
 	int id;
 	std::uint8_t heliosFlags;
@@ -51,7 +53,6 @@ private:
 	static int indexSecondDevice;
 	static IDNLaproService* serviceFirstDevice;
 	static IDNLaproService* serviceSecondDevice;
-	static bool firstServiceIsAlwaysVisible;
 
 	static void refreshDacReferences(unsigned int numDevices);
 	void checkConnection();

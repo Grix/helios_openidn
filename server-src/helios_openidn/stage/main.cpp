@@ -37,7 +37,6 @@
 #include "../ManagementInterface.hpp"
 #include "../UsbInterface.hpp"
 
-
 std::vector<std::shared_ptr<HWBridge>> driverObjects;
 std::vector<RTOutput *> rtOutputs;
 LLNode<ServiceNode> *firstService = nullptr;
@@ -70,7 +69,11 @@ void sig_handler(int sig) {
     if (idnServer != nullptr) 
         idnServer->stopServer();
     if (management != nullptr)
+    {
+        if (management->getHardwareType() == HARDWARE_ROCKPIS)
+            system("echo 'heartbeat' > /sys/class/leds/rockpis:blue:user/trigger");
         management->unmountUsbDrive();
+    }
 }
 
 void* driverThreadFunction(void* args) {
@@ -447,7 +450,6 @@ int parseArguments(int argc, char** argv) {
         }
         
 
-
         // ------------------------------------------------------------------
         // Single-service mode: Use --helios, --etherdream, or --dummy options.
         // Each driver flag creates one driver and one service.
@@ -473,15 +475,18 @@ int parseArguments(int argc, char** argv) {
                 }
             }
             else
-                HeliosAdapter::setFirstServiceIsAlwaysVisible();
+            {
+                HeliosAdapter::firstServiceIsAlwaysVisible = true;//setFirstServiceIsAlwaysVisible();
+            }
 
             try {
+
                 HeliosAdapter::initialize();
                 //std::map<std::string, int> available = HeliosAdapter::getAvailableDevices();
 
                 printf("Using the Helios driver, creating two placeholder services.\n");
 
-                char heliosName[32] = { 0 };
+                char heliosName[32] = {0};
                 auto heliosAdapter = std::make_shared<HeliosAdapter>(0);
                 heliosAdapter->getName(heliosName, 32);
                 HeliosAdapter::setFirstDeviceService( createLaProService(heliosAdapter, heliosName, isHeliosPro ? 2 : 1, !isHeliosPro) );
@@ -489,6 +494,8 @@ int parseArguments(int argc, char** argv) {
                 memset(heliosName, 0, 32);
                 heliosAdapter->getName(heliosName, 32);
                 HeliosAdapter::setSecondDeviceService( createLaProService(heliosAdapter, heliosName, isHeliosPro ? 3 : 2, false) );
+
+
                 //createLaProService(std::make_shared<HeliosAdapter>(available.begin()->second), available.begin()->first, 1);
 
                 /*if (available.empty()) {

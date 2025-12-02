@@ -82,5 +82,5 @@ private:
 	pthread_t keyboardThread = 0;
 	//std::chrono::steady_clock::time_point lastPlayButtonPressedTime = std::chrono::steady_clock::now();
 
-	Display display;
+	Display* display = NULL;
 };
