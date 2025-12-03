@@ -762,7 +762,7 @@ public partial class MainViewModel : ViewModelBase
     {
         if (value < 0 || value >= Servers.Count)
         {
-            SelectedServerTitle = "";
+            SelectedServerTitle = "None";
             ServicesListString = "";
             CurrentServerVersion = "";
         }
