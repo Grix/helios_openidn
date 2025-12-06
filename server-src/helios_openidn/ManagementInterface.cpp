@@ -338,6 +338,7 @@ void ManagementInterface::networkLoop(int sd) {
 							}
 							ini["idn_server"]["name"] = settingIdnHostname;
 							file.write(ini);
+							sync();
 						}
 						catch (std::exception& ex)
 						{
@@ -448,6 +449,7 @@ void ManagementInterface::networkLoop(int sd) {
 						std::ofstream tempFile(settingsPath + "_new");
 						tempFile << settingString;
 						tempFile.close();
+						sync();
 
 						// Try to open the temp file to check whether it's a valid INI file
 						mINI::INIFile file(settingsPath + "_new");

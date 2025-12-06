@@ -1056,6 +1056,7 @@ void FilePlayer::savePrgFile(const std::string& name)
             std::sprintf(line, "#dmx_index,%d\n", program.dmxIndex);
         prgFileStream.close();
         chmod(program.filePath.c_str(), 0666);
+        sync();
     }
     catch (std::exception& ex)
     {
