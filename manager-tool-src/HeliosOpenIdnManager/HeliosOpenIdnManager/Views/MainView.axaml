@@ -370,7 +370,7 @@
 					<StackPanel Spacing="10" IsVisible="{Binding NeedFullImageReplacementWarning}">
 						<StackPanel Margin="0,10,0,0" Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
 							<materialIcons:MaterialIcon Kind="Warning" VerticalAlignment="Center" Foreground="DarkOrange" Height="25" Width="25" HorizontalAlignment="Left"/>
-							<TextBlock MaxWidth="650" Foreground="#BF8000" Text="Warning: Your current device software is so old that updating using this tool may not work! Instead, you must manually write a new firmware image to the micro-SD card in your device. Click the button below, and find the section 'Update firmware (whole SD card image)' for instructions." TextWrapping="Wrap"></TextBlock>
+							<TextBlock MaxWidth="650" Foreground="#BF8000" Text="Warning: Your current device software is so old that updating using this tool may not work! Instead, you must manually write a new firmware image to the micro-SD card in your device. Click the button below, and find the section 'Update firmware using SD card image' for instructions." TextWrapping="Wrap"></TextBlock>
 						</StackPanel>
 						<Button Command="{Binding OpenManagerDownloadPageCommand}" Background="Orange"  HorizontalAlignment="Center">
 							<TextBlock Text="Open micro-SD card firmware update instructions"></TextBlock>

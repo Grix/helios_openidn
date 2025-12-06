@@ -87,16 +87,9 @@ public partial class MainViewModel : ViewModelBase
     private string? _errorMessage;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ServerVersionIsOutdated))]
-    [NotifyPropertyChangedFor(nameof(NeedFullImageReplacementWarning))]
+    [NotifyPropertyChangedFor(nameof(ManagerVersionIsOutdated))]
     [NotifyPropertyChangedFor(nameof(VersionIsOutdated))]
     private string? _newManagerVersion;
-
-    [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ServerVersionIsOutdated))]
-    [NotifyPropertyChangedFor(nameof(ServerVersionIsOutdated))]
-    [NotifyPropertyChangedFor(nameof(VersionIsOutdated))]
-    private string? _newServerVersion;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ManagerVersionIsOutdated))]
@@ -104,7 +97,14 @@ public partial class MainViewModel : ViewModelBase
     private string? _currentManagerVersion;
 
     [ObservableProperty]
-    [NotifyPropertyChangedFor(nameof(ManagerVersionIsOutdated))]
+    [NotifyPropertyChangedFor(nameof(ServerVersionIsOutdated))]
+    [NotifyPropertyChangedFor(nameof(NeedFullImageReplacementWarning))]
+    [NotifyPropertyChangedFor(nameof(VersionIsOutdated))]
+    private string? _newServerVersion;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ServerVersionIsOutdated))]
+    [NotifyPropertyChangedFor(nameof(NeedFullImageReplacementWarning))]
     [NotifyPropertyChangedFor(nameof(VersionIsOutdated))]
     private string? _currentServerVersion;
 
