@@ -87,16 +87,34 @@ public partial class MainViewModel : ViewModelBase
     private string? _errorMessage;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ServerVersionIsOutdated))]
+    [NotifyPropertyChangedFor(nameof(NeedFullImageReplacementWarning))]
+    [NotifyPropertyChangedFor(nameof(VersionIsOutdated))]
     private string? _newManagerVersion;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ServerVersionIsOutdated))]
+    [NotifyPropertyChangedFor(nameof(ServerVersionIsOutdated))]
+    [NotifyPropertyChangedFor(nameof(VersionIsOutdated))]
     private string? _newServerVersion;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ManagerVersionIsOutdated))]
+    [NotifyPropertyChangedFor(nameof(VersionIsOutdated))]
     private string? _currentManagerVersion;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(ManagerVersionIsOutdated))]
+    [NotifyPropertyChangedFor(nameof(VersionIsOutdated))]
     private string? _currentServerVersion;
+
+    public bool ServerVersionIsOutdated => !string.IsNullOrEmpty(CurrentServerVersion) && !string.IsNullOrEmpty(NewServerVersion) && CurrentServerVersion != NewServerVersion;
+
+    public bool NeedFullImageReplacementWarning => ServerVersionIsOutdated && int.Parse(CurrentServerVersion!.Replace(".", "")) <= 97;
+
+    public bool ManagerVersionIsOutdated => !string.IsNullOrEmpty(CurrentManagerVersion) && !string.IsNullOrEmpty(NewManagerVersion) && CurrentManagerVersion != NewManagerVersion;
+
+    public bool VersionIsOutdated => ServerVersionIsOutdated || ManagerVersionIsOutdated;
 
     [ObservableProperty]
     private int _networkModePriority = 4;
@@ -144,7 +162,7 @@ public partial class MainViewModel : ViewModelBase
     [ObservableProperty]
     private string? _mcuFirmwareUpdatePath;
 
-    public string? ShortServerSoftwareUpdatePath => Path.GetFileName(ServerSoftwareUpdatePath);
+    public string? ShortServerSoftwareUpdatePath => string.IsNullOrEmpty(ServerSoftwareUpdatePath) ? "None selected" : Path.GetFileName(ServerSoftwareUpdatePath);
 
     private IniData? rawSettings;
 
@@ -384,6 +402,15 @@ public partial class MainViewModel : ViewModelBase
         {
             ErrorMessage = "Couldn't apply settings: " + ex.Message;
         }
+    }
+
+    [RelayCommand]
+    public void SaveAndApplyConfigAndRestart()
+    {
+        ErrorMessage = "";
+        SaveAndApplyConfig();
+        if (string.IsNullOrEmpty(ErrorMessage))
+            RestartServer();
     }
 
     [RelayCommand]

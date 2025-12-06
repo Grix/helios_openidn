@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
 using HeliosOpenIdnManager.ViewModels;
+using MsBox.Avalonia;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
@@ -17,7 +18,7 @@ public partial class MainView : UserControl
 
     private async void ExportConfigButton_Click(object sender, RoutedEventArgs e)
     {
-        var file = await TopLevel.GetTopLevel(this)!.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions{ Title = "Save Config File", SuggestedFileName = "settings.ini", DefaultExtension = ".ini" });
+        var file = await TopLevel.GetTopLevel(this)!.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions { Title = "Save Config File", SuggestedFileName = "settings.ini", DefaultExtension = ".ini" });
 
         if (file is not null)
         {
@@ -88,5 +89,15 @@ public partial class MainView : UserControl
                 (DataContext as MainViewModel)!.UpdateMcuFirmware();
             }
         }
+    }
+
+    private async void SaveConfigButton_Click(object? sender, RoutedEventArgs e)
+    {
+        var messageBox = MessageBoxManager.GetMessageBoxStandard("Restart device?", "Not all settings will take effect until the device is restarted. Do you wish to restart the device now?", MsBox.Avalonia.Enums.ButtonEnum.YesNoCancel);
+        var result = await messageBox.ShowAsync();
+        if (result == MsBox.Avalonia.Enums.ButtonResult.Yes)
+            (DataContext as MainViewModel)!.SaveAndApplyConfigAndRestart();
+        else if (result == MsBox.Avalonia.Enums.ButtonResult.No)
+            (DataContext as MainViewModel)!.SaveAndApplyConfig();
     }
 }
