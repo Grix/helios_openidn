@@ -39,7 +39,9 @@ public class HeliosProUtilities
     /// <returns>List of IPAddresses of Helios-OpenIDN devices.</returns>
     static public IEnumerable<IPAddress> ScanForServers()
     {
-        foreach (NetworkInterface networkInterface in NetworkInterface.GetAllNetworkInterfaces())
+        var foundServers = new List<IPAddress>();
+
+        Parallel.ForEach(NetworkInterface.GetAllNetworkInterfaces(), networkInterface =>
         {
             if (networkInterface.OperationalStatus == OperationalStatus.Up && networkInterface.SupportsMulticast && networkInterface.GetIPProperties().GetIPv4Properties() != null)
             {
@@ -102,7 +104,7 @@ public class HeliosProUtilities
                                     }
 
                                     if (receivedOk)
-                                        yield return receiveAddress.Address;
+                                        foundServers.Add(receiveAddress.Address);
                                 }
                             }
 
@@ -110,7 +112,9 @@ public class HeliosProUtilities
                     }
                 }
             }
-        }
+        });
+
+        return foundServers;
     }
 
     /// <summary>
@@ -263,10 +267,10 @@ public class HeliosProUtilities
                     {
                         ProgramViewModel program = new ProgramViewModel(programLineFields[0])
                         {
-                            DmxIndex = int.Parse(programLineFields[1]),
+                            DmxIndex = int.Parse(programLineFields[1], CultureInfo.InvariantCulture),
                             IsStoredInternally = programLineFields[2] == "i",
                         };
-                        int numIldaFiles = int.Parse(programLineFields[3]);
+                        int numIldaFiles = int.Parse(programLineFields[3], CultureInfo.InvariantCulture);
                         for (int ildaFileIndex = 0; ildaFileIndex < numIldaFiles; ildaFileIndex++)
                         {
                             i++;
@@ -277,10 +281,10 @@ public class HeliosProUtilities
                                 program.IldaFiles.Add(new IldaFileViewModel(program,
                                                                             filename: ildaFileLineFields[0],
                                                                             speed: double.Parse(ildaFileLineFields[1], CultureInfo.InvariantCulture),
-                                                                            speedType: int.Parse(ildaFileLineFields[2]),
-                                                                            numRepetitions: uint.Parse(ildaFileLineFields[3]),
-                                                                            palette: uint.Parse(ildaFileLineFields[4]),
-                                                                            errorCode: int.Parse(ildaFileLineFields[5])));
+                                                                            speedType: int.Parse(ildaFileLineFields[2], CultureInfo.InvariantCulture),
+                                                                            numRepetitions: uint.Parse(ildaFileLineFields[3], CultureInfo.InvariantCulture),
+                                                                            palette: uint.Parse(ildaFileLineFields[4], CultureInfo.InvariantCulture),
+                                                                            errorCode: int.Parse(ildaFileLineFields[5], CultureInfo.InvariantCulture)));
                             }
                             else
                             {
@@ -299,7 +303,7 @@ public class HeliosProUtilities
                 }
 
             }
-            else
+            else if (receivedData is null || receivedData.Length != 3)
                 throw new Exception("No valid response");
         }
         catch (Exception ex)

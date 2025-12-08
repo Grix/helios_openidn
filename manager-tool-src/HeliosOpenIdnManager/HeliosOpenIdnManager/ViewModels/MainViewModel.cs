@@ -110,7 +110,7 @@ public partial class MainViewModel : ViewModelBase
 
     public bool ServerVersionIsOutdated => !string.IsNullOrEmpty(CurrentServerVersion) && !string.IsNullOrEmpty(NewServerVersion) && CurrentServerVersion != NewServerVersion;
 
-    public bool NeedFullImageReplacementWarning => ServerVersionIsOutdated && int.Parse(CurrentServerVersion!.Replace(".", "")) <= 97;
+    public bool NeedFullImageReplacementWarning => ServerVersionIsOutdated && int.Parse(CurrentServerVersion!.Replace(".", ""), CultureInfo.InvariantCulture) <= 97;
 
     public bool ManagerVersionIsOutdated => !string.IsNullOrEmpty(CurrentManagerVersion) && !string.IsNullOrEmpty(NewManagerVersion) && CurrentManagerVersion != NewManagerVersion;
 
@@ -156,6 +156,9 @@ public partial class MainViewModel : ViewModelBase
     private ObservableCollection<FileInfo> _filesToUpload = new();
 
     [ObservableProperty]
+    private bool _hasUploadedFiles = false;
+
+    [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShortServerSoftwareUpdatePath))]
     private string? _serverSoftwareUpdatePath;
 
@@ -175,8 +178,6 @@ public partial class MainViewModel : ViewModelBase
         CheckForServerUpdates();
 
         LoadDefaultConfig();
-
-        // Todo ensure decimal . for culture
     }
 
     [RelayCommand]
@@ -270,12 +271,12 @@ public partial class MainViewModel : ViewModelBase
                 throw new Exception("No settings");
 
             var ethernetIpAddr = rawSettings["network"]["ethernet_ip_addresses"] ?? "";
-            if (ethernetIpAddr == "auto")
+            if (ethernetIpAddr == "" || ethernetIpAddr == "auto")
             {
                 EthernetIsDhcp = true;
                 EthernetIpAddress = "";
             }
-            else if (ethernetIpAddr != "")
+            else
             {
                 EthernetIsDhcp = false;
                 EthernetIpAddress = ethernetIpAddr;
@@ -288,7 +289,7 @@ public partial class MainViewModel : ViewModelBase
             WifiIsEnabled = (wifiEnable.ToLower() == bool.TrueString.ToLower());
 
             var wifiIpAddr = rawSettings["network"]["wifi_ip_addresses"] ?? "";
-            if (wifiIpAddr == "auto")
+            if (wifiIpAddr == "" || wifiIpAddr == "auto")
             {
                 WifiIsDhcp = true;
                 WifiIpAddress = "";
@@ -301,22 +302,22 @@ public partial class MainViewModel : ViewModelBase
             var name = rawSettings["idn_server"]["name"];
             NewServerName = !string.IsNullOrEmpty(name) ? name.Trim('"') : server.ServerInfo.Name;
 
-            if (uint.TryParse((rawSettings["mode_priority"]["idn"] ?? "").Trim('"'), out uint idnModePriority))
+            if (uint.TryParse((rawSettings["mode_priority"]["idn"] ?? "").Trim('"'), CultureInfo.InvariantCulture, out uint idnModePriority))
                 NetworkModePriority = (int)idnModePriority;
             else
                 NetworkModePriority = 4;
 
-            if (uint.TryParse((rawSettings["mode_priority"]["usb"] ?? "").Trim('"'), out uint usbModePriority))
+            if (uint.TryParse((rawSettings["mode_priority"]["usb"] ?? "").Trim('"'), CultureInfo.InvariantCulture, out uint usbModePriority))
                 UsbModePriority = (int)usbModePriority;
             else
                 UsbModePriority = 3;
 
-            if (uint.TryParse((rawSettings["mode_priority"]["dmx"] ?? "").Trim('"'), out uint dmxModePriority))
+            if (uint.TryParse((rawSettings["mode_priority"]["dmx"] ?? "").Trim('"'), CultureInfo.InvariantCulture, out uint dmxModePriority))
                 DmxModePriority = (int)dmxModePriority;
             else
                 DmxModePriority = 2;
 
-            if (uint.TryParse((rawSettings["mode_priority"]["file"] ?? "").Trim('"'), out uint fileModePriority))
+            if (uint.TryParse((rawSettings["mode_priority"]["file"] ?? "").Trim('"'), CultureInfo.InvariantCulture, out uint fileModePriority))
                 FileModePriority = (int)fileModePriority;
             else
                 FileModePriority = 1;
@@ -330,7 +331,7 @@ public partial class MainViewModel : ViewModelBase
             else
                 FilePlayerModeIndex = 3;
 
-            if (uint.TryParse((rawSettings["output"]["buffer_duration"] ?? "").Trim('"'), out uint bufferDurationMs))
+            if (uint.TryParse((rawSettings["output"]["buffer_duration"] ?? "").Trim('"'), CultureInfo.InvariantCulture, out uint bufferDurationMs))
                 BufferLengthMs = bufferDurationMs;
             else
                 BufferLengthMs = 40;
@@ -407,7 +408,7 @@ public partial class MainViewModel : ViewModelBase
     [RelayCommand]
     public void SaveAndApplyConfigAndRestart()
     {
-        ErrorMessage = "";
+        ErrorMessage = null;
         SaveAndApplyConfig();
         if (string.IsNullOrEmpty(ErrorMessage))
             RestartServer();
@@ -681,7 +682,10 @@ public partial class MainViewModel : ViewModelBase
         }
         catch (Exception ex)
         {
-            ErrorMessage = ex.Message;
+            if (NeedFullImageReplacementWarning)
+                ErrorMessage = "Failed to scan for files: You need device software version 0.9.9 or newer for file library support.";
+            else
+                ErrorMessage = ex.Message;
         }
         finally
         {
@@ -716,6 +720,7 @@ public partial class MainViewModel : ViewModelBase
             await HeliosProUtilities.UploadFiles(server.ServerInfo.IpAddress, FilesToUpload);
             await Task.Delay(500);
             await RefreshFileList();
+            HasUploadedFiles = true;
         }
         catch (Exception ex)
         {
@@ -787,6 +792,9 @@ public partial class MainViewModel : ViewModelBase
 
     partial void OnSelectedServerIndexChanged(int value)
     {
+        ErrorMessage = null;
+        HasUploadedFiles = false;
+
         if (value < 0 || value >= Servers.Count)
         {
             SelectedServerTitle = "None";
@@ -872,7 +880,7 @@ public partial class MainViewModel : ViewModelBase
                     return false;
                 else if (!IPAddress.TryParse(parts[0], out _))
                     return false;
-                else if (!int.TryParse(parts[1], out int mask) || mask < 0 || mask > 32)
+                else if (!int.TryParse(parts[1], CultureInfo.InvariantCulture, out int mask) || mask < 0 || mask > 32)
                     return false;
             }
         }
@@ -886,10 +894,10 @@ public partial class MainViewModel : ViewModelBase
 
         foreach (var program in updatedPrograms)
         {
-            command += $"{program.Name};{program.DmxIndex};{(program.IsStoredInternally ? "i" : "e")};{program.IldaFiles.Count}\n";
+            command += $"{program.Name};{program.DmxIndex.ToString(CultureInfo.InvariantCulture)};{(program.IsStoredInternally ? "i" : "e")};{program.IldaFiles.Count.ToString(CultureInfo.InvariantCulture)}\n";
             foreach (var ildaFile in program.IldaFiles)
             {
-                command += $"{ildaFile.FileName};{ildaFile.Speed};{ildaFile.SpeedType};{ildaFile.NumRepetitions};{ildaFile.Palette}\n";
+                command += $"{ildaFile.FileName};{ildaFile.Speed.ToString(CultureInfo.InvariantCulture)};{ildaFile.SpeedType.ToString(CultureInfo.InvariantCulture)};{ildaFile.NumRepetitions.ToString(CultureInfo.InvariantCulture)};{ildaFile.Palette.ToString(CultureInfo.InvariantCulture)}\n";
             }
         }
 

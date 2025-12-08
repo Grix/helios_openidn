@@ -267,7 +267,7 @@
 								</DockPanel>
 
 								<TextBlock Margin="5,25,0,5" HorizontalAlignment="Left" Text="DMX" MinWidth="140" FontWeight="Bold"/>
-								<Button Command="{Binding OpenDmxWebsiteCommand}" IsEnabled="{Binding HasSelectedServer}"  Content=" Open advanced DMX device settings " ToolTip.Tip="Open website with advanced DMX device settings."></Button>
+								<Button Command="{Binding OpenDmxWebsiteCommand}" IsEnabled="{Binding HasSelectedServer}"  Content=" Open advanced DMX device settings " ToolTip.Tip="Open website with advanced DMX device settings." Margin="0,0,0,30"></Button>
 
 
 							</StackPanel>
@@ -318,6 +318,7 @@
 									<TextBlock Text=" Refresh file list" VerticalAlignment="Center"></TextBlock>
 								</StackPanel>
 							</Button>
+							<TextBlock IsVisible="{Binding HasUploadedFiles}" VerticalAlignment="Center" Foreground="Brown" Text="NB: You may have to restart the device for newly uploaded files to appear. "></TextBlock>
 						</StackPanel>
 
 						<Border Grid.Row="1" BorderThickness="1" BorderBrush="DarkGray" MinHeight="368" Margin="0,10,0,0">
