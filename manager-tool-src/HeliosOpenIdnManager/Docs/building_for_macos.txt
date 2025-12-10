@@ -2,11 +2,16 @@ Need Dotnet.Bundle package from nuget in the desktop project
 
 Set parameters at the bottom of Desktop csproj file.
 
+open terminal in desktop project folder:
 dotnet restore -r osx-x64
 dotnet msbuild -t:BundleApp -p:RuntimeIdentifier=osx-x64 -p:Configuration=Release -p:SelfContained=true -p:UseAppHost=true
 
+go to bin\Release\net8.0\osx-x64\publish\ , locate the .app folder
+
 Place Icon.tcns into Resources folder of app if not already there
 Place embedded.provisionprofile into app Contents folder. Profile is just a normal profile renamed to embedded.*
-Transfer to mac
+Transfer to mac Documents folder
 chmod +x Helios\ OpenIDN\ Manager.app/Contents/MacOS/HeliosOpenIdnManager.Desktop
 ./HeliosOpenIDNSign.sh
+
+build dmg, sign dmg and notarize dmg, see notes in lsg repo and follow same procedure

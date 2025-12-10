@@ -6,7 +6,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
-	 <Version>0.9.3</Version>
+	 <Version>0.9.5</Version>
 	  <RuntimeIdentifiers>win-x64;osx-x64;linux-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
@@ -49,8 +49,8 @@
 		<CFBundleName>HeliosManager</CFBundleName>
 		<CFBundleDisplayName>Helios OpenIDN Manager</CFBundleDisplayName>
 		<CFBundleIdentifier>com.bitlasers.heliosidnmanager</CFBundleIdentifier>
-		<CFBundleVersion>0.9.3</CFBundleVersion>
-		<CFBundleShortVersionString>0.9.3</CFBundleShortVersionString>
+		<CFBundleVersion>0.9.5</CFBundleVersion>
+		<CFBundleShortVersionString>0.9.5</CFBundleShortVersionString>
 		<CFBundlePackageType>APPL</CFBundlePackageType>
 		<CFBundleSignature>????</CFBundleSignature>
 		<CFBundleExecutable>HeliosOpenIdnManager.Desktop</CFBundleExecutable>
