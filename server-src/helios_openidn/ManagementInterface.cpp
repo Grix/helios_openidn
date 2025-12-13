@@ -227,6 +227,7 @@ void ManagementInterface::readSettingsFile()
 	std::string& idn_hostname = ini["idn_server"]["name"];
 	if (!idn_hostname.empty())
 		settingIdnHostname = idn_hostname;
+	// TODO set unique default name if no custom one is set
 
 	std::string& buffer_duration = ini["output"]["buffer_duration"];
 	try
@@ -786,7 +787,7 @@ bool ManagementInterface::requestOutput(int outputMode)
 	{
 		int currentPriority = (currentMode >= 0) ? modePriority[currentMode] : -1;
 		int newPriority = modePriority[outputMode];
-		if (currentPriority >= newPriority)
+		if (newPriority <= 0 || currentPriority >= newPriority)
 			return false;
 	}
 	else
