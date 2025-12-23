@@ -175,8 +175,6 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
 
 void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
 {
-    //return; // TEST
-
     if (!management->requestOutput(OUTPUT_MODE_USB))
     {
         printf("Warning: Requested USB output, but was busy\n");
@@ -192,8 +190,6 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
         printf("Error: Received USB frame but no devices are available\n");
         return;
     }
-
-    //management->devices.front()->setDACBusy(true);
 
     if (numBytes < (5 + 7))
     {
@@ -212,16 +208,6 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
 
     clock_gettime(CLOCK_MONOTONIC, &lastReception);
 
-    /*if (!hasStarted)
-    {
-        management->outputs.front()->close();
-        management->outputs.front()->open(RTLaproGraphicOutput::OPMODE_FRAME);
-        hasStarted = true;
-    }*/
-
-    //management->devices.front()->resetChunkBuffer();
-    //management->devices.front()->bex->setMode(DRIVER_FRAMEMODE);
-
     unsigned int pps = (buffer[numOfPointBytes + 1] << 8) | buffer[numOfPointBytes + 0];
     unsigned int flags = buffer[numOfPointBytes + 4]; // todo implement looping etc
     unsigned int numPoints = numOfPointBytes / 7;
@@ -229,19 +215,6 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
 #ifndef NDEBUG
     printf("Recvd USB: points %d, pps %d\n", numPoints, pps);
 #endif
-
-    /*ISPFrameMetadata metadata;
-    metadata.once = (flags & (1 << 1));
-    metadata.isWave = false;
-    metadata.len = numOfPointBytes / 7;
-    metadata.dur = (1000000 * metadata.len) / pps;*/
-
-    /*RTLaproGraphicOutput::CHUNKDATA chunkData;
-    memset(&chunkData, 0, sizeof(chunkData));
-    chunkData.modFlags = RTLaproGraphicOutput::MODFLAG_SCAN_ONCE; // todo
-    chunkData.chunkDuration = (1000000 * numPoints) / pps; // us
-    chunkData.decoder = &decoder;
-    chunkData.sampleCount = numPoints;*/
 
     // Todo reuse buffer to avoid allocation
 
@@ -271,21 +244,6 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
     {
         uint8_t* currentPoint = buffer + i;
 
-        /*uint16_t x = (currentPoint[0] << 8) | (currentPoint[1] & 0xF0);
-        *((uint16_t*)&newBuffer[bufferPos + 0]) = x;
-        //newBuffer[bufferPos + 0] = x & 0xFF;
-        //newBuffer[bufferPos + 1] = x >> 8;
-        uint16_t y = (((currentPoint[1] & 0x0F) << 8) | currentPoint[2]) << 4;
-        *((uint16_t*)&newBuffer[bufferPos + 2]) = y;
-        //newBuffer[bufferPos + 2] = y & 0xFF;
-        //newBuffer[bufferPos + 3] = y >> 8;
-        newBuffer[bufferPos + 4] = currentPoint[3];
-        newBuffer[bufferPos + 5] = currentPoint[4];
-        newBuffer[bufferPos + 6] = currentPoint[5];
-        newBuffer[bufferPos + 7] = currentPoint[6];
-
-        bufferPos += 8;*/
-
         ISPDB25Point point;
         point.x = (currentPoint[0] << 8) | (currentPoint[1] & 0xF0);
         point.y = (((currentPoint[1] & 0x0F) << 8) | currentPoint[2]) << 4;
@@ -311,14 +269,9 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
             frame = std::make_shared<QueuedChunk>();
             frame->buffer.reserve(pointsPerFrame);
 
-            //std::shared_ptr<TimeSlice> frameSlice = std::make_shared<TimeSlice>();
-
             currentPointInFrame = 0;
         }
 
-        //pointBuffer.push_back(point);
-
-        //management->devices.front()->addPointToSlice(point, metadata);
     }
 
     //printf("Finished frame, currentPointInFrame %d\n", currentPointInFrame);
@@ -326,8 +279,6 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
 #ifndef NDEBUG
     printf("Processing, bufferpos %d\n", bufferPos);
 #endif
-
-    //management->outputs.front()->process(chunkData, newBuffer, bufferPos);
 
     if (!frame->buffer.empty())
     {
@@ -337,29 +288,6 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
             queue.push_back(frame);
         }
     }
-
-    /*TimeSlice slice;
-    slice.dataChunk = management->devices.front()->convertPoints(pointBuffer);
-    slice.durationUs = (1000000 * numOfPointBytes) / pps;
-
-    isReceiveBusy = false;
-
-    while (isSendBusy)
-    { 
-        if (slice.durationUs > 1000)
-        {
-            struct timespec delay, dummy;
-            delay.tv_sec = 0;
-            delay.tv_nsec = 200000;
-            nanosleep(&delay, &dummy);
-        }
-    }
-
-    isSendBusy = true;
-
-    management->devices.front()->writeFrame(slice, (1000000 * numOfPointBytes) / pps);
-
-    isSendBusy = false;*/
 
 }
 

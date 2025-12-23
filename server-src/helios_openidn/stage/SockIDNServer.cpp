@@ -674,12 +674,16 @@ void SockIDNServer::networkThreadFunc()
         if (file.is_open())
         {
             char buffer[19] = { 0 };
-            file.read(buffer, 18);            if (file) {
+            file.read(buffer, 18);            
+            if (file) 
+            {
                 sscanf(buffer, "%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx", &mac_address[0], &mac_address[1], &mac_address[2], &mac_address[3], &mac_address[4], &mac_address[5]);
             }
-            else {
+            else 
+            {
                 printf("Error reading file for MAC address or file has less than 8 bytes\n");
-            }            file.close();
+            }   
+            file.close();
         }
         else
             printf("Error reading file for MAC address\n");

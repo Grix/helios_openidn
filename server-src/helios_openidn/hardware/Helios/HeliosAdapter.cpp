@@ -248,7 +248,7 @@ void HeliosAdapter::updateDeviceList()
 void HeliosAdapter::refreshDacReferences(unsigned int numDevices)
 {
 #ifndef NDEBUG
-	printf("Refreshing Helios references. %d, %d\n", indexFirstDevice, indexSecondDevice);
+	printf("Refreshing Helios references. %d, %d. Num: %d\n", indexFirstDevice, indexSecondDevice, numDevices);
 #endif
 
 	if (indexFirstDevice >= numDevices)
@@ -271,9 +271,10 @@ void HeliosAdapter::refreshDacReferences(unsigned int numDevices)
 			if (!helios.GetIsClosed(i))
 			{
 				indexFirstDevice = i;
-				char name[32];
+				char name[33];
 				helios.GetName(indexFirstDevice, name);
-				printf("Adding Helios 1 reference. %d\n", indexFirstDevice);
+				name[32] = 0;
+				printf("Adding Helios 1 reference. %d %s\n", indexFirstDevice, name);
 				if (serviceFirstDevice != NULL)
 					serviceFirstDevice->setServiceName(name, strlen(name));
 			}
@@ -281,9 +282,10 @@ void HeliosAdapter::refreshDacReferences(unsigned int numDevices)
 		else if (indexSecondDevice == -1 && indexFirstDevice != i && !helios.GetIsClosed(i))
 		{
 			indexSecondDevice = i;
-			char name[32];
-			helios.GetName(indexFirstDevice, name);
-			printf("Adding Helios 2 reference. %d\n", indexSecondDevice);
+			char name[33];
+			helios.GetName(indexSecondDevice, name);
+			name[32] = 0;
+			printf("Adding Helios 2 reference. %d %s\n", indexSecondDevice, name);
 			if (serviceSecondDevice != NULL)
 				serviceSecondDevice->setServiceName(name, strlen(name));
 		}

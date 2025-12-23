@@ -50,6 +50,8 @@
 #include <errno.h>
 #include <getopt.h>
 #include <pthread.h>
+#include <stdatomic.h>
+#include <signal.h>
 
 
 //--- defines ---
@@ -163,7 +165,11 @@ int txcounter = 0;
 int rxcounter = 0;
 struct io_thread_args thread_args = { 0, 0, 0, -1, -1, -1, -1};
 __u8 altSetting = 0;
+pthread_t threadr;
+pthread_t threadrbulk;
+pthread_t threadt;
 pthread_t thread_main_ep0;
+int shouldSendTxWhenAltInterfaceChange = 0;
 
 size_t txSize = 0;
 char txBuffer[32];
@@ -529,6 +535,9 @@ void* handle_ep0_thread(void* arg)
                 //thread_args->fd_int_in = -1;
                 //close(thread_args->fd_bulk_out);
                 //thread_args->fd_bulk_out = -1;
+                //phread_kill(threadr, SIGUSR1);
+                //phread_kill(threadrbulk, SIGUSR1);
+                //phread_kill(threadt, SIGUSR1);
                 if (verbosity)
                     printf("Suspend Request!\n");
 
@@ -562,9 +571,6 @@ void handle_setup_request(int fd, struct usb_ctrlrequest* setup)
 {
     int status;
     uint8_t buffer[512];
-    pthread_t threadr;
-    pthread_t threadrbulk;
-    pthread_t threadt;
 
     if (verbosity > 1)
     {
@@ -645,6 +651,8 @@ void handle_setup_request(int fd, struct usb_ctrlrequest* setup)
             if (!status)
             {
                 thread_args.stop = 0;
+                if (verbosity > 1)
+                    printf("Creating endpoints\n");
                 pthread_create(&threadr, NULL, rx_int_thread, &thread_args);
                 pthread_create(&threadrbulk, NULL, rx_bulk_thread, &thread_args);
                 pthread_create(&threadt, NULL, tx_int_thread, &thread_args);
@@ -677,9 +685,13 @@ void handle_setup_request(int fd, struct usb_ctrlrequest* setup)
         {
             if (thread_args.fd_int_in <= 0)
             {
+                if (verbosity > 1)
+                    printf("Init endpoints in USB_REQ_SET_INTERFACE\n");
                 status = init_ep(&thread_args.fd_int_in, &thread_args.fd_int_out, &thread_args.fd_bulk_out);
                 if (!status)
                 {
+                    if (verbosity > 1)
+                        printf("Reset endpoints in USB_REQ_SET_INTERFACE\n");
                     thread_args.stopOnlyUserEndpoints = 0;
                     pthread_create(&threadr, NULL, rx_int_thread, &thread_args);
                     pthread_create(&threadrbulk, NULL, rx_bulk_thread, &thread_args);
@@ -687,8 +699,7 @@ void handle_setup_request(int fd, struct usb_ctrlrequest* setup)
                 }
             }
         }
-
-        //ioctl(thread_args.fd_int_in, GADGETFS_CLEAR_HALT); // These lines break my program. What do they even do?
+        //ioctl(thread_args.fd_int_in, GADGETFS_CLEAR_HALT); // These lines break my programm, maybe because read() is ongoing. What do they even do?
         //ioctl(thread_args.fd_int_out, GADGETFS_CLEAR_HALT);
         //ioctl(thread_args.fd_bulk_out, GADGETFS_CLEAR_HALT);
         // ACK
@@ -1107,6 +1118,8 @@ void* tx_int_thread(void* arg)
 
     while (!thread_args->stop && !thread_args->stopOnlyUserEndpoints)
     {
+        atomic_thread_fence(memory_order_acquire);
+
         if (txSize == 0)
         {
             struct timespec delay, dummy; // Prevents hogging 100% CPU use
@@ -1137,8 +1150,8 @@ void* tx_int_thread(void* arg)
         int ret = select(max_write_fd + 1, NULL, &write_set, NULL, NULL);
 
         struct timespec now, then;
-        unsigned long sdif, nsdif, tdif;
-        clock_gettime(1, &then);
+        if (verbosity > 1)
+            clock_gettime(1, &then);
 
         // Error
         if (ret < 0)
@@ -1150,14 +1163,17 @@ void* tx_int_thread(void* arg)
         {
             ret = write(thread_args->fd_int_in, txBuffer, txSize);
 
-            clock_gettime(1, &now);
-            sdif = now.tv_sec - then.tv_sec;
-            nsdif = now.tv_nsec - then.tv_nsec;
-            tdif = sdif * 1000000000 + nsdif;
-
-
             if (verbosity > 1)
+            {
+                unsigned long sdif, nsdif, tdif;
+                clock_gettime(1, &now);
+                sdif = now.tv_sec - then.tv_sec;
+                nsdif = now.tv_nsec - then.tv_nsec;
+                tdif = sdif * 1000000000 + nsdif;
+
                 printf("Write status %d (%m), time %d\n", ret, tdif);
+            }
+
             if (ret > 0)
             {
                 txcounter++;
@@ -1172,6 +1188,7 @@ void* tx_int_thread(void* arg)
             }
         }
         txSize = 0; // todo retry once if not successful
+        shouldSendTxWhenAltInterfaceChange = 1;
 
         //usleep(100000);
 
@@ -1199,8 +1216,12 @@ int send_interrupt_msg_response(size_t numBytes, unsigned char* buffer)
     int busyRetries = 1;
     while (txSize != 0)
     {
-        if (busyRetries-- <= 0) 
+        if (busyRetries-- <= 0)
+        {
+            if (verbosity > 1)
+                printf("Busy-timeout on send_interrupt_msg_response\n");
             return -2;
+        }
 
         struct timespec delay, dummy; // Prevents hogging 100% CPU use
         delay.tv_sec = 0;
@@ -1210,6 +1231,7 @@ int send_interrupt_msg_response(size_t numBytes, unsigned char* buffer)
 
     memcpy(txBuffer, buffer, numBytes);
     txSize = numBytes;
+    atomic_thread_fence(memory_order_release);
 
     return 0;
 }

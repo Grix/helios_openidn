@@ -78,6 +78,8 @@ private:
 	static int hardwareType;
 	int currentMode = -1;
 
+	int playButtonPresses = 0;
+
 	int keyboardFd;
 	pthread_t keyboardThread = 0;
 	//std::chrono::steady_clock::time_point lastPlayButtonPressedTime = std::chrono::steady_clock::now();

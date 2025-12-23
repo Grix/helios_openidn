@@ -541,6 +541,9 @@ void FilePlayer::stopButtonPress()
 
 void FilePlayer::upButtonPress()
 {
+    if (state == FILEPLAYER_STATE_STOP)
+        return;
+
     stop();
     if (mode == FILEPLAYER_MODE_SHUFFLE)
         playFile(nextRandomProgram(currentProgramName));
@@ -550,6 +553,9 @@ void FilePlayer::upButtonPress()
 
 void FilePlayer::downButtonPress()
 {
+    if (state == FILEPLAYER_STATE_STOP)
+        return;
+
     stop();
     if (mode == FILEPLAYER_MODE_SHUFFLE)
         playFile(nextRandomProgram(currentProgramName)); // Todo remember last file and go back

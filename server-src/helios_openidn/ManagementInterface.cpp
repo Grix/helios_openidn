@@ -227,7 +227,37 @@ void ManagementInterface::readSettingsFile()
 	std::string& idn_hostname = ini["idn_server"]["name"];
 	if (!idn_hostname.empty())
 		settingIdnHostname = idn_hostname;
-	// TODO set unique default name if no custom one is set
+	else if (getHardwareType() == HARDWARE_ROCKS0)
+	{
+		// Set default unique name based on MAC address
+		unsigned char name_suffix[2] = { 0 };
+		unsigned char* dummy;
+		std::ifstream file;
+		file.open("/sys/class/net/end0/address");
+		if (file.is_open())
+		{
+			char buffer[19] = { 0 };
+			file.read(buffer, 18);
+			if (file)
+			{
+				settingIdnHostname.append(" ");
+				settingIdnHostname.append(buffer + 12, 2);
+				settingIdnHostname.append(buffer + 15, 2);
+				/*sscanf(buffer, "%2hhx:%2hhx:%2hhx:%2hhx:%2hhx:%2hhx", dummy, dummy, dummy, dummy, &name_suffix[0], &name_suffix[1]);
+				std::stringstream hexString;
+				hexString << std::hex << name_suffix[0] << name_suffix[1];
+				settingIdnHostname.append(" ");
+				settingIdnHostname.append(hexString.str());*/
+			}
+			else
+			{
+				printf("Error reading file for MAC address or file has less than 8 bytes\n");
+			}
+			file.close();
+		}
+		else
+			printf("Error reading file for MAC address\n");
+	}
 
 	std::string& buffer_duration = ini["output"]["buffer_duration"];
 	try
@@ -581,7 +611,11 @@ void ManagementInterface::emitEnterButtonPressed()
 #endif
 
 	relinquishOutput(OUTPUT_MODE_FORCESTOP);
-	filePlayer.playButtonPress();
+
+
+	playButtonPresses++;
+	if (playButtonPresses >= 2)
+		filePlayer.playButtonPress();
 }
 
 void ManagementInterface::emitEscButtonPressed()
@@ -589,6 +623,8 @@ void ManagementInterface::emitEscButtonPressed()
 #ifndef NDEBUG
 	printf("Esc button\n"); 
 #endif
+
+	playButtonPresses = 0;
 
 	filePlayer.stopButtonPress();
 }
