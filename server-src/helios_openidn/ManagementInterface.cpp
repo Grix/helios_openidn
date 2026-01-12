@@ -606,7 +606,7 @@ void ManagementInterface::mountUsbDrive()
 
 void ManagementInterface::emitEnterButtonPressed()
 {
-#ifndef NDEBUG
+#ifdef DEBUGOUTPUT
 	printf("Enter button\n");
 #endif
 
@@ -620,7 +620,7 @@ void ManagementInterface::emitEnterButtonPressed()
 
 void ManagementInterface::emitEscButtonPressed()
 {
-#ifndef NDEBUG
+#ifdef DEBUGOUTPUT
 	printf("Esc button\n"); 
 #endif
 
@@ -631,7 +631,7 @@ void ManagementInterface::emitEscButtonPressed()
 
 void ManagementInterface::emitUpButtonPressed()
 {
-#ifndef NDEBUG
+#ifdef DEBUGOUTPUT
 	printf("Up button\n");
 #endif
 
@@ -640,7 +640,7 @@ void ManagementInterface::emitUpButtonPressed()
 
 void ManagementInterface::emitDownButtonPressed()
 {
-#ifndef NDEBUG
+#ifdef DEBUGOUTPUT
 	printf("Down button\n");
 #endif
 

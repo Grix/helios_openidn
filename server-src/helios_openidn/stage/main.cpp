@@ -15,7 +15,7 @@
 #include <memory>
 #include <stdexcept>
 #include <atomic>
-#include  <optional>
+#include <optional>
 #include <iostream>
 
 #include <cstdarg> 
@@ -229,7 +229,7 @@ std::optional<int> maxPointRate = std::nullopt, std::optional<int> bufferTargetM
 
     char* serviceName = strdup(name.c_str());
 
-#ifndef NDEBUG
+#ifdef DEBUGOUTPUT
     printf("Creating service %s ID %d, default %d\n", serviceName, id, isDefaultService);
 #endif
     auto laproService = new IDNLaproService(id, serviceName, isDefaultService, laproGraphicOut);

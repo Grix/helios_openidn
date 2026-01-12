@@ -173,9 +173,9 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 
 	isBusy = true;
 	//get time
-	struct timespec now, then;
-	unsigned long sdif, nsdif, tdif;
-	clock_gettime(CLOCK_MONOTONIC, &then);
+	//struct timespec now, then;
+	//unsigned long sdif, nsdif, tdif;
+	//clock_gettime(CLOCK_MONOTONIC, &then);
 
 	const SliceType& data = slice.dataChunk;
 	size_t dataSizeBytes = data.size();
@@ -308,27 +308,27 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 			}
 			//std::this_thread::yield(); //todo use sleep if RT scheduling?
 		};*/
-		clock_gettime(CLOCK_MONOTONIC, &now);
-		sdif = now.tv_sec - then.tv_sec;
-		nsdif = now.tv_nsec - then.tv_nsec;
-		tdif = sdif * 1000000000 + nsdif;
-		unsigned long rdyReceivedTdif = tdif;
+		//clock_gettime(CLOCK_MONOTONIC, &now);
+		//sdif = now.tv_sec - then.tv_sec;
+		//nsdif = now.tv_nsec - then.tv_nsec;
+		//tdif = sdif * 1000000000 + nsdif;
+		//unsigned long rdyReceivedTdif = tdif;
 
 		//printf("got ready\n");
 
 		//write the whole block all at once
 		int writeRet = write(this->spidevFd, writeBuffer, dataSizeBytes + 16 + 4);
 
-		clock_gettime(CLOCK_MONOTONIC, &now);
-		sdif = now.tv_sec - then.tv_sec;
-		nsdif = now.tv_nsec - then.tv_nsec;
-		tdif = sdif * 1000000000 + nsdif;
+		//clock_gettime(CLOCK_MONOTONIC, &now);
+		//sdif = now.tv_sec - then.tv_sec;
+		//nsdif = now.tv_nsec - then.tv_nsec;
+		//tdif = sdif * 1000000000 + nsdif;
 
 		//if (rdyReceivedTdif < 100000)
 		//	printf("Helios sent frame: %d\n", tdif / 1000);
 
 		// TODO REMOVE THIS PRINT
-		//#ifndef NDEBUG
+		//#ifdef DEBUGOUTPUT
 				//printf("Sent helPro frame: samples %d, left %d, txNum %d, pps %d, time %d, timerVal %d, rem %f, repeats %d, startY %d\n", pointsThisFrame, pointsLeft, txNum, pps, tdif / 1000, desiredTimerInt, timerRemainder, timerRepeats, data[1]);
 		//#endif
 
@@ -359,8 +359,8 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 			printf("msg size = %u, err %d\n", dataSizeBytes + 16 + 4, writeRet);
 			return 0;
 		}
-#ifndef NDEBUG
-		//printf("wrote to HelPro size = %u\n", dataSizeBytes + 16 + 4);
+#ifdef DEBUGOUTPUT
+		printf("wrote to HelPro size = %u\n", dataSizeBytes + 16 + 4);
 #endif
 
 		/*if (false)//durationUs > 200)
@@ -408,7 +408,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 
 	isBusy = false;
 
-#ifndef NDEBUG
+#ifdef DEBUGOUTPUT
 	//printf("Finished helPro frame\n");
 #endif
 

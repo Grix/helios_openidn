@@ -181,7 +181,7 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
         return;
     }
 
-#ifndef NDEBUG
+#ifdef DEBUGOUTPUT
     printf("RECEIVED BULK.\n");
 #endif
 
@@ -212,7 +212,7 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
     unsigned int flags = buffer[numOfPointBytes + 4]; // todo implement looping etc
     unsigned int numPoints = numOfPointBytes / 7;
 
-#ifndef NDEBUG
+#ifdef DEBUGOUTPUT
     printf("Recvd USB: points %d, pps %d\n", numPoints, pps);
 #endif
 
@@ -276,7 +276,7 @@ void UsbInterface::bulkUsbReceived(size_t numBytes, unsigned char* buffer)
 
     //printf("Finished frame, currentPointInFrame %d\n", currentPointInFrame);
 
-#ifndef NDEBUG
+#ifdef DEBUGOUTPUT
     printf("Processing, bufferpos %d\n", bufferPos);
 #endif
 

@@ -124,7 +124,7 @@ int FilePlayer::playFile(std::string programName)
         // Rewind for loop start
         fseek(fpIDTF, filePos, SEEK_SET);
 
-#ifndef NDEBUG
+#ifdef DEBUGOUTPUT
         printf("Playing file %s, speed %g %s, reps %d\n", filename, ildaFile.parameters.speed, ildaFile.parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_FPS ? "fps" : "pps", ildaFile.parameters.numRepetitions);
 #endif
 
@@ -209,7 +209,7 @@ int FilePlayer::playFile(std::string programName)
                 // Formats 0 and 1 have color index; Formats 4 and 5 are true color RGB.
                 int hasIndex = (formatCode == 0) || (formatCode == 1);
 
-#ifndef NDEBUG
+#ifdef DEBUGOUTPUT
                 //printf("Playing frame from file %s, speed %d, reps %d\n", filename, parameters.speed, parameters.numRepetitions);
 #endif
 
@@ -353,7 +353,7 @@ int FilePlayer::playFile(std::string programName)
                     }
                     chunksInFrame.push_back(chunk);
 
-#ifndef NDEBUG
+#ifdef DEBUGOUTPUT
                     //printf("Played chunk from file %s\n", filename.c_str());
 #endif
                 }
@@ -778,7 +778,7 @@ void FilePlayer::parsePrgFile(const std::filesystem::directory_entry& fileEntry)
 
                 program.files.push_back(file);
 
-#ifndef NDEBUG
+#ifdef DEBUGOUTPUT
                 printf("PRG program %s with file %s, speed %g %s, reps %d\n", programName.c_str(), file.filePath.c_str(), speed, isFps ? "fps" : "pps", repetitions);
 #endif
             }

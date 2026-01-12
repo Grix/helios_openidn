@@ -30,7 +30,10 @@
 #define DRIVER_WAVEMODE 1
 #define DRIVER_FRAMEMODE 2
 
-
+#ifndef NDEBUG
+#define DEBUGOUTPUT
+#endif
+//#define DEBUGOUTPUT
 
 /*
 Laser configuration

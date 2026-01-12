@@ -247,7 +247,7 @@ void HeliosAdapter::updateDeviceList()
 
 void HeliosAdapter::refreshDacReferences(unsigned int numDevices)
 {
-#ifndef NDEBUG
+#ifdef DEBUGOUTPUT
 	printf("Refreshing Helios references. %d, %d. Num: %d\n", indexFirstDevice, indexSecondDevice, numDevices);
 #endif
 
@@ -260,7 +260,7 @@ void HeliosAdapter::refreshDacReferences(unsigned int numDevices)
 	if (indexSecondDevice >= 0 && helios.GetIsClosed(indexSecondDevice))
 		indexSecondDevice = -1;
 
-#ifndef NDEBUG
+#ifdef DEBUGOUTPUT
 	printf("After clean. %d, %d\n", indexFirstDevice, indexSecondDevice);
 #endif
 

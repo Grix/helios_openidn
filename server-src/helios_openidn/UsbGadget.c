@@ -53,6 +53,11 @@
 #include <stdatomic.h>
 #include <signal.h>
 
+#ifndef NDEBUG
+#define DEBUGOUTPUT
+#endif
+//#define DEBUGOUTPUT
+
 
 //--- defines ---
 #define FETCH(_var_)                            \
@@ -337,7 +342,7 @@ int init_usb_gadget()
     __u16 pid, vid, usbver = 2;
     char sernum[12];
 
-#ifndef NDEBUG
+#ifdef DEBUGOUTPUT
     verbosity = 2;
 #endif
 
@@ -364,10 +369,11 @@ int init_usb_gadget()
     device_descriptor.bDeviceClass = USB_CLASS_VENDOR_SPEC;
     device_descriptor.bDeviceSubClass = 0;
     device_descriptor.bDeviceProtocol = 0;
-    device_descriptor.bMaxPacketSize0 = 64; //Set by driver?
+    device_descriptor.bMaxPacketSize0 = 64;
     device_descriptor.idVendor = USB_VID;
     device_descriptor.idProduct = USB_PID;
-    device_descriptor.bcdDevice = usbver;
+    device_descriptor.bcdDevice = 0x0099;
+    device_descriptor.bcdUSB = 0x0200;
     // Strings
     device_descriptor.iManufacturer = STRINGID_MANUFACTURER;
     device_descriptor.iProduct = STRINGID_PRODUCT;
@@ -378,19 +384,21 @@ int init_usb_gadget()
     ep_descriptor_int_in.bDescriptorType = USB_DT_ENDPOINT;
     ep_descriptor_int_in.bEndpointAddress = USB_DIR_IN | 3;
     ep_descriptor_int_in.bmAttributes = USB_ENDPOINT_XFER_INT;
-    ep_descriptor_int_in.wMaxPacketSize = 64; // HS size
+    ep_descriptor_int_in.wMaxPacketSize = 64;
 
     ep_descriptor_int_out.bLength = USB_DT_ENDPOINT_SIZE;
     ep_descriptor_int_out.bDescriptorType = USB_DT_ENDPOINT;
     ep_descriptor_int_out.bEndpointAddress = USB_DIR_OUT | 6;
     ep_descriptor_int_out.bmAttributes = USB_ENDPOINT_XFER_INT;
-    ep_descriptor_int_out.wMaxPacketSize = 64; // HS size
+    ep_descriptor_int_out.wMaxPacketSize = 64;
+    ep_descriptor_int_out.bInterval = 1; // 1 ms polling in FS, 1/8 in HS
 
     ep_descriptor_bulk_out.bLength = USB_DT_ENDPOINT_SIZE;
     ep_descriptor_bulk_out.bDescriptorType = USB_DT_ENDPOINT;
     ep_descriptor_bulk_out.bEndpointAddress = USB_DIR_OUT | 2;
     ep_descriptor_bulk_out.bmAttributes = USB_ENDPOINT_XFER_BULK;
-    ep_descriptor_bulk_out.wMaxPacketSize = 512; // HS size
+    ep_descriptor_bulk_out.wMaxPacketSize = 64;
+    ep_descriptor_bulk_out.bInterval = 1; // 1 ms polling in FS, 1/8 in HS
 
     if_alt0_descriptor.bLength = sizeof(if_alt0_descriptor);
     if_alt0_descriptor.bDescriptorType = USB_DT_INTERFACE;
