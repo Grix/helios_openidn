@@ -51,8 +51,8 @@ public:
 	void runStartup();
 
 	std::string settingIdnHostname = "HeliosPRO";
-	const char softwareVersion[10] = "0.9.9";
-	const unsigned char softwareVersionUsb = 99;
+	const char softwareVersion[10] = "1.0.0";
+	const unsigned char softwareVersionUsb = 100;
 	std::shared_ptr<IDNServer> idnServer;
 	int modePriority[OUTPUT_MODE_MAX + 1] = { 4, 3, 1, 2, 100 }; // If <=0, disable entirely
 	std::vector<std::shared_ptr<DACHWInterface>> devices;

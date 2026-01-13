@@ -372,7 +372,7 @@ int init_usb_gadget()
     device_descriptor.bMaxPacketSize0 = 64;
     device_descriptor.idVendor = USB_VID;
     device_descriptor.idProduct = USB_PID;
-    device_descriptor.bcdDevice = 0x0099;
+    device_descriptor.bcdDevice = 0x0100;
     device_descriptor.bcdUSB = 0x0200;
     // Strings
     device_descriptor.iManufacturer = STRINGID_MANUFACTURER;
