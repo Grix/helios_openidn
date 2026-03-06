@@ -164,6 +164,7 @@ void ManagementInterface::readSettingsFile()
 		}
 
 		// Wifi network config
+		const char* wifiConnectionId = "\"Wifi connection 1\"";
 		std::string& wlan0_enable = ini["network"]["wifi_enable"];
 		std::string& wlan0_ssid = ini["network"]["wifi_ssid"];
 		if ((wlan0_enable.empty() && !wlan0_ssid.empty()) || wlan0_enable == "true" || wlan0_enable == "True" || wlan0_enable == "\"true\"" || wlan0_enable == "\"True\"")
@@ -178,17 +179,17 @@ void ManagementInterface::readSettingsFile()
 				wlan0_ip_addresses.erase(std::remove(wlan0_ip_addresses.begin(), wlan0_ip_addresses.end(), '\"'), wlan0_ip_addresses.end()); // Remove quote marks
 
 				if (wlan0_password.empty())
-					sprintf(command, "nmcli device wifi connect \"%s\" name \"Wifi connection 1\"", wlan0_ssid.c_str());
+					sprintf(command, "nmcli device wifi connect \"%s\" name %s", wlan0_ssid.c_str(), wifiConnectionId);
 				else
-					sprintf(command, "nmcli device wifi connect \"%s\" password \"%s\" name \"Wifi connection 1\"", wlan0_ssid.c_str(), wlan0_password.c_str());
+					sprintf(command, "nmcli device wifi connect \"%s\" password \"%s\" name %s", wlan0_ssid.c_str(), wlan0_password.c_str(), wifiConnectionId);
 				system(command);
 
 				if (wlan0_ip_addresses == "auto" || wlan0_ip_addresses == "dhcp" || wlan0_ip_addresses == "default")
 				{
 					printf("wlan0 DHCP, %s\n", wlan0_ssid.c_str());
-					sprintf(command, "nmcli connection modify \"%s\" ipv4.method auto", wlan0_ssid.c_str());
+					sprintf(command, "nmcli connection modify %s ipv4.method auto", wifiConnectionId);
 					system(command);
-					sprintf(command, "nmcli connection modify \"%s\" ipv4.addresses \"\"", wlan0_ssid.c_str());
+					sprintf(command, "nmcli connection modify %s ipv4.addresses \"\"", wifiConnectionId);
 					system(command);
 				}
 				else
@@ -197,14 +198,14 @@ void ManagementInterface::readSettingsFile()
 						wlan0_ip_addresses = wlan0_ip_addresses.append("/24"); // 255.255.255.0 as default netmask
 
 					printf("wlan0 %s, %s\n", wlan0_ip_addresses.c_str(), wlan0_ssid.c_str());
-					sprintf(command, "nmcli connection modify \"%s\" ipv4.method manual", wlan0_ssid.c_str());
+					sprintf(command, "nmcli connection modify %s ipv4.addresses \"%s\"", wifiConnectionId, wlan0_ip_addresses.c_str());
 					system(command);
-					sprintf(command, "nmcli connection modify \"%s\" ipv4.addresses \"%s\"", wlan0_ssid.c_str(), wlan0_ip_addresses.c_str());
+					sprintf(command, "nmcli connection modify %s ipv4.method manual", wifiConnectionId);
 					system(command);
 				}
-				sprintf(command, "nmcli connection down \"%s\"", wlan0_ssid.c_str());
+				sprintf(command, "nmcli connection down %s", wifiConnectionId);
 				system(command);
-				sprintf(command, "nmcli connection up \"%s\"", wlan0_ssid.c_str());
+				sprintf(command, "nmcli connection up %s", wifiConnectionId);
 				system(command);
 
 			}
@@ -212,7 +213,8 @@ void ManagementInterface::readSettingsFile()
 		else
 		{
 			printf("wifi disabled\n");
-			system("nmcli connection delete \"Wifi connection 1\"");
+			sprintf(command, "nmcli connection delete %s", wifiConnectionId);
+			system(command);
 			if (!wlan0_ssid.empty())
 			{
 				sprintf(command, "nmcli connection delete \"%s\"", wlan0_ssid.c_str()); // Backwards compatibility, previously the connection name was the ssid

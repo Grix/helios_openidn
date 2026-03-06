@@ -5,6 +5,7 @@
 #include "output/V1LaproGraphOut.hpp"
 #include "shared/DACHWInterface.hpp"
 #include "shared/HWBridge.hpp"
+#include "OlaDmxInterface.hpp"
 #include "Display.hpp"
 #include <string>
 #include <cstdint>
@@ -51,8 +52,8 @@ public:
 	void runStartup();
 
 	std::string settingIdnHostname = "HeliosPRO";
-	const char softwareVersion[10] = "1.0.0";
-	const unsigned char softwareVersionUsb = 100;
+	const char softwareVersion[10] = "1.0.1";
+	const unsigned char softwareVersionUsb = 101;
 	std::shared_ptr<IDNServer> idnServer;
 	int modePriority[OUTPUT_MODE_MAX + 1] = { 4, 3, 1, 2, 100 }; // If <=0, disable entirely
 	std::vector<std::shared_ptr<DACHWInterface>> devices;

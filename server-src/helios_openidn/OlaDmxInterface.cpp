@@ -2,7 +2,7 @@
 
 OlaDmxInterface::OlaDmxInterface()
 {
-	if (pthread_create(&olaThread, NULL, &loopThread, this) != 0) {
+	if (pthread_create(&olaThread, NULL, &runThread, this) != 0) {
 		printf("ERROR CREATING OLA DMX THREAD\n");
 	}
 
@@ -10,10 +10,10 @@ OlaDmxInterface::OlaDmxInterface()
 		return;
 }
 
-void OlaDmxInterface::loop()
+void OlaDmxInterface::run()
 {
 	ola::client::OlaClient* client = wrapper.GetClient();
-	// Set the callback and register our interest in this universe
+	client->SetSourceUID(ola::rdm::UID(RDM_ESTA_ID, RDM_DEVICE_ID), NULL);
 	client->SetDMXCallback(ola::NewCallback(&NewDmx));
 	client->RegisterUniverse(DMX_UNIVERSE, ola::client::REGISTER, ola::NewSingleCallback(&RegisterComplete));
 	wrapper.GetSelectServer()->Run();
@@ -34,10 +34,12 @@ void NewDmx(const ola::client::DMXMetadata& metadata,
 		<< std::endl;
 }
 
-void* loopThread(void* args)
+void* runThread(void* args)
 {
 	OlaDmxInterface* interface = (OlaDmxInterface*)args;
 
-	interface->loop();
+	interface->run();
+
+	return NULL;
 }
 

@@ -32,5 +32,7 @@
  Contacts:    Dr. Matthias Frank (matthew@cs.uni-bonn.de)
               Leander Schickhaus (laser-light-lab@uni-bonn.de)
               Christian Windeck  (laser-light-lab@uni-bonn.de)
+			  
+ Adaptation for HeliosPRO by Gitle Mikkelsen (gitle@bitlasers.com)
 
 =-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
