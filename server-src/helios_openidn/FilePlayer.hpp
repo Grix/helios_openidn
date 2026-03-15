@@ -17,6 +17,7 @@
 #include <dirent.h>
 #include <sys/types.h>
 #include <filesystem>
+#include <atomic>
 
 #define FILEPLAYER_MODE_REPEAT 0
 #define FILEPLAYER_MODE_ONCE 1
@@ -59,27 +60,27 @@ public:
 
     typedef struct QueuedChunk
     {
-        std::vector<ISPDB25Point> buffer;// = std::vector<ISPDB25Point>(3000); // Todo reuse buffers, avoid memory allocation
+        std::vector<ISPDB25Point> buffer;  // Todo reuse buffers, avoid memory allocation
         unsigned int pps;
     } QueuedChunk;
+
+    typedef struct QueuedFrame
+    {
+        std::vector<std::shared_ptr<QueuedChunk>> chunks;
+        double durationMs;
+    };
 
 	bool autoplay = false;
     std::string currentProgramName = "";
     bool handleMissingPrg = true;
-    //Program currentProgram;
     std::map<std::string, Program> programs;
     std::vector<std::string> programsAlphabeticSort;
     std::vector<std::string> programsRandomSort;
 	int mode = FILEPLAYER_MODE_REPEAT;
 	int state = FILEPLAYER_STATE_STOP;
-    //unsigned int fileIndexInProgram = 0;
-	//unsigned int frame = 0;
-	//std::map<std::string, FileParameters> fileParameters;
 	FileParameters defaultParameters;
     std::string localFileDirectory = std::string("/home/laser/library/");
     std::string usbFileDirectory = std::string("/media/usbdrive/");
-    //std::vector<std::shared_ptr<DACHWInterface>>* devices;
-    //std::vector<V1LaproGraphicOutput*>* outputs;
 
     FilePlayer();
 
@@ -88,6 +89,7 @@ public:
 	void stop();
 	void pause();
 	int playFile(std::string filename); // if name is empty, play random
+    int playFileInnerJob(std::string filename, int fileJob);
     void outputLoop();
     void playButtonPress();
     void stopButtonPress();
@@ -103,27 +105,26 @@ private:
 
     #define ILDACOLOR(r, g, b)      (((r & 0xFF) << 16) | ((g & 0xFF) << 8) | (b & 0xFF))
 
-    int checkEOF(FILE* fp, const char* dbgText);
-    uint16_t readShort(FILE* fp);
+    int checkEOF(FILE* file, const char* debugText);
+    uint16_t readShort(FILE* file);
     bool hasIldExtension(const std::string& name);
     bool hasPrgExtension(const std::string& name);
     std::string nextAlphabeticalProgram(const std::string& previousProgramName, bool reverseOrder);
     std::string nextRandomProgram(const std::string& previousProgramName);
     std::string getDirectory(const std::string& filepath);
     std::string getFilename(const std::string& filepath);
-    //FileParameters getFileParameters(const std::string& filename);
     void parsePrgFile(const std::filesystem::directory_entry& fileEntry);
     void parseIldFile(const std::filesystem::directory_entry& fileEntry);
     void doFileEndAction(bool dontAttemptRepeat);
     void savePrgFile(const std::string& name);
+    bool hasEnoughBufferedFileQueue();
 
-    //std::vector<ISPDB25Point> pointBuffer;
-    //SliceBuf queue;
-    std::deque<std::shared_ptr<QueuedChunk>> queue;
-    //IdtfDecoder decoder;
+    std::deque<std::shared_ptr<QueuedFrame>> queue;
+    std::atomic_int fileJob;
     pthread_t outputThread = 0;
     std::mutex threadLock;
     bool hasStarted = false;
+    const double minimumQueueDurationMs = 500;
 
     unsigned long customPalette[256];
     unsigned long ildaDefaultPalette[256] =      // LFI / Aura Technologies

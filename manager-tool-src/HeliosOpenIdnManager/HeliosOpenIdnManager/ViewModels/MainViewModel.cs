@@ -613,7 +613,8 @@ public partial class MainViewModel : ViewModelBase
 
             var sshClient = server.SshClient ?? throw new Exception("Could not connect");
             //sshClient.Connect();
-            var command = sshClient.RunCommand("nmcli -t device wifi list");
+            var command = sshClient.RunCommand(HeliosProUtilities.GetSudoSshCommand("nmcli device wifi rescan"));
+            command = sshClient.RunCommand("nmcli -t device wifi list");
             foreach (string line in command.Result.Split('\n'))
             {
                 if (string.IsNullOrEmpty(line))

@@ -347,7 +347,7 @@ int lcd_random(int min, int max);
 /** @copydoc lcd_micros */
 #define micros lcd_micros
 /** @copydoc lcd_delay */
-#define delay lcd_delay
+#define delay_ lcd_delay
 /** @copydoc lcd_delayUs */
 #define delayMicroseconds lcd_delayUs
 

@@ -139,10 +139,10 @@
 											</DockPanel>
 										</StackPanel>
 									</StackPanel>
-									<StackPanel Grid.Column="1" IsVisible="{Binding WifiIsEnabled}" Margin="15,0,0,0">
+									<StackPanel Grid.Column="1" IsVisible="{Binding WifiIsEnabled}" MinHeight="150" MaxHeight="200" Margin="15,0,0,0">
 										<Button Content="Scan nearby WiFi networks" IsEnabled="{Binding HasSelectedServer}" Command="{Binding ScanWifiNetworksCommand}"/>
 
-										<ScrollViewer Grid.Row="1" MinHeight="100" Margin="0,5,0,0" >
+										<ScrollViewer Grid.Row="1" MinHeight="110" MaxHeight="150" Margin="0,5,0,0" VerticalScrollBarVisibility="Visible">
 											<ListBox ItemsSource="{Binding WifiNetworks}" SelectionMode="Single" SelectedIndex="{Binding SelectedWifiNetworkIndex}">
 												<ListBox.ItemTemplate>
 													<DataTemplate>

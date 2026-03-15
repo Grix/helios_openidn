@@ -360,7 +360,7 @@ int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs)
 			return 0;
 		}
 #ifdef DEBUGOUTPUT
-		printf("wrote to HelPro size = %u\n", dataSizeBytes + 16 + 4);
+		//printf("wrote to HelPro size = %u\n", dataSizeBytes + 16 + 4);
 #endif
 
 		/*if (false)//durationUs > 200)

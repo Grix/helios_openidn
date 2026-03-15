@@ -7,16 +7,19 @@
 
 extern ManagementInterface* management;
 
-void* outputLoopThread(void* args)
-{
-    FilePlayer* player = (FilePlayer*)args;
+typedef struct PlayFileThreadArgs {
+    FilePlayer* filePlayer;
+    std::string programName;
+    int job;
+}PlayFileThreadArgs;
 
-    player->outputLoop();
-}
+void* playFileThreaded(void* arg);
+void* outputLoopThread(void* arg);
 
 FilePlayer::FilePlayer()
 {
-    if (pthread_create(&outputThread, NULL, &outputLoopThread, this) != 0) {
+    if (pthread_create(&outputThread, NULL, &outputLoopThread, this) != 0) 
+    {
         printf("ERROR CREATING FILEPLAYER THREAD\n");
     }
     defaultParameters.speedType = FILEPLAYER_PARAM_SPEEDTYPE_PPS;
@@ -62,6 +65,38 @@ void FilePlayer::pause()
 
 int FilePlayer::playFile(std::string programName)
 {
+    int job = fileJob.load() + 1;
+    fileJob.store(job); // Cancels current file async loading, if any
+    pthread_t playFileThread;
+    PlayFileThreadArgs args;
+    args.filePlayer = this;
+    args.programName = programName;
+    args.job = job;
+    if (pthread_create(&playFileThread, NULL, &playFileThreaded, &args) != 0)
+    {
+        printf("ERROR CREATING THREAD WHEN PLAYING FILE %s\n", programName.c_str());
+    }
+}
+
+void* playFileThreaded(void* _arg)
+{
+    PlayFileThreadArgs* arg = (PlayFileThreadArgs*)_arg;
+    if (arg != NULL)
+    {
+        FilePlayer* filePlayer = arg->filePlayer;
+        std::string programName = arg->programName;
+        int job = arg->job;
+
+        filePlayer->playFileInnerJob(programName, job);
+    }
+}
+
+
+
+// Threaded inner function. Should not be called directly.
+// This piecewise loads the file from the disk to RAM while the file is playing, keeping track of buffer size. It cancels loading if a new file is played instead.
+int FilePlayer::playFileInnerJob(std::string programName, int job)
+{
     if (programName.empty())
         programName = nextRandomProgram(usbFileDirectory + "a.ild");
     if (programName.empty())
@@ -71,7 +106,7 @@ int FilePlayer::playFile(std::string programName)
         stop();
         return -1;
     }
-    
+
     currentProgramName = programName;
 
     Program currentProgram = programs[programName];
@@ -82,7 +117,7 @@ int FilePlayer::playFile(std::string programName)
         return -1;
     }
 
-    std::lock_guard<std::mutex> lock(threadLock);
+    //std::lock_guard<std::mutex> lock(threadLock);
 
     // Determine which palette to use TODO
     //unsigned palOption = options & IDTFOPT_PALETTE_MASK;
@@ -94,208 +129,261 @@ int FilePlayer::playFile(std::string programName)
     const float xScale = 0xFFFF; //(options & IDTFOPT_MIRROR_X) ?  -xyScale : 0xFFFF;
     const float yScale = 0xFFFF; //(options & IDTFOPT_MIRROR_Y) ?  -xyScale : 0xFFFF;
 
-    for (int fileIndex = 0; fileIndex < currentProgram.files.size(); fileIndex++)
+    do
     {
-        IldaFile ildaFile = currentProgram.files[fileIndex];
-        const char* filename = ildaFile.filePath.c_str();
-        // Open the passed file
-        FILE* fpIDTF = fopen(filename, "rb");
-        if (!fpIDTF)
+        for (int fileIndex = 0; fileIndex < currentProgram.files.size(); fileIndex++)
         {
-            printf("[IDTF] %s: Cannot open file (errno: %d)", filename, errno);
-            continue;
-        }
-
-        long filePos;
-        uint8_t ilda[4];
-
-        // Sanity check - Read signature of first section
-        filePos = ftell(fpIDTF);
-        fread(ilda, sizeof(ilda), 1, fpIDTF);
-
-        // Check for EOF and the signature of first section
-        if (feof(fpIDTF) || !((ilda[0] == 'I') && (ilda[1] == 'L') && (ilda[2] == 'D') && (ilda[3] == 'A')))
-        {
-            printf("[IDTF] %s: Not an IDTF file", filename);
-            fclose(fpIDTF);
-            continue;
-        }
-
-        // Rewind for loop start
-        fseek(fpIDTF, filePos, SEEK_SET);
-
-#ifdef DEBUGOUTPUT
-        printf("Playing file %s, speed %g %s, reps %d\n", filename, ildaFile.parameters.speed, ildaFile.parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_FPS ? "fps" : "pps", ildaFile.parameters.numRepetitions);
-#endif
-
-        // -------------------------------------------------------------------------
-        // OK - Read the file
-        // -------------------------------------------------------------------------
-
-        int result = 0;
-
-        while (1)
-        {
-            // Read section signature. Silently abort in case of (incorrect) EOF.
-            filePos = ftell(fpIDTF);
-            fread(ilda, sizeof(ilda), 1, fpIDTF);
-            if (feof(fpIDTF))
-                break;
-
-            // Some systems use this signature before appending further (non-IDTF) data...
-            if ((ilda[0] == 0) && (ilda[1] == 0) && (ilda[2] == 0) && (ilda[3] == 0))
-                break;
-
-            // Check for IDTF section signature
-            if (!((ilda[0] == 'I') && (ilda[1] == 'L') && (ilda[2] == 'D') && (ilda[3] == 'A')))
+            IldaFile ildaFile = currentProgram.files[fileIndex];
+            const char* filename = ildaFile.filePath.c_str();
+            // Open the passed file
+            FILE* fpIDTF = fopen(filename, "rb");
+            if (!fpIDTF)
             {
-                printf("[IDTF] %s: Bad section signature at pos 0x%08X", filename, filePos);
-                result = -1;
-                break;
+                printf("[IDTF] %s: Cannot open file (errno: %d)", filename, errno);
+                continue;
             }
 
-            // Skip reserved bytes and read format code
-            fgetc(fpIDTF);
-            fgetc(fpIDTF);
-            fgetc(fpIDTF);
-            uint8_t formatCode = (uint8_t)fgetc(fpIDTF);
-            if ((result = checkEOF(fpIDTF, "Header")) != 0)
-                break;
+            long filePos;
+            uint8_t ilda[4];
 
-            // Read data set name (frame name or color palette name) and company name
-            uint8_t dataSetName[8], companyName[8];
-            fread(dataSetName, 8, 1, fpIDTF);
-            fread(companyName, 8, 1, fpIDTF);
-            if ((result = checkEOF(fpIDTF, "Header")) != 0)
-                break;
+            // Sanity check - Read signature of first section
+            filePos = ftell(fpIDTF);
+            fread(ilda, sizeof(ilda), 1, fpIDTF);
 
-            //logInfo("dataSetName: %8.8s", dataSetName);
-            //logInfo("companyName: %8.8s", companyName);
-
-            // Read record count and data set number (frame number or color palette number)
-            uint16_t recordCnt = (uint16_t)readShort(fpIDTF);
-            uint16_t dataSetNumber = (uint16_t)readShort(fpIDTF);
-            if ((result = checkEOF(fpIDTF, "Header")) != 0)
-                break;
-
-            // Read data set count (not used) and head number (not used)
-            uint16_t dataSetCnt = (uint16_t)readShort(fpIDTF);
-            uint8_t headNumber = (uint8_t)fgetc(fpIDTF);
-            fgetc(fpIDTF);
-
-            //logInfo("Format: %d, Records: %d, Set number: %d, Set count: %d, Head: %d",
-            //        formatCode, recordCnt, dataSetNumber, dataSetCnt, headNumber);
-
-            // Terminate in case of an empty section (no records - regular end)
-            if (recordCnt == 0)
-                break;
-
-            // Handle data section depending on format code
-            if ((formatCode == 0) || (formatCode == 1) || (formatCode == 4) || (formatCode == 5))
+            // Check for EOF and the signature of first section
+            if (feof(fpIDTF) || !((ilda[0] == 'I') && (ilda[1] == 'L') && (ilda[2] == 'D') && (ilda[3] == 'A')))
             {
-                //logInfo("Frame, fmt=%u, filePos 0x%08X", formatCode, filePos);
+                printf("[IDTF] %s: Not an IDTF file", filename);
+                fclose(fpIDTF);
+                continue;
+            }
 
-                // Terminate on insane frames
-                if (recordCnt <= 1)
+            // Rewind for loop start
+            fseek(fpIDTF, filePos, SEEK_SET);
+
+#ifdef DEBUGOUTPUT
+            printf("Playing file %s, speed %g %s, reps %d\n", filename, ildaFile.parameters.speed, ildaFile.parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_FPS ? "fps" : "pps", ildaFile.parameters.numRepetitions);
+#endif
+
+            // -------------------------------------------------------------------------
+            // OK - Read the file
+            // -------------------------------------------------------------------------
+
+            int result = 0;
+
+            while (1)
+            {
+                // Read section signature. Silently abort in case of (incorrect) EOF.
+                filePos = ftell(fpIDTF);
+                fread(ilda, sizeof(ilda), 1, fpIDTF);
+                if (feof(fpIDTF))
+                    break;
+
+                // Some systems use this signature before appending further (non-IDTF) data...
+                if ((ilda[0] == 0) && (ilda[1] == 0) && (ilda[2] == 0) && (ilda[3] == 0))
+                    break;
+
+                // Check for IDTF section signature
+                if (!((ilda[0] == 'I') && (ilda[1] == 'L') && (ilda[2] == 'D') && (ilda[3] == 'A')))
                 {
-                    printf("[IDTF] %s: Frames should contain at least 2 points", filename);
+                    printf("[IDTF] %s: Bad section signature at pos 0x%08X", filename, filePos);
                     result = -1;
                     break;
                 }
 
-                // Formats 0 and 4 are X, Y, Z; Formats 1 and 5 are X, Y.
-                int hasZ = (formatCode == 0) || (formatCode == 4);
+                // Skip reserved bytes and read format code
+                fgetc(fpIDTF);
+                fgetc(fpIDTF);
+                fgetc(fpIDTF);
+                uint8_t formatCode = (uint8_t)fgetc(fpIDTF);
+                if ((result = checkEOF(fpIDTF, "Header")) != 0)
+                    break;
 
-                // Formats 0 and 1 have color index; Formats 4 and 5 are true color RGB.
-                int hasIndex = (formatCode == 0) || (formatCode == 1);
+                // Read data set name (frame name or color palette name) and company name
+                uint8_t dataSetName[8], companyName[8];
+                fread(dataSetName, 8, 1, fpIDTF);
+                fread(companyName, 8, 1, fpIDTF);
+                if ((result = checkEOF(fpIDTF, "Header")) != 0)
+                    break;
 
-#ifdef DEBUGOUTPUT
-                //printf("Playing frame from file %s, speed %d, reps %d\n", filename, parameters.speed, parameters.numRepetitions);
-#endif
+                //logInfo("dataSetName: %8.8s", dataSetName);
+                //logInfo("companyName: %8.8s", companyName);
 
-                std::vector<std::shared_ptr<QueuedChunk>> chunksInFrame;
+                // Read record count and data set number (frame number or color palette number)
+                uint16_t recordCnt = (uint16_t)readShort(fpIDTF);
+                uint16_t dataSetNumber = (uint16_t)readShort(fpIDTF);
+                if ((result = checkEOF(fpIDTF, "Header")) != 0)
+                    break;
 
-                std::shared_ptr<QueuedChunk> chunk = std::make_shared<QueuedChunk>();
+                // Read data set count (not used) and head number (not used)
+                uint16_t dataSetCnt = (uint16_t)readShort(fpIDTF);
+                uint8_t headNumber = (uint8_t)fgetc(fpIDTF);
+                fgetc(fpIDTF);
 
-                int pointsPerChunk = recordCnt;
-                int maxPointsPerChunk = management->devices.front()->maxBytesPerTransmission() / management->devices.front()->bytesPerPoint();
-                if (recordCnt > maxPointsPerChunk)
+                //logInfo("Format: %d, Records: %d, Set number: %d, Set count: %d, Head: %d", formatCode, recordCnt, dataSetNumber, dataSetCnt, headNumber);
+
+                // Terminate in case of an empty section (no records - regular end)
+                if (recordCnt == 0)
+                    break;
+
+                // Handle data section depending on format code
+                if ((formatCode == 0) || (formatCode == 1) || (formatCode == 4) || (formatCode == 5))
                 {
-                    if (maxPointsPerChunk == 0)
-                        return -1;
+                    //logInfo("Frame, fmt=%u, filePos 0x%08X", formatCode, filePos);
 
-                    pointsPerChunk = (int)ceil(recordCnt / ceil((double)recordCnt / maxPointsPerChunk));
-                    if (pointsPerChunk < maxPointsPerChunk)
-                        pointsPerChunk += 1;
-
-                    if (pointsPerChunk == 0)
-                        return -1;
-                }
-
-                chunk->buffer.reserve(pointsPerChunk);
-
-                // Loop through all points
-                unsigned int currentPointInChunk = 0;
-                for (int i = 0; i < recordCnt; i++)
-                {
-                    int16_t x, y, z;
-                    uint8_t statusCode, r, g, b;
-
-                    // Remember file pos at the beginning of the point
-                    filePos = ftell(fpIDTF);
-
-                    // Read coordinates
-                    x = (short)((float)(short)readShort(fpIDTF) * xScale);
-                    y = (short)((float)(short)readShort(fpIDTF) * yScale);
-                    if (hasZ)
-                        z = readShort(fpIDTF);
-                    else
-                        z = 0;
-
-                    // Read status code
-                    statusCode = (uint8_t)fgetc(fpIDTF);
-
-                    // Read color
-                    if (hasIndex)
+                    // Terminate on insane frames
+                    if (recordCnt <= 1)
                     {
-                        uint8_t colorIndex = (uint8_t)fgetc(fpIDTF);
-                        long rgb = currentPalette[colorIndex];
-                        r = (uint8_t)(rgb >> 16);
-                        g = (uint8_t)(rgb >> 8);
-                        b = (uint8_t)rgb;
-                    }
-                    else
-                    {
-                        b = (uint8_t)fgetc(fpIDTF);
-                        g = (uint8_t)fgetc(fpIDTF);
-                        r = (uint8_t)fgetc(fpIDTF);
-                    }
-
-                    // Check for unexpected EOF
-                    if (feof(fpIDTF))
-                    {
-                        printf("[IDTF] Unexpected end of file: Record %u of %u", i, recordCnt);
+                        printf("[IDTF] %s: Frames should contain at least 2 points", filename);
                         result = -1;
                         break;
                     }
 
-                    // Output the point
-                    if (statusCode & 0x40)
-                        r = g = b = 0;
+                    // Formats 0 and 4 are X, Y, Z; Formats 1 and 5 are X, Y.
+                    int hasZ = (formatCode == 0) || (formatCode == 4);
 
-                    ISPDB25Point point;
-                    point.x = 0xFFFF - (x + 0x8000);
-                    point.y = 0xFFFF - (y + 0x8000);
-                    point.r = r * 0x101;
-                    point.g = g * 0x101;
-                    point.b = b * 0x101;
-                    point.intensity = 0xFFFF;
-                    point.u1 = point.u2 = point.u3 = point.u4 = 0;
-                    chunk->buffer.push_back(point);
+                    // Formats 0 and 1 have color index; Formats 4 and 5 are true color RGB.
+                    int hasIndex = (formatCode == 0) || (formatCode == 1);
 
-                    currentPointInChunk++;
+#ifdef DEBUGOUTPUT
+                    //printf("Playing frame from file %s, speed %d, reps %d\n", filename, parameters.speed, parameters.numRepetitions);
+#endif
 
-                    if (currentPointInChunk >= pointsPerChunk && i < recordCnt - 1) //  Send partial frame, if frame is split due to being too large for DAC.
+                //std::vector<std::shared_ptr<QueuedChunk>> chunksInFrame;
+
+                    std::shared_ptr<QueuedFrame> frame = std::make_shared<QueuedFrame>();
+
+                    if (ildaFile.parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_PPS)
+                        frame->durationMs = recordCnt / ildaFile.parameters.speed * 1000;
+                    else // if (parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_FPS)
+                        frame->durationMs = 1.0 / ildaFile.parameters.speed * 1000;
+
+                    std::shared_ptr<QueuedChunk> chunk = std::make_shared<QueuedChunk>();
+
+                    int pointsPerChunk = recordCnt;
+                    int maxPointsPerChunk = management->devices.front()->maxBytesPerTransmission() / management->devices.front()->bytesPerPoint();
+                    if (recordCnt > maxPointsPerChunk)
+                    {
+                        if (maxPointsPerChunk == 0)
+                            return -1;
+
+                        pointsPerChunk = (int)ceil(recordCnt / ceil((double)recordCnt / maxPointsPerChunk));
+                        if (pointsPerChunk < maxPointsPerChunk)
+                            pointsPerChunk += 1;
+
+                        if (pointsPerChunk == 0)
+                            return -1;
+                    }
+
+                    chunk->buffer.reserve(pointsPerChunk);
+
+                    // Loop through all points
+                    unsigned int currentPointInChunk = 0;
+                    for (int i = 0; i < recordCnt; i++)
+                    {
+                        int16_t x, y, z;
+                        uint8_t statusCode, r, g, b;
+
+                        // Remember file pos at the beginning of the point
+                        filePos = ftell(fpIDTF);
+
+                        // Read coordinates
+                        x = (short)((float)(short)readShort(fpIDTF) * xScale);
+                        y = (short)((float)(short)readShort(fpIDTF) * yScale);
+                        if (hasZ)
+                            z = readShort(fpIDTF);
+                        else
+                            z = 0;
+
+                        // Read status code
+                        statusCode = (uint8_t)fgetc(fpIDTF);
+
+                        // Read color
+                        if (hasIndex)
+                        {
+                            uint8_t colorIndex = (uint8_t)fgetc(fpIDTF);
+                            long rgb = currentPalette[colorIndex];
+                            r = (uint8_t)(rgb >> 16);
+                            g = (uint8_t)(rgb >> 8);
+                            b = (uint8_t)rgb;
+                        }
+                        else
+                        {
+                            b = (uint8_t)fgetc(fpIDTF);
+                            g = (uint8_t)fgetc(fpIDTF);
+                            r = (uint8_t)fgetc(fpIDTF);
+                        }
+
+                        // Check for unexpected EOF
+                        if (feof(fpIDTF))
+                        {
+                            printf("[IDTF] Unexpected end of file: Record %u of %u", i, recordCnt);
+                            result = -1;
+                            break;
+                        }
+
+                        // Output the point
+                        if (statusCode & 0x40)
+                            r = g = b = 0;
+
+                        ISPDB25Point point;
+                        point.x = 0xFFFF - (x + 0x8000);
+                        point.y = 0xFFFF - (y + 0x8000);
+                        point.r = r * 0x101;
+                        point.g = g * 0x101;
+                        point.b = b * 0x101;
+                        point.intensity = 0xFFFF;
+                        point.u1 = point.u2 = point.u3 = point.u4 = 0;
+                        chunk->buffer.push_back(point);
+
+                        currentPointInChunk++;
+
+                        if (currentPointInChunk >= pointsPerChunk && i < recordCnt - 1) //  Send partial frame, if frame is split due to being too large for DAC.
+                        {
+                            if (ildaFile.parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_PPS)
+                                chunk->pps = ildaFile.parameters.speed;
+                            else // if (parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_FPS)
+                                chunk->pps = ildaFile.parameters.speed * recordCnt;
+
+                            //{
+                                //std::lock_guard<std::mutex> lock(threadLock);
+                                //queue.push_back(chunk);
+                            //}
+                            frame->chunks.push_back(chunk);
+
+                            //printf("Played chunk from file %s\n", filename.c_str());
+
+                            chunk = std::make_shared<QueuedChunk>();
+                            chunk->buffer.reserve(pointsPerChunk);
+
+                            currentPointInChunk = 0;
+                        }
+
+                        /*if (cbFunc->putSampleXYRGB(cbContext, x, y, r, g, b))
+                        {
+                            result = -1;
+                            break;
+                        }*/
+
+                        // Check the status code (last point) against the record counter
+                        int lastPointFlag = ((statusCode & 0x80) != 0);
+                        int lastRecordFlag = ((i + 1) == recordCnt);
+                        if (lastPointFlag && !lastRecordFlag)
+                        {
+                            printf("[IDTF] Last point flag set, record count mismatch: Record %u of %u, file pos 0x%08X", i, recordCnt, filePos);
+                            result = -1;
+                            break;
+                        }
+                        else if (!lastPointFlag && lastRecordFlag)
+                        {
+                            printf("[IDTF] Last point flag not set on last record: File pos 0x%08X", filePos);
+                        }
+                    }
+                    if (result != 0)
+                        break;
+
+
+                    if (!chunk->buffer.empty())
                     {
                         if (ildaFile.parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_PPS)
                             chunk->pps = ildaFile.parameters.speed;
@@ -304,123 +392,104 @@ int FilePlayer::playFile(std::string programName)
 
                         {
                             //std::lock_guard<std::mutex> lock(threadLock);
-                            queue.push_back(chunk);
+                            //queue.push_back(chunk);
                         }
-                        chunksInFrame.push_back(chunk);
-
-                        //printf("Played chunk from file %s\n", filename.c_str());
-
-                        chunk = std::make_shared<QueuedChunk>();
-                        chunk->buffer.reserve(pointsPerChunk);
-
-                        currentPointInChunk = 0;
-                    }
-
-                    /*if (cbFunc->putSampleXYRGB(cbContext, x, y, r, g, b))
-                    {
-                        result = -1;
-                        break;
-                    }*/
-
-                    // Check the status code (last point) against the record counter
-                    int lastPointFlag = ((statusCode & 0x80) != 0);
-                    int lastRecordFlag = ((i + 1) == recordCnt);
-                    if (lastPointFlag && !lastRecordFlag)
-                    {
-                        printf("[IDTF] Last point flag set, record count mismatch: Record %u of %u, file pos 0x%08X", i, recordCnt, filePos);
-                        result = -1;
-                        break;
-                    }
-                    else if (!lastPointFlag && lastRecordFlag)
-                    {
-                        printf("[IDTF] Last point flag not set on last record: File pos 0x%08X", filePos);
-                    }
-                }
-                if (result != 0)
-                    break;
-
-
-                if (!chunk->buffer.empty())
-                {
-                    if (ildaFile.parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_PPS)
-                        chunk->pps = ildaFile.parameters.speed;
-                    else // if (parameters.speedType == FILEPLAYER_PARAM_SPEEDTYPE_FPS)
-                        chunk->pps = ildaFile.parameters.speed * recordCnt;
-
-                    {
-                        //std::lock_guard<std::mutex> lock(threadLock);
-                        queue.push_back(chunk);
-                    }
-                    chunksInFrame.push_back(chunk);
+                        frame->chunks.push_back(chunk);
 
 #ifdef DEBUGOUTPUT
-                    //printf("Played chunk from file %s\n", filename.c_str());
+                        //printf("Played chunk from file %s\n", filename.c_str());
 #endif
-                }
+                    }
 
-                for (int repetition = 1; repetition < ildaFile.parameters.numRepetitions; repetition++)
-                {
-                    //std::lock_guard<std::mutex> lock(threadLock);
-                    for (int i = 0; i < chunksInFrame.size(); i++)
-                        queue.push_back(chunksInFrame[i]);
-                    chunksInFrame.clear();
-                }
-            }
-            else if (formatCode == 2)
-            {
-                //logInfo("Palette, filePos 0x%08X", formatCode, filePos);
+                    // Wait in the background until the queue is small enough to need new frames
+                    struct timespec delay, dummy;
+                    delay.tv_sec = 0;
+                    delay.tv_nsec = 10000000; // 10 ms
+                    while (hasEnoughBufferedFileQueue() && job == fileJob.load())
+                    {
+                        nanosleep(&delay, &dummy);
+                    }
 
-                // Terminate on insane palettes
-                if (recordCnt > 256)
+                    std::lock_guard<std::mutex> lock(threadLock);
+
+                    if (job != fileJob.load())
+                        return 0;
+
+                    queue.push_back(frame);
+                    for (int repetition = 1; repetition < ildaFile.parameters.numRepetitions; repetition++)
+                    {
+                        queue.push_back(frame);
+                    }
+
+#ifdef DEBUGOUTPUT
+                    printf("Played frame, pos %d, from file\n", filePos);
+#endif
+
+                    if (state != FILEPLAYER_STATE_PAUSE)
+                        start();
+                }
+                else if (formatCode == 2)
                 {
-                    printf("[IDTF] %s: Palettes shall not contain more than 256 colors", filename);
+                    //logInfo("Palette, filePos 0x%08X", formatCode, filePos);
+
+                    // Terminate on insane palettes
+                    if (recordCnt > 256)
+                    {
+                        printf("[IDTF] %s: Palettes shall not contain more than 256 colors", filename);
+                        result = -1;
+                        break;
+                    }
+
+                    // Initialize palette table
+                    memset(customPalette, 0, sizeof(customPalette));
+
+                    // Loop through all color indices
+                    for (int i = 0; i < recordCnt; i++)
+                    {
+                        // Read color
+                        uint8_t r = (uint8_t)fgetc(fpIDTF);
+                        uint8_t g = (uint8_t)fgetc(fpIDTF);
+                        uint8_t b = (uint8_t)fgetc(fpIDTF);
+
+                        // Check for unexpected EOF
+                        if (feof(fpIDTF))
+                        {
+                            printf("[IDTF] Unexpected end of file: Record %u of %u", i, recordCnt);
+                            result = -1;
+                            break;
+                        }
+
+                        // Set palette entry
+                        customPalette[i] = ILDACOLOR(r, g, b);
+                    }
+                    if (result != 0)
+                        break;
+
+                    // Set custom palette for the next sections
+                    currentPalette = customPalette;
+                }
+                else
+                {
+                    printf("[IDTF] %s: formatCode = %d", filename, formatCode);
                     result = -1;
                     break;
                 }
-
-                // Initialize palette table
-                memset(customPalette, 0, sizeof(customPalette));
-
-                // Loop through all color indices
-                for (int i = 0; i < recordCnt; i++)
-                {
-                    // Read color
-                    uint8_t r = (uint8_t)fgetc(fpIDTF);
-                    uint8_t g = (uint8_t)fgetc(fpIDTF);
-                    uint8_t b = (uint8_t)fgetc(fpIDTF);
-
-                    // Check for unexpected EOF
-                    if (feof(fpIDTF))
-                    {
-                        printf("[IDTF] Unexpected end of file: Record %u of %u", i, recordCnt);
-                        result = -1;
-                        break;
-                    }
-
-                    // Set palette entry
-                    customPalette[i] = ILDACOLOR(r, g, b);
-                }
-                if (result != 0)
-                    break;
-
-                // Set custom palette for the next sections
-                currentPalette = customPalette;
             }
-            else
-            {
-                printf("[IDTF] %s: formatCode = %d", filename, formatCode);
-                result = -1;
-                break;
-            }
+
+            fclose(fpIDTF);
         }
-
-        fclose(fpIDTF);
     }
+    while (state == FILEPLAYER_STATE_PLAY && mode == FILEPLAYER_MODE_REPEAT && job == fileJob.load()); // Start over again if looping
 
-    if (state != FILEPLAYER_STATE_PAUSE)
-        start();
 
     return 0;
+}
+
+void* outputLoopThread(void* arg)
+{
+    FilePlayer* player = (FilePlayer*)arg;
+
+    player->outputLoop();
 }
 
 void FilePlayer::outputLoop()
@@ -465,33 +534,39 @@ void FilePlayer::outputLoop()
 
 
             {
-                std::shared_ptr<QueuedChunk> frame;
+                std::shared_ptr<QueuedFrame> frame;
                 {
                     std::lock_guard<std::mutex> lock(threadLock);
                     frame = queue.front();
                     queue.pop_front();
-                    if (mode == FILEPLAYER_MODE_REPEAT)
-                        queue.push_back(frame);
+                    //if (mode == FILEPLAYER_MODE_REPEAT)
+                    //    queue.push_back(frame);
+
+#ifdef DEBUGOUTPUT
+                    printf("Play frame from file. Queue size %d.\n", queue.size());
+#endif
                 }
 
-                unsigned int numOfPoints = frame->buffer.size();
-
-                if (numOfPoints > 0)
+                for (auto chunk : frame->chunks)
                 {
-                    TimeSlice slice;
-                    slice.dataChunk = management->devices.front()->convertPoints(frame->buffer);
-                    slice.durationUs = std::round((double)(1000000 * numOfPoints) / frame->pps);
+                    unsigned int numOfPoints = chunk->buffer.size();
 
-                    management->devices.front()->writeFrame(slice, slice.durationUs);
-                }
-                else
-                {
-                    //delay.tv_nsec = frame->pps / 1000;
-                    //nanosleep(&delay, &dummy); // todo sleep if FPS timing mode
-                }
+                    if (numOfPoints > 0)
+                    {
+                        TimeSlice slice;
+                        slice.dataChunk = management->devices.front()->convertPoints(chunk->buffer);
+                        slice.durationUs = std::round((double)(1000000 * numOfPoints) / chunk->pps);
 
-                //if (state != FILEPLAYER_STATE_PAUSE)
-                //{
+                        management->devices.front()->writeFrame(slice, slice.durationUs);
+                    }
+                    else
+                    {
+                        //delay.tv_nsec = frame->pps / 1000;
+                        //nanosleep(&delay, &dummy); // todo sleep if FPS timing mode
+                    }
+
+                    //if (state != FILEPLAYER_STATE_PAUSE)
+                    //{
                     bool empty;
                     {
                         std::lock_guard<std::mutex> lock(threadLock);
@@ -503,13 +578,14 @@ void FilePlayer::outputLoop()
                         doFileEndAction(false);
                         continue;
                     }
-                //}
+                    //}
 
-                /*TimeSlice slice;
-                slice.dataChunk = frame->buffer;
-                slice.durationUs = (1000000 * numOfPoints) / frame->pps;
+                    /*TimeSlice slice;
+                    slice.dataChunk = frame->buffer;
+                    slice.durationUs = (1000000 * numOfPoints) / frame->pps;
 
-                devices->front()->writeFrame(slice, slice.durationUs);*/
+                    devices->front()->writeFrame(slice, slice.durationUs);*/
+                }
             }
         }
 
@@ -604,20 +680,20 @@ void FilePlayer::readSettings(mINI::INIStructure ini)
 
 }
 
-int FilePlayer::checkEOF(FILE* fp, const char* dbgText)
+int FilePlayer::checkEOF(FILE* file, const char* debugText)
 {
-    if (feof(fp)) 
+    if (feof(file))
     { 
-        printf("[IDTF] Unexpected end of file (%s)", dbgText); return -1; 
+        printf("[IDTF] Unexpected end of file (%s)", debugText); return -1;
     }
 
     return 0;
 }
 
-uint16_t FilePlayer::readShort(FILE* fp)
+uint16_t FilePlayer::readShort(FILE* file)
 {
-    uint16_t c1 = ((uint16_t)fgetc(fp)) & 0xFF;
-    uint16_t c2 = ((uint16_t)fgetc(fp)) & 0xFF;
+    uint16_t c1 = ((uint16_t)fgetc(file)) & 0xFF;
+    uint16_t c2 = ((uint16_t)fgetc(file)) & 0xFF;
 
     return (uint16_t)((c1 << 8) | c2);
 }
@@ -993,12 +1069,16 @@ void FilePlayer::writeProgramList(std::string settingString)
 
 void FilePlayer::doFileEndAction(bool dontAttemptRepeat)
 {
+#ifdef DEBUGOUTPUT
+    printf("End of file playback action");
+#endif
+
     if (mode == FILEPLAYER_MODE_REPEAT || state == FILEPLAYER_STATE_PAUSE)
     {
         if (dontAttemptRepeat)
             stop();
-        else
-            playFile(currentProgramName);
+        //else
+        //    playFile(currentProgramName);
     }
     else if (mode == FILEPLAYER_MODE_ONCE)
         stop();
@@ -1068,5 +1148,18 @@ void FilePlayer::savePrgFile(const std::string& name)
     {
         std::printf("Warning: Failed to to save prg file: %s.\n", ex.what());
     }
+}
+
+bool FilePlayer::hasEnoughBufferedFileQueue()
+{
+    std::lock_guard<std::mutex> lock(threadLock);
+
+    double durationMs = 0;
+    for (auto& frame : queue)
+    {
+        durationMs += frame->durationMs;
+    }
+
+    return durationMs > minimumQueueDurationMs;
 }
 

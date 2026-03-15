@@ -69,8 +69,8 @@ public class HeliosProUtilities
                                 }
                                 var target = new IPEndPoint(new IPAddress(broadcastAddress), MANAGEMENT_PORT);
 
-                                udpClient.Client.ReceiveTimeout = 300;
-                                udpClient.Client.SendTimeout = 300;
+                                udpClient.Client.ReceiveTimeout = 700;
+                                udpClient.Client.SendTimeout = 500;
 
                                 try
                                 {
