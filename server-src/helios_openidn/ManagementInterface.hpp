@@ -61,6 +61,13 @@ public:
 	std::vector<std::shared_ptr<HWBridge>> driverBridges; // only used for buffer duration setting, look into refactoring
 	bool usbDriveMounted = false;
 
+	enum Menus
+	{
+		Main,
+		FilePlayer,
+		Information
+	};
+
 
 private:
 	void networkLoop(int socketFd);
@@ -75,6 +82,8 @@ private:
 	const std::string newSettingsPath = "/media/usbdrive/settings.ini";
 	const std::string settingsPath = "/home/laser/openidn/settings.ini";
 	const std::string usbDrivePath = "/media/usbdrive";
+
+	Menus currentMenu = Menus::Main;
 
 	static int hardwareType;
 	int currentMode = -1;

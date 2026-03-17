@@ -623,6 +623,21 @@ void ManagementInterface::emitEnterButtonPressed()
 	playButtonPresses++;
 	if (playButtonPresses >= 2)
 		filePlayer.playButtonPress();
+
+	if (currentMenu == Menus::Main)
+	{
+		int selection = display->MenuGetSelection();
+		if (selection == 0)
+		{
+			currentMenu == Menus::FilePlayer;
+			display->MenuGotoFilePlayer(filePlayer.programs);
+		}
+		else if (selection == 1)
+		{
+			currentMenu == Menus::Information;
+			display->MenuGotoInformation();
+		}
+	}
 }
 
 void ManagementInterface::emitEscButtonPressed()
@@ -634,6 +649,7 @@ void ManagementInterface::emitEscButtonPressed()
 	playButtonPresses = 0;
 
 	filePlayer.stopButtonPress();
+	display->MenuGotoMain();
 }
 
 void ManagementInterface::emitUpButtonPressed()
@@ -643,6 +659,7 @@ void ManagementInterface::emitUpButtonPressed()
 #endif
 
 	filePlayer.upButtonPress();
+	display->MenuButtonUp();
 }
 
 void ManagementInterface::emitDownButtonPressed()
@@ -652,6 +669,7 @@ void ManagementInterface::emitDownButtonPressed()
 #endif
 
 	filePlayer.downButtonPress();
+	display->MenuButtonDown();
 }
 
 void ManagementInterface::unmountUsbDrive()

@@ -1,16 +1,13 @@
 #include "Display.hpp"
 
-const char* menuItems[] =
+//const char* menuItems[1000];
+
+const char* menuItemsMain[2] =
 {
-	"menu item 1",
-	"menu item 2",
-	"menu item 3",
-	"menu item 4",
-	"menu item N 5",
-	"menu item N 6",
-	"menu item N 7",
-	"menu item last",
+	"File Player",
+	"Information",
 };
+
 
 Display::Display()
 {
@@ -18,17 +15,15 @@ Display::Display()
 
 	display = new GraphicsDisplay(-1, { 1, 0x3C, -1, -1, 0 });
 	display->begin();
-	display->clear();
+
 	display->getInterface().flipVertical(1);
 	display->getInterface().flipHorizontal(1);
-	display->setFixedFont(ssd1306xled_font6x8);
-	display->printFixed(10, 10, "HeliosPRO");
-	//display->drawLine(10, 25, 110, 30);
-	display->printFixed(10, 30, "software v0.9.9");
-	display->drawRect(1, 1, 2, 2);
-	display->drawRect(126, 62, 127, 63);
 
-	//display->createMenu(mainMenu, menuItems, sizeof(menuItems) / sizeof(char*), (NanoRect) { { 8, 24 }, { 0,0 } });//new LcdGfxMenu(menuItems, sizeof(menuItems) / sizeof(char*), (NanoRect) { { 8, 24 }, {0,0} });
+	canvas.begin(128, 64, canvasData);
+	canvas.setFixedFont(ssd1306xled_font6x8);
+	//canvas.setFreeFont(free_calibri11x12, free_calibri11x12);
+
+	MenuGotoMain();
 }
 
 void Display::FinishInitialization()
@@ -43,3 +38,71 @@ void Display::FinishInitialization()
 	//graphicsEngine->display();
 
 }
+
+void Display::MenuUpdateHeader()
+{
+	canvas.setBackground(0);
+	canvas.setColor(0);
+	canvas.fillRect(0, 0, 127, 16);
+	canvas.setColor(1);
+	canvas.printFixed(10, 4, "HeliosPRO");
+	canvas.drawLine(0, 14, 127, 16);
+	//display->printFixed(10, 30, "software v0.9.9");
+
+}
+
+void Display::MenuButtonUp()
+{
+	menu->up();
+	menu->show(canvas);
+	display->drawCanvas(0, 0, canvas);
+	//display->menuUp(&menu);
+	//display->updateMenu(&menu);
+}
+
+void Display::MenuButtonDown()
+{
+	menu->down();
+	menu->show(canvas);
+	display->drawCanvas(0, 0, canvas);
+	//display->menuDown(&menu);
+	//display->updateMenu(&menu);
+}
+
+void Display::MenuButtonEnter()
+{
+
+}
+
+void Display::MenuGotoMain()
+{
+	const int numMenuItems = 2;
+	//display->createMenu(&menu, menuItemsMain, numMenuItems, (NanoRect) { { 0, 19 }, { 0,0 } });  //new LcdGfxMenu(menuItems, sizeof(menuItems) / sizeof(char*), (NanoRect) { { 8, 24 }, {0,0} });
+	menu = std::make_unique<LcdGfxMenu>(menuItemsMain, 2, (NanoRect) { { 0, 8 }, { 0,0 } });
+
+	canvas.clear();
+	MenuUpdateHeader();
+	menu->show(canvas);
+	//display->showMenu(&menu);
+	display->drawCanvas(0, 0, canvas);
+}
+
+void Display::MenuGotoFilePlayer(std::map<std::string, FilePlayer::Program> programs)
+{
+	canvas.clear();
+	MenuUpdateHeader();
+	display->drawCanvas(0, 0, canvas);
+}
+
+void Display::MenuGotoInformation()
+{
+	canvas.clear();
+	MenuUpdateHeader();
+	display->drawCanvas(0, 0, canvas);
+}
+
+int Display::MenuGetSelection()
+{
+	return menu->selection();
+}
+

@@ -68,11 +68,11 @@ int FilePlayer::playFile(std::string programName)
     int job = fileJob.load() + 1;
     fileJob.store(job); // Cancels current file async loading, if any
     pthread_t playFileThread;
-    PlayFileThreadArgs args;
-    args.filePlayer = this;
-    args.programName = programName;
-    args.job = job;
-    if (pthread_create(&playFileThread, NULL, &playFileThreaded, &args) != 0)
+    PlayFileThreadArgs* args = new PlayFileThreadArgs();
+    args->filePlayer = this;
+    args->programName = programName;
+    args->job = job;
+    if (pthread_create(&playFileThread, NULL, &playFileThreaded, args) != 0)
     {
         printf("ERROR CREATING THREAD WHEN PLAYING FILE %s\n", programName.c_str());
     }
@@ -87,6 +87,7 @@ void* playFileThreaded(void* _arg)
         std::string programName = arg->programName;
         int job = arg->job;
 
+        delete arg;
         filePlayer->playFileInnerJob(programName, job);
     }
 }
@@ -1160,6 +1161,6 @@ bool FilePlayer::hasEnoughBufferedFileQueue()
         durationMs += frame->durationMs;
     }
 
-    return durationMs > minimumQueueDurationMs;
+    return (queue.size() >= 2) && (durationMs > minimumQueueDurationMs);
 }
 

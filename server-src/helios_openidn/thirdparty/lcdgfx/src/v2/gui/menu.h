@@ -166,7 +166,7 @@ private:
 template <typename D> void LcdGfxMenu::show(D &d)
 {
     updateSize(d);
-    d.drawRect(4 + menu.left, 4 + menu.top, menu.width + menu.left - 5, menu.height + menu.top - 5);
+    //d.drawRect(4 + menu.left, 4 + menu.top, menu.width + menu.left - 5, menu.height + menu.top - 5);
     menu.scrollPosition = this->calculateScrollPosition(d, menu.selection);
     for ( uint8_t i = menu.scrollPosition; i < lcd_gfx_min(menu.count, (menu.scrollPosition + getMaxScreenItems(d))); i++ )
     {
