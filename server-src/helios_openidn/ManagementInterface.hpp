@@ -63,9 +63,9 @@ public:
 
 	enum Menus
 	{
-		Main,
-		FilePlayer,
-		Information
+		MainMenu,
+		FilePlayerMenu,
+		InformationMenu
 	};
 
 
@@ -83,10 +83,10 @@ private:
 	const std::string settingsPath = "/home/laser/openidn/settings.ini";
 	const std::string usbDrivePath = "/media/usbdrive";
 
-	Menus currentMenu = Menus::Main;
+	Menus currentMenu = Menus::MainMenu;
 
 	static int hardwareType;
-	int currentMode = -1;
+	std::atomic_int currentMode;
 
 	int playButtonPresses = 0;
 

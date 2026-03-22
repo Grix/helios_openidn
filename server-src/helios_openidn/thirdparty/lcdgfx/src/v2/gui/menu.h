@@ -93,6 +93,8 @@ public:
      */
     uint8_t selection();
 
+    const char** items();
+
     void setSelection(uint8_t s);
 
     /**

@@ -18,6 +18,8 @@ void* outputLoopThread(void* arg);
 
 FilePlayer::FilePlayer()
 {
+    state.store(FILEPLAYER_STATE_STOP);
+
     if (pthread_create(&outputThread, NULL, &outputLoopThread, this) != 0) 
     {
         printf("ERROR CREATING FILEPLAYER THREAD\n");
@@ -42,17 +44,19 @@ void FilePlayer::startup()
 
 void FilePlayer::start()
 {
-	if (state == FILEPLAYER_STATE_STOP)
+	if (state.load() == FILEPLAYER_STATE_STOP)
 	{
 		// Reset
 		//frame = 0;
 	}
-	state = FILEPLAYER_STATE_PLAY;
+	state.store(FILEPLAYER_STATE_PLAY);
 }
 
 void FilePlayer::stop()
 {
-	state = FILEPLAYER_STATE_STOP;
+	state.store(FILEPLAYER_STATE_STOP);
+    int job = fileJob.load() + 1;
+    fileJob.store(job); // Cancels current file async loading, if any
     management->relinquishOutput(OUTPUT_MODE_FILE);
     std::lock_guard<std::mutex> lock(threadLock);
     queue.clear();
@@ -60,13 +64,17 @@ void FilePlayer::stop()
 
 void FilePlayer::pause()
 {
-	state = FILEPLAYER_STATE_PAUSE;
+	state.store(FILEPLAYER_STATE_PAUSE);
 }
 
-int FilePlayer::playFile(std::string programName)
+void FilePlayer::playFile(std::string programName)
 {
     int job = fileJob.load() + 1;
     fileJob.store(job); // Cancels current file async loading, if any
+
+    if (!management->requestOutput(OUTPUT_MODE_FILE))
+        return;
+
     pthread_t playFileThread;
     PlayFileThreadArgs* args = new PlayFileThreadArgs();
     args->filePlayer = this;
@@ -423,10 +431,10 @@ int FilePlayer::playFileInnerJob(std::string programName, int job)
                     }
 
 #ifdef DEBUGOUTPUT
-                    printf("Played frame, pos %d, from file\n", filePos);
+                    //printf("Played frame, pos %d, from file\n", filePos);
 #endif
 
-                    if (state != FILEPLAYER_STATE_PAUSE)
+                    if (state.load() != FILEPLAYER_STATE_PAUSE)
                         start();
                 }
                 else if (formatCode == 2)
@@ -480,7 +488,7 @@ int FilePlayer::playFileInnerJob(std::string programName, int job)
             fclose(fpIDTF);
         }
     }
-    while (state == FILEPLAYER_STATE_PLAY && mode == FILEPLAYER_MODE_REPEAT && job == fileJob.load()); // Start over again if looping
+    while (state.load() == FILEPLAYER_STATE_PLAY && mode == FILEPLAYER_MODE_REPEAT && job == fileJob.load()); // Start over again if looping
 
 
     return 0;
@@ -501,12 +509,12 @@ void FilePlayer::outputLoop()
         delay.tv_sec = 0;
         delay.tv_nsec = 500000; // 500 us
 
-        if (state == FILEPLAYER_STATE_STOP)
+        if (state.load() == FILEPLAYER_STATE_STOP)
         {
 
             delay.tv_nsec = 10000000; // 10 ms
         }
-        else if (state == FILEPLAYER_STATE_PLAY || state == FILEPLAYER_STATE_PAUSE)
+        else if (state.load() == FILEPLAYER_STATE_PLAY || state.load() == FILEPLAYER_STATE_PAUSE)
         {
             bool empty = false;
             {
@@ -544,7 +552,7 @@ void FilePlayer::outputLoop()
                     //    queue.push_back(frame);
 
 #ifdef DEBUGOUTPUT
-                    printf("Play frame from file. Queue size %d.\n", queue.size());
+                    //printf("Play frame from file. Queue size %d.\n", queue.size());
 #endif
                 }
 
@@ -566,7 +574,7 @@ void FilePlayer::outputLoop()
                         //nanosleep(&delay, &dummy); // todo sleep if FPS timing mode
                     }
 
-                    //if (state != FILEPLAYER_STATE_PAUSE)
+                    //if (state.load() != FILEPLAYER_STATE_PAUSE)
                     //{
                     bool empty;
                     {
@@ -596,18 +604,17 @@ void FilePlayer::outputLoop()
 
 void FilePlayer::playButtonPress()
 {
-    if (state == FILEPLAYER_STATE_PLAY)
+    if (state.load() == FILEPLAYER_STATE_PLAY)
     {
-        state = FILEPLAYER_STATE_PAUSE;
+        state.store(FILEPLAYER_STATE_PAUSE);
     }
-    else if (state == FILEPLAYER_STATE_PAUSE)
+    else if (state.load() == FILEPLAYER_STATE_PAUSE)
     {
-        state = FILEPLAYER_STATE_PLAY;
+        state.store(FILEPLAYER_STATE_PLAY);
     }
-    else if (state == FILEPLAYER_STATE_STOP)
+    else if (state.load() == FILEPLAYER_STATE_STOP)
     {
-        if (management->requestOutput(OUTPUT_MODE_FILE))
-            playFile(currentProgramName);
+        playFile(currentProgramName);
     }
 }
 
@@ -618,26 +625,26 @@ void FilePlayer::stopButtonPress()
 
 void FilePlayer::upButtonPress()
 {
-    if (state == FILEPLAYER_STATE_STOP)
+    if (state.load() == FILEPLAYER_STATE_STOP)
         return;
 
     stop();
     if (mode == FILEPLAYER_MODE_SHUFFLE)
         playFile(nextRandomProgram(currentProgramName));
     else
-        playFile(nextAlphabeticalProgram(currentProgramName, false));
+        playFile(nextAlphabeticalProgram(currentProgramName, true));
 }
 
 void FilePlayer::downButtonPress()
 {
-    if (state == FILEPLAYER_STATE_STOP)
+    if (state.load() == FILEPLAYER_STATE_STOP)
         return;
 
     stop();
     if (mode == FILEPLAYER_MODE_SHUFFLE)
         playFile(nextRandomProgram(currentProgramName)); // Todo remember last file and go back
     else
-        playFile(nextAlphabeticalProgram(currentProgramName, true));
+        playFile(nextAlphabeticalProgram(currentProgramName, false));
 }
 
 void FilePlayer::readSettings(mINI::INIStructure ini)
@@ -1068,13 +1075,21 @@ void FilePlayer::writeProgramList(std::string settingString)
     }
 }
 
+std::vector<std::string> FilePlayer::getCurrentOrderedProgramList()
+{
+    if (mode == FILEPLAYER_MODE_SHUFFLE)
+        return programsRandomSort;
+    else
+        return programsAlphabeticSort;
+}
+
 void FilePlayer::doFileEndAction(bool dontAttemptRepeat)
 {
 #ifdef DEBUGOUTPUT
     printf("End of file playback action");
 #endif
 
-    if (mode == FILEPLAYER_MODE_REPEAT || state == FILEPLAYER_STATE_PAUSE)
+    if (mode == FILEPLAYER_MODE_REPEAT || state.load() == FILEPLAYER_STATE_PAUSE)
     {
         if (dontAttemptRepeat)
             stop();

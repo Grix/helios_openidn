@@ -77,7 +77,7 @@ public:
     std::vector<std::string> programsAlphabeticSort;
     std::vector<std::string> programsRandomSort;
 	int mode = FILEPLAYER_MODE_REPEAT;
-	int state = FILEPLAYER_STATE_STOP;
+    std::atomic_int state;
 	FileParameters defaultParameters;
     std::string localFileDirectory = std::string("/home/laser/library/");
     std::string usbFileDirectory = std::string("/media/usbdrive/");
@@ -88,7 +88,7 @@ public:
 	void start();
 	void stop();
 	void pause();
-	int playFile(std::string filename); // if name is empty, play random
+    void playFile(std::string filename); // if name is empty, play random
     int playFileInnerJob(std::string filename, int fileJob);
     void outputLoop();
     void playButtonPress();
@@ -99,7 +99,7 @@ public:
     void buildProgramMap();
     std::string getProgramListString();
     void writeProgramList(std::string settingString);
-
+    std::vector<std::string> getCurrentOrderedProgramList();
 
 private:
 

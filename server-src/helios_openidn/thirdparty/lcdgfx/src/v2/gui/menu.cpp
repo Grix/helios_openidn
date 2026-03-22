@@ -66,6 +66,11 @@ uint8_t LcdGfxMenu::selection()
     return menu.selection;
 }
 
+const char** LcdGfxMenu::items()
+{
+    return menu.items;
+}
+
 void LcdGfxMenu::setSelection(uint8_t s)
 {
     if ( s >= menu.count )

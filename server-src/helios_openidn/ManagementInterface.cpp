@@ -3,7 +3,6 @@
 //class FilePlayer;
 
 #include "FilePlayer.hpp"
-#include <v2/gui/menu.h>
 
 FilePlayer filePlayer;
 
@@ -15,6 +14,8 @@ ManagementInterface::ManagementInterface()
 {
 	//filePlayer.devices = &devices;
 	//filePlayer.outputs = &outputs;
+
+	currentMode.store(-1);
 
 	mountUsbDrive();
 
@@ -317,7 +318,10 @@ void ManagementInterface::readSettingsFile()
 	{
 		system("echo 1 > /sys/class/leds/rock-s0:orange:user5/brightness");
 		if (display)
+		{
 			display->FinishInitialization();
+			display->SetDeviceName(settingIdnHostname);
+		}
 	}
 	else if (getHardwareType() == HARDWARE_ROCKPIS)
 		system("echo 1 > /sys/class/leds/rockpis:blue:user/brightness");
@@ -364,6 +368,10 @@ void ManagementInterface::networkLoop(int sd) {
 						buffer_in[num_bytes] = '\0'; // Make sure we don't fuck up
 						settingIdnHostname = std::string((char*)&buffer_in[2]);
 						idnServer->setHostName((uint8_t*)settingIdnHostname.c_str(), settingIdnHostname.length() + 1);
+						if (display)
+						{
+							display->SetDeviceName(settingIdnHostname);
+						}
 
 						try
 						{
@@ -547,7 +555,7 @@ void ManagementInterface::networkLoop(int sd) {
 					char responseBuffer[128] = { 0 };
 					responseBuffer[0] = 0xE6;
 					responseBuffer[1] = 0x12;
-					responseBuffer[2] = (char)currentMode;
+					responseBuffer[2] = (char)currentMode.load();
 					strncpy(responseBuffer + 10, filePlayer.currentProgramName.c_str(), 100);
 					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
 
@@ -614,29 +622,57 @@ void ManagementInterface::mountUsbDrive()
 void ManagementInterface::emitEnterButtonPressed()
 {
 #ifdef DEBUGOUTPUT
-	printf("Enter button\n");
+	printf("Enter button. Current menu %d\n", currentMenu);
 #endif
 
 	relinquishOutput(OUTPUT_MODE_FORCESTOP);
 
-
-	playButtonPresses++;
-	if (playButtonPresses >= 2)
-		filePlayer.playButtonPress();
-
-	if (currentMenu == Menus::Main)
+	if (display)
 	{
-		int selection = display->MenuGetSelection();
-		if (selection == 0)
+		if (currentMenu == Menus::MainMenu)
 		{
-			currentMenu == Menus::FilePlayer;
-			display->MenuGotoFilePlayer(filePlayer.programs);
+			int selection = display->MenuGetSelection();
+			if (selection == 0)
+			{
+				currentMenu = Menus::FilePlayerMenu;
+				display->MenuGotoFilePlayer(filePlayer.getCurrentOrderedProgramList());
+#ifdef DEBUGOUTPUT
+				printf("Goto file player menu\n");
+#endif
+			}
+			else if (selection == 1)
+			{
+				currentMenu = Menus::InformationMenu;
+				display->MenuGotoInformation();
+#ifdef DEBUGOUTPUT
+				printf("Goto information menu\n");
+#endif
+			}
 		}
-		else if (selection == 1)
+		else if (currentMenu == Menus::FilePlayerMenu)
 		{
-			currentMenu == Menus::Information;
-			display->MenuGotoInformation();
+			if (!filePlayer.programs.empty())
+			{
+				std::string newFile = display->MenuGetSelectedFile();
+
+#ifdef DEBUGOUTPUT
+				printf("Play file from menu %d %s\n", newFile != filePlayer.currentProgramName, newFile.c_str());
+#endif
+
+				if (newFile != filePlayer.currentProgramName)
+					filePlayer.playFile(newFile);
+				else
+					filePlayer.playButtonPress();
+			}
 		}
+	}
+	else
+	{
+		// Todo make proper menu work even without a display.
+		// Currently we just simulate it taking two button presses to enter the file menu and play a file.
+		playButtonPresses++;
+		if (playButtonPresses >= 2)
+			filePlayer.playButtonPress();
 	}
 }
 
@@ -647,9 +683,11 @@ void ManagementInterface::emitEscButtonPressed()
 #endif
 
 	playButtonPresses = 0;
-
 	filePlayer.stopButtonPress();
-	display->MenuGotoMain();
+	currentMenu = Menus::MainMenu;
+
+	if (display)
+		display->MenuGotoMain();
 }
 
 void ManagementInterface::emitUpButtonPressed()
@@ -659,7 +697,8 @@ void ManagementInterface::emitUpButtonPressed()
 #endif
 
 	filePlayer.upButtonPress();
-	display->MenuButtonUp();
+	if (display)
+		display->MenuButtonUp();
 }
 
 void ManagementInterface::emitDownButtonPressed()
@@ -669,7 +708,8 @@ void ManagementInterface::emitDownButtonPressed()
 #endif
 
 	filePlayer.downButtonPress();
-	display->MenuButtonDown();
+	if (display)
+		display->MenuButtonDown();
 }
 
 void ManagementInterface::unmountUsbDrive()
@@ -844,9 +884,11 @@ bool ManagementInterface::requestOutput(int outputMode)
 	if (outputMode < 0 || outputMode > OUTPUT_MODE_MAX)
 		return false;
 
-	if (currentMode != outputMode)
+	int _currentMode = currentMode.load();
+
+	if (_currentMode != outputMode)
 	{
-		int currentPriority = (currentMode >= 0) ? modePriority[currentMode] : -1;
+		int currentPriority = (_currentMode >= 0) ? modePriority[_currentMode] : -1;
 		int newPriority = modePriority[outputMode];
 		if (newPriority <= 0 || currentPriority >= newPriority)
 			return false;
@@ -856,7 +898,7 @@ bool ManagementInterface::requestOutput(int outputMode)
 
 	printf("Switching output to mode %d\n", outputMode);
 
-	currentMode = outputMode;
+	currentMode.store(outputMode);
 
 	if (getHardwareType() == HARDWARE_ROCKS0)
 	{
@@ -887,18 +929,31 @@ bool ManagementInterface::requestOutput(int outputMode)
 		}
 	}
 
+	if (display)
+	{
+		display->SetMode(outputMode);
+	}
+
 	return true;
 }
 
 void ManagementInterface::relinquishOutput(int outputMode)
 {
-	if (currentMode != outputMode)
+	int _currentMode = currentMode.load();
+
+	if (_currentMode != outputMode)
 		return;
 
-	printf("Stopping output in mode %d\n", currentMode);
+	printf("Stopping output in mode %d\n", _currentMode);
 	system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness");
 	system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness");
-	currentMode = -1;
+	currentMode.store(-1);
+
+	if (display)
+	{
+		display->SetMode(-1);
+	}
+
 	return;
 }
 
