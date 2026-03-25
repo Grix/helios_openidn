@@ -299,7 +299,7 @@
 				<TabItem.Header>
 					<StackPanel Orientation="Horizontal">
 						<materialIcons:MaterialIcon Kind="Folder" VerticalAlignment="Center" Foreground="Gray" Height="25" Width="25" HorizontalAlignment="Left"/>
-						<TextBlock Text=" File manager" VerticalAlignment="Center"></TextBlock>
+						<TextBlock Text=" File player" VerticalAlignment="Center"></TextBlock>
 					</StackPanel>
 				</TabItem.Header>
 				<Border Padding="5,20,5,10">
@@ -316,6 +316,18 @@
 								<StackPanel Orientation="Horizontal">
 									<materialIcons:MaterialIcon Kind="Refresh" VerticalAlignment="Center" Foreground="Black" Height="20" Width="20" HorizontalAlignment="Left"/>
 									<TextBlock Text=" Refresh file list" VerticalAlignment="Center"></TextBlock>
+								</StackPanel>
+							</Button>
+							<Button IsVisible="False" Background="Transparent" Command="{Binding FilePlayerPlayPauseCommand}" Margin="0,10,0,0" IsEnabled="{Binding HasSelectedServer}" HorizontalAlignment="Center" ToolTip.Tip="Click to play the default file, pause/resume the current file if playback has already started.">
+								<StackPanel Orientation="Horizontal">
+									<materialIcons:MaterialIcon Kind="PlayPause" VerticalAlignment="Center" Foreground="Black" Height="20" Width="20" HorizontalAlignment="Left"/>
+									<TextBlock Text=" Play/Pause" VerticalAlignment="Center"></TextBlock>
+								</StackPanel>
+							</Button>
+							<Button Background="Transparent" Command="{Binding FilePlayerStopCommand}" Margin="0,10,0,0" IsEnabled="{Binding HasSelectedServer}" HorizontalAlignment="Center" ToolTip.Tip="Click to stop playing.">
+								<StackPanel Orientation="Horizontal">
+									<materialIcons:MaterialIcon Kind="Stop" VerticalAlignment="Center" Foreground="Black" Height="20" Width="20" HorizontalAlignment="Left"/>
+									<TextBlock Text=" Stop" VerticalAlignment="Center"></TextBlock>
 								</StackPanel>
 							</Button>
 							<TextBlock IsVisible="{Binding HasUploadedFiles}" VerticalAlignment="Center" Foreground="Brown" Text="NB: You may have to restart the device for newly uploaded files to appear. "></TextBlock>

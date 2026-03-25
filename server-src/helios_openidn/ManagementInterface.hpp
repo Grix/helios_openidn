@@ -87,7 +87,6 @@ private:
 
 	static int hardwareType;
 	std::atomic_int currentMode;
-
 	int playButtonPresses = 0;
 
 	int keyboardFd;

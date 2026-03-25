@@ -75,7 +75,10 @@ void FilePlayer::playFile(std::string programName)
     if (!management->requestOutput(OUTPUT_MODE_FILE))
         return;
 
-    pthread_t playFileThread;
+    //if (playFileThread)
+    //    pthread_join(playFileThread, NULL);
+    //playFileThread = NULL;
+
     PlayFileThreadArgs* args = new PlayFileThreadArgs();
     args->filePlayer = this;
     args->programName = programName;
@@ -83,7 +86,9 @@ void FilePlayer::playFile(std::string programName)
     if (pthread_create(&playFileThread, NULL, &playFileThreaded, args) != 0)
     {
         printf("ERROR CREATING THREAD WHEN PLAYING FILE %s\n", programName.c_str());
+        return;
     }
+    pthread_detach(playFileThread);
 }
 
 void* playFileThreaded(void* _arg)

@@ -226,7 +226,7 @@ public partial class MainViewModel : ViewModelBase
             {
                 using var udpClient = new UdpClient();
                 var data = new byte[] { 0xE5, 0x4 };
-                udpClient.Client.ReceiveTimeout = 500;
+                udpClient.Client.ReceiveTimeout = 800;
                 udpClient.Client.SendTimeout = 500;
 
                 var sendAddress = new IPEndPoint(server.ServerInfo.IpAddress, 7355);
@@ -662,6 +662,39 @@ public partial class MainViewModel : ViewModelBase
             FileName = "http://" + Servers[SelectedServerIndex].ServerInfo.IpAddress.ToString() + ":9090",
             UseShellExecute = true
         });
+    }
+
+    [RelayCommand]
+    public void FilePlayerStop()
+    {
+        ErrorMessage = null;
+        var server = Servers[SelectedServerIndex];
+        try
+        {
+            using var udpClient = new UdpClient();
+            var data = new byte[] { 0xE5, 0x08 };
+            udpClient.Client.ReceiveTimeout = 800;
+            udpClient.Client.SendTimeout = 500;
+
+            var sendAddress = new IPEndPoint(server.ServerInfo.IpAddress, 7355);
+            udpClient.Send(data, data.Length, sendAddress);
+
+            var receiveAddress = new IPEndPoint(IPAddress.Any, sendAddress.Port);
+            var receivedData = udpClient.Receive(ref receiveAddress);
+
+            if (receivedData is not null && receivedData.Length == 2 && receivedData[0] == 0xE5 + 1 && receivedData[1] == 0x08)
+            {
+                return;
+            }
+            ErrorMessage = "Stop command wasn't acknowledged properly.";
+        }
+        catch (Exception ex) { ErrorMessage = "Stop command failed: " + ex.Message; }
+    }
+
+    [RelayCommand]
+    public void FilePlayerPlayPause()
+    {
+
     }
 
     [RelayCommand]

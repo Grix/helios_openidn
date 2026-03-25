@@ -1,4 +1,5 @@
-﻿using HeliosOpenIdnManager.ViewModels;
+﻿using Avalonia.Styling;
+using HeliosOpenIdnManager.ViewModels;
 using Renci.SshNet;
 using System;
 using System.Collections;
@@ -354,6 +355,23 @@ public class HeliosProUtilities
                 }*/
             }
         }
+    }
+
+    /// <summary>
+    /// Play a specific program/file from the device's storage
+    /// </summary>
+    /// <param name="server">Device IP addr</param>
+    /// <param name="name">Program file name</param>
+    public static void PlayFile(IPAddress server, string name)
+    {
+        using var udpClient = new UdpClient();
+        var data = new List<byte>(name.Length + 2) { 0xE5, 0x13 };
+        data.AddRange(Encoding.UTF8.GetBytes(name + "\0"));
+        udpClient.Client.ReceiveTimeout = 500;
+        udpClient.Client.SendTimeout = 500;
+
+        var sendAddress = new IPEndPoint(server, MANAGEMENT_PORT);
+        udpClient.Send(data.ToArray(), data.Count, sendAddress);
     }
 
     /// <summary>

@@ -122,6 +122,7 @@ private:
     std::deque<std::shared_ptr<QueuedFrame>> queue;
     std::atomic_int fileJob;
     pthread_t outputThread = 0;
+    pthread_t playFileThread = 0;
     std::mutex threadLock;
     bool hasStarted = false;
     const double minimumQueueDurationMs = 500;

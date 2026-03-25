@@ -561,6 +561,30 @@ void ManagementInterface::networkLoop(int sd) {
 
 					continue;
 				}
+				else if (buffer_in[1] == 0x13) // Play file
+				{
+					char success = 0;
+					size_t nameLength = strnlen(&buffer_in[2], num_bytes - 2);
+					if (nameLength > 0 && nameLength < (num_bytes - 2))
+					{
+						std::string programName(&buffer_in[2]);
+						if (filePlayer.programs.count(programName) >= 1)
+						{ 
+							if (requestOutput(OUTPUT_MODE_FILE))
+							{
+								filePlayer.playFile(programName);
+							}
+							else
+								success = -1;
+						}
+					}
+					char responseBuffer[3] = { 0 };
+					responseBuffer[0] = 0xE6;
+					responseBuffer[1] = 0x13;
+					responseBuffer[2] = success;
+					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
+					continue;
+				}
 				else if (buffer_in[1] == 0xF0) // Stop/lock output, can be used as emergency stop
 				{
 					char responseBuffer[2] = { 0xE6, 0xF0 };

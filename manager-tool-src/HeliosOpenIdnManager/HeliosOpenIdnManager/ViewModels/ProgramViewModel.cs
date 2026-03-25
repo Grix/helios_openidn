@@ -60,6 +60,22 @@ public partial class ProgramViewModel : ViewModelBase
         }
     }
 
+    [RelayCommand]
+    public async Task Play()
+    {
+        if (MainViewModel.Singleton == null)
+            return;
+
+        try
+        {
+            HeliosProUtilities.PlayFile(MainViewModel.Singleton.Servers[MainViewModel.Singleton.SelectedServerIndex].ServerInfo.IpAddress, Name);
+        }
+        catch (Exception ex)
+        {
+            MainViewModel.Singleton.ErrorMessage = "Failed to play file: " + ex.Message;
+        }
+    }
+
     public override string ToString() => Name;
 
     public static implicit operator string(ProgramViewModel obj) => obj.ToString();
