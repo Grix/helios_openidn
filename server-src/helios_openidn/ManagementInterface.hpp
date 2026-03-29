@@ -15,6 +15,7 @@
 #include <filesystem>
 #include <sys/utsname.h>
 #include <linux/input.h>
+#include <libnm/NetworkManager.h>
 
 #define MANAGEMENT_PORT 7355
 
@@ -29,7 +30,13 @@
 #define HARDWARE_ROCKPIS 1
 #define HARDWARE_ROCKS0 2
 
+typedef struct ConnectionInfo {
+	bool connected = false;
+	std::string ipAddress;
+}ConnectionInfo;
+
 void* keyboardThreadFunction(void* args);
+void* statusInfoThreadFunction(void* args);
 
 /// <summary>
 /// Class that exposes network and file system interfaces for managing the OpenIDN system, such as pinging, reading config files from USB drive, etc.
@@ -43,8 +50,7 @@ public:
 	void readSettingsFile();
 	void* networkThreadEntry();
 	void* keyboardThreadEntry();
-	//void setMode(unsigned int mode);
-	//int getMode();
+	void* statusInfoThreadEntry();
 	static int getHardwareType();
 	bool requestOutput(int outputMode);
 	void relinquishOutput(int outputMode);
@@ -76,6 +82,7 @@ private:
 	void emitEscButtonPressed();
 	void emitUpButtonPressed();
 	void emitDownButtonPressed();
+	ConnectionInfo getNetworkConnectionInfo(const std::string& connectionName);
 
 	int writeTo(char* file, char* data, size_t numBytes);
 
@@ -91,7 +98,8 @@ private:
 
 	int keyboardFd;
 	pthread_t keyboardThread = 0;
-	//std::chrono::steady_clock::time_point lastPlayButtonPressedTime = std::chrono::steady_clock::now();
+	pthread_t statusInfoThread = 0;
+	NMClient* client;
 
 	Display* display = NULL;
 };

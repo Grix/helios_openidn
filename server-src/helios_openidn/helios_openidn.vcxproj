@@ -242,18 +242,21 @@
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
       <PreprocessorDefinitions>ODF_USE_TAXI_SOCK</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>`pkg-config --cflags libnm`</AdditionalOptions>
     </ClCompile>
     <Link>
-      <LibraryDependencies>usb-1.0;ola;olacommon;protobuf;pthread;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>usb-1.0;ola;olacommon;protobuf;pthread;nm;gio-2.0;gobject-2.0;glib-2.0;%(LibraryDependencies)</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <ClCompile>
       <CppLanguageStandard>c++17</CppLanguageStandard>
       <PreprocessorDefinitions>ODF_USE_TAXI_SOCK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalOptions>`pkg-config --cflags libnm` %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
-      <LibraryDependencies>usb-1.0;ola;olacommon;protobuf;pthread;%(LibraryDependencies)</LibraryDependencies>
+      <LibraryDependencies>usb-1.0;ola;olacommon;protobuf;pthread;nm;gio-2.0;gobject-2.0;glib-2.0;%(LibraryDependencies)</LibraryDependencies>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

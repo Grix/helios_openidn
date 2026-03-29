@@ -57,7 +57,7 @@ private:
 	uint8_t canvasData[128 * (64 / 8)];
 	NanoCanvas1 canvas;
 
-	int mode;
+	int mode = -1;
 	std::string ipAddrEthernet = "";
 	std::string ipAddrWifi = "";
 	std::string deviceName = "";

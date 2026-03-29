@@ -976,7 +976,7 @@ void* rx_int_thread(void* arg)
         // Error
         if (ret < 0)
         {
-            printf(stderr, "Select ERROR in rx_int_thread\n");
+            fprintf(stderr, "Select ERROR in rx_int_thread\n");
             break;
         }
 
@@ -997,7 +997,7 @@ void* rx_int_thread(void* arg)
         }
         else
         {
-            printf("Read ERROR %d\n", ret);
+            fprintf(stderr, "Read ERROR %d\n", ret);
 
             /*close(thread_args->fd_int_out);
             thread_args->fd_int_out = -1;
@@ -1062,7 +1062,7 @@ void* rx_bulk_thread(void* arg)
         // Error
         if (ret < 0)
         {
-            printf("Select ERROR");
+            fprintf(stderr, "Select ERROR");
             break;
         }
 

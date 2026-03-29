@@ -1,2 +1,3 @@
 sudo apt install libola-dev
 sudo apt install libusb-1.0-0-dev
+sudo apt install libnm-dev

@@ -1,7 +1,4 @@
 #include "ManagementInterface.hpp"
-
-//class FilePlayer;
-
 #include "FilePlayer.hpp"
 
 FilePlayer filePlayer;
@@ -12,9 +9,6 @@ FilePlayer filePlayer;
 
 ManagementInterface::ManagementInterface()
 {
-	//filePlayer.devices = &devices;
-	//filePlayer.outputs = &outputs;
-
 	currentMode.store(-1);
 
 	mountUsbDrive();
@@ -23,17 +17,8 @@ ManagementInterface::ManagementInterface()
 	{
 		display = new Display();
 
-		//graphicsEngine = new GraphicsEngine(*display);
-		/*graphicsEngine->begin();
-		graphicsEngine->setFrameRate(20);
-		graphicsEngine->getCanvas().clear();
-		//display->drawLine(10, 10, 100, 40);
-		graphicsEngine->getCanvas().setFixedFont(ssd1306xled_font8x16);
-		graphicsEngine->getCanvas().printFixed(10, 10, "HelloWorld");
-		graphicsEngine->getCanvas().drawLine(10, 30, 110, 30);
-		//graphicsEngine->getCanvas().setTextCursor(10, 10);
-		//graphicsEngine->getCanvas().write("Hello");
-		graphicsEngine->refresh();*/
+		GError* error = nullptr;
+		client = nm_client_new(nullptr, &error);
 
 		// TODO: this is a stupid way of doing this:
 		system("echo 'none' > /sys/class/leds/rock-s0:green:power/trigger"); // manual internal LED control, stops heartbeat blinking
@@ -45,6 +30,9 @@ ManagementInterface::ManagementInterface()
 
 		if (pthread_create(&keyboardThread, NULL, &keyboardThreadFunction, this) != 0) {
 			printf("WARNING: failed to create keyboard thread, buttons will not work\n");
+		}
+		if (pthread_create(&statusInfoThread, NULL, &statusInfoThreadFunction, this) != 0) {
+			printf("WARNING: failed to create status info update thread, information page on display will not work\n");
 		}
 	}
 	else if (getHardwareType() == HARDWARE_ROCKPIS)
@@ -736,6 +724,64 @@ void ManagementInterface::emitDownButtonPressed()
 		display->MenuButtonDown();
 }
 
+ConnectionInfo ManagementInterface::getNetworkConnectionInfo(const std::string& connection_name)
+{
+	ConnectionInfo info;
+	if (!client)
+		return info;
+
+	const GPtrArray* active_connections = nm_client_get_active_connections(client);
+	if (!active_connections) 
+	{
+		return info;
+	}
+
+	for (uint i = 0; i < active_connections->len; i++) 
+	{
+		NMActiveConnection* activeConnection = NM_ACTIVE_CONNECTION(g_ptr_array_index(active_connections, i));
+
+		const char* name = nm_active_connection_get_id(activeConnection);
+		if (!name || connection_name != name)
+		{
+			continue;
+		}
+
+		// Found matching active connection
+		NMActiveConnectionState state = nm_active_connection_get_state(activeConnection);
+		if (state == NM_ACTIVE_CONNECTION_STATE_ACTIVATED) 
+		{
+			const GPtrArray* devices = nm_active_connection_get_devices(activeConnection);
+			if (devices && devices->len > 0) 
+			{
+				NMDevice* dev = NM_DEVICE(g_ptr_array_index(devices, 0));
+				NMIPConfig* ip4 = nm_device_get_ip4_config(dev);
+				if (!ip4) 
+				{
+					return info; // connection inactive
+				}
+
+				const GPtrArray* addresses = nm_ip_config_get_addresses(ip4);
+				if (!addresses || addresses->len == 0) 
+				{
+					return info; // connection inactive
+				}
+
+				NMIPAddress* addr = (NMIPAddress*)g_ptr_array_index(addresses, 0);
+				const char* ip = nm_ip_address_get_address(addr);
+				if (ip) 
+				{
+					info.connected = true;
+					info.ipAddress = std::string(ip);
+				}
+			}
+		}
+
+		return info;
+	}
+
+	return info;
+}
+
 void ManagementInterface::unmountUsbDrive()
 {
 	usbDriveMounted = false;
@@ -839,7 +885,7 @@ void* ManagementInterface::keyboardThreadEntry() {
 				}
 				else if (event.value == 0)
 				{
-					if (std::chrono::steady_clock::now() - lastPlayButtonPressedTime > std::chrono::milliseconds(500))
+					if (std::chrono::steady_clock::now() - lastPlayButtonPressedTime > std::chrono::milliseconds(400))
 						emitEscButtonPressed();
 					else
 						emitEnterButtonPressed();
@@ -861,6 +907,61 @@ void* ManagementInterface::keyboardThreadEntry() {
 	if (keyboardFd >= 0)
 		close(keyboardFd);
 	return NULL;
+}
+
+void* ManagementInterface::statusInfoThreadEntry()
+{
+	bool hasInited = false;
+
+	if (!display)
+		return nullptr;
+
+	printf("Starting status info update thread in management class\n");
+
+	while (true)
+	{
+		if (hasInited && currentMenu != Menus::InformationMenu)
+		{
+			std::this_thread::sleep_for(std::chrono::seconds(2));
+			continue;
+		}
+
+		const std::string ethernetConnectionId = std::string("Wired connection 1");
+		const std::string wifiConnectionId = std::string("Wifi connection 1");
+		const std::string fallbackEthernetConnectionId = std::string("Wired connection fallback");
+		std::string ethernetIpAddr = "";
+		std::string wifiIpAddr = "";
+
+		ConnectionInfo ethernetConnectionInfo = getNetworkConnectionInfo(ethernetConnectionId);
+		if (ethernetConnectionInfo.connected && !ethernetConnectionInfo.ipAddress.empty())
+		{
+			ethernetIpAddr = ethernetConnectionInfo.ipAddress;
+			hasInited = true;
+		}
+		else
+		{
+			ConnectionInfo fallbackEthernetConnectionInfo = getNetworkConnectionInfo(fallbackEthernetConnectionId);
+			if (fallbackEthernetConnectionInfo.connected)
+			{
+				ethernetIpAddr = fallbackEthernetConnectionInfo.ipAddress;
+				hasInited = true;
+			}
+		}
+
+		ConnectionInfo wifiConnectionInfo = getNetworkConnectionInfo(wifiConnectionId);
+		if (wifiConnectionInfo.connected)
+		{
+			wifiIpAddr = wifiConnectionInfo.ipAddress;
+			hasInited = true;
+		}
+
+		display->SetIpAddrEthernet(ethernetIpAddr);
+		display->SetIpAddrWiFi(wifiIpAddr);
+
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+	}
+
+	return nullptr;
 }
 
 
@@ -985,5 +1086,12 @@ void* keyboardThreadFunction(void* args)
 {
 	ManagementInterface* management = (ManagementInterface*)args;
 	management->keyboardThreadEntry();
+	return nullptr;
+}
+
+void* statusInfoThreadFunction(void* args)
+{
+	ManagementInterface* management = (ManagementInterface*)args;
+	management->statusInfoThreadEntry();
 	return nullptr;
 }
