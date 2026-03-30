@@ -79,6 +79,12 @@ void FilePlayer::playFile(std::string programName)
     //    pthread_join(playFileThread, NULL);
     //playFileThread = NULL;
 
+    {
+        std::lock_guard<std::mutex> lock(threadLock);
+        while (!queue.empty())
+            queue.pop_front();
+    }
+
     PlayFileThreadArgs* args = new PlayFileThreadArgs();
     args->filePlayer = this;
     args->programName = programName;
@@ -578,28 +584,22 @@ void FilePlayer::outputLoop()
                         //delay.tv_nsec = frame->pps / 1000;
                         //nanosleep(&delay, &dummy); // todo sleep if FPS timing mode
                     }
-
-                    //if (state.load() != FILEPLAYER_STATE_PAUSE)
-                    //{
-                    bool empty;
-                    {
-                        std::lock_guard<std::mutex> lock(threadLock);
-                        empty = queue.empty();
-                    }
-
-                    if (empty)
-                    {
-                        doFileEndAction(false);
-                        continue;
-                    }
-                    //}
-
-                    /*TimeSlice slice;
-                    slice.dataChunk = frame->buffer;
-                    slice.durationUs = (1000000 * numOfPoints) / frame->pps;
-
-                    devices->front()->writeFrame(slice, slice.durationUs);*/
                 }
+
+                //if (state.load() != FILEPLAYER_STATE_PAUSE)
+                //{
+                bool empty;
+                {
+                    std::lock_guard<std::mutex> lock(threadLock);
+                    empty = queue.empty();
+                }
+
+                if (empty)
+                {
+                    doFileEndAction(false);
+                    continue;
+                }
+                //}
             }
         }
 
@@ -740,14 +740,22 @@ std::string FilePlayer::nextAlphabeticalProgram(const std::string& previousProgr
 
 std::string FilePlayer::nextRandomProgram(const std::string& previousProgramName)
 {
+    printf("next shuffle. Current %s\n", previousProgramName.c_str());
+
     if (programsRandomSort.empty())
         return "";
 
-    auto it = std::upper_bound(programsRandomSort.begin(), programsRandomSort.end(), previousProgramName);
-    if (it != programsRandomSort.end())
+    auto it = std::find(programsRandomSort.begin(), programsRandomSort.end(), previousProgramName);
+    if (it != programsRandomSort.end() && ++it != programsRandomSort.end())
+    { 
+        printf("next %s\n", it->c_str());
         return *it;
+    }
     else
+    {
+        printf("next, go front, %s\n", programsRandomSort.front().c_str());
         return programsRandomSort.front();
+    }
 }
 
 // Helper: check if filename ends with ".ild" case-insensitive
@@ -964,6 +972,8 @@ void FilePlayer::buildProgramMap()
             programsRandomSort.push_back(key);
         }
         std::sort(programsAlphabeticSort.begin(), programsAlphabeticSort.end(), caseInsensitiveLess);
+        auto rng = std::default_random_engine{};
+        std::shuffle(std::begin(programsRandomSort), std::end(programsRandomSort), rng);
     }
     catch (std::exception& ex)
     {
@@ -1091,7 +1101,7 @@ std::vector<std::string> FilePlayer::getCurrentOrderedProgramList()
 void FilePlayer::doFileEndAction(bool dontAttemptRepeat)
 {
 #ifdef DEBUGOUTPUT
-    printf("End of file playback action");
+    printf("End of file playback action\n");
 #endif
 
     if (mode == FILEPLAYER_MODE_REPEAT || state.load() == FILEPLAYER_STATE_PAUSE)

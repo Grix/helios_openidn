@@ -18,6 +18,7 @@
 #include <sys/types.h>
 #include <filesystem>
 #include <atomic>
+#include <random>
 
 #define FILEPLAYER_MODE_REPEAT 0
 #define FILEPLAYER_MODE_ONCE 1
