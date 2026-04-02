@@ -126,6 +126,8 @@ void Display::MenuButtonEnter()
 
 void Display::MenuGotoMain()
 {
+	std::lock_guard<std::mutex> lock(threadLock);
+
 	const int numMenuItems = 2;
 	//display->createMenu(&menu, menuItemsMain, numMenuItems, (NanoRect) { { 0, 19 }, { 0,0 } });  //new LcdGfxMenu(menuItems, sizeof(menuItems) / sizeof(char*), (NanoRect) { { 8, 24 }, {0,0} });
 	menu = std::make_unique<LcdGfxMenu>(menuItemsMain, 2, (NanoRect) { { 0, 8 }, { 0,0 } });
@@ -141,6 +143,8 @@ void Display::MenuGotoMain()
 
 void Display::MenuGotoFilePlayer(std::vector<std::string> programs)
 {
+	std::lock_guard<std::mutex> lock(threadLock);
+
 	canvas.clear();
 	MenuUpdateHeader(false);
 	display->drawCanvas(0, 0, canvas);
@@ -174,6 +178,8 @@ void Display::MenuGotoFilePlayer(std::vector<std::string> programs)
 
 void Display::MenuGotoInformation()
 {
+	std::lock_guard<std::mutex> lock(threadLock);
+
 	canvas.clear();
 	MenuUpdateHeader(false);
 
@@ -220,6 +226,8 @@ void Display::SetMode(int _mode)
 	if (_mode == mode)
 		return;
 
+	std::lock_guard<std::mutex> lock(threadLock);
+
 	mode = _mode;
 	MenuUpdateHeader(true);
 }
@@ -248,6 +256,8 @@ void Display::SetDeviceName(std::string _deviceName)
 {
 	if (_deviceName == deviceName)
 		return;
+
+	std::lock_guard<std::mutex> lock(threadLock);
 
 	deviceName = _deviceName;
 	MenuUpdateHeader(true);

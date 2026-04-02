@@ -1030,6 +1030,7 @@ void* rx_bulk_thread(void* arg)
     struct timeval timeout;
     int ret, max_read_fd;
     __u8 buffer[0xFFFF];
+    memset(buffer, 0, sizeof(buffer));
 
     max_read_fd = 0;
 
@@ -1049,7 +1050,7 @@ void* rx_bulk_thread(void* arg)
         //if (verbosity > 1)
         //    printf("Starting bulk select\n");
 
-        memset(buffer, 0, sizeof(buffer));
+       
         ret = select(max_read_fd + 1, &read_set, NULL, NULL, &timeout);
 
         //if (verbosity > 1)
@@ -1071,14 +1072,18 @@ void* rx_bulk_thread(void* arg)
 
         struct timespec now, then;
         unsigned long sdif, nsdif, tdif;
-        clock_gettime(1, &then);
+        if (verbosity > 1)
+            clock_gettime(1, &then);
 
         ret = read(thread_args->fd_bulk_out, buffer, sizeof(buffer));
 
-        clock_gettime(1, &now);
-        sdif = now.tv_sec - then.tv_sec;
-        nsdif = now.tv_nsec - then.tv_nsec;
-        tdif = sdif * 1000000000 + nsdif;
+        if (verbosity > 1)
+        {
+            clock_gettime(1, &now);
+            sdif = now.tv_sec - then.tv_sec;
+            nsdif = now.tv_nsec - then.tv_nsec;
+            tdif = sdif * 1000000000 + nsdif;
+        }
 
         if (ret >= 0)
         {
@@ -1088,6 +1093,10 @@ void* rx_bulk_thread(void* arg)
             if (ret > 0)
             {
                 bulk_msg_received_callback(ret, buffer);
+            }
+            if (ret >= 7)
+            {
+                memset(buffer+ret-7, 0, 6);
             }
         }
         else
@@ -1222,7 +1231,7 @@ int send_interrupt_msg_response(size_t numBytes, unsigned char* buffer)
         return -1;
 
     int busyRetries = 1;
-    while (txSize != 0)
+    while (txSize != 0) // todo make queue to not miss any transfers
     {
         if (busyRetries-- <= 0)
         {
@@ -1233,7 +1242,7 @@ int send_interrupt_msg_response(size_t numBytes, unsigned char* buffer)
 
         struct timespec delay, dummy; // Prevents hogging 100% CPU use
         delay.tv_sec = 0;
-        delay.tv_nsec = 100000;
+        delay.tv_nsec = 1000000;
         nanosleep(&delay, &dummy);
     }
 

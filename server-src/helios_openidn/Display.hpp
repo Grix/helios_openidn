@@ -62,6 +62,7 @@ private:
 	std::string ipAddrWifi = "";
 	std::string deviceName = "";
 	std::string currentPlayingProgram = "";
+	std::mutex threadLock;
 
 };
 

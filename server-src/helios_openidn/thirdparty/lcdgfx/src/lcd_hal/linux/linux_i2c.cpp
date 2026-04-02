@@ -95,9 +95,10 @@ void LinuxI2c::start()
 
 void LinuxI2c::stop()
 {
-    if ( write(m_fd, m_buffer, m_dataSize) != m_dataSize )
+    ssize_t sendDataSize = write(m_fd, m_buffer, m_dataSize);
+    if (sendDataSize != m_dataSize )
     {
-        fprintf(stderr, "Failed to write to the i2c bus: %s.\n", strerror(errno));
+        fprintf(stderr, "Failed to write to the i2c bus, wanted to send %d, sent %d: %s.\n", m_dataSize, sendDataSize, strerror(errno));
     }
     m_dataSize = 0;
 }
@@ -106,6 +107,7 @@ void LinuxI2c::send(uint8_t data)
 {
     m_buffer[m_dataSize] = data;
     m_dataSize++;
+    //printf("%d-", m_dataSize);
     if ( m_dataSize == sizeof(m_buffer) )
     {
         /* Send function puts all data to internal buffer.  *

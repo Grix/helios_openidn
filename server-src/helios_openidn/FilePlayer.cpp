@@ -740,20 +740,16 @@ std::string FilePlayer::nextAlphabeticalProgram(const std::string& previousProgr
 
 std::string FilePlayer::nextRandomProgram(const std::string& previousProgramName)
 {
-    printf("next shuffle. Current %s\n", previousProgramName.c_str());
-
     if (programsRandomSort.empty())
         return "";
 
     auto it = std::find(programsRandomSort.begin(), programsRandomSort.end(), previousProgramName);
     if (it != programsRandomSort.end() && ++it != programsRandomSort.end())
     { 
-        printf("next %s\n", it->c_str());
         return *it;
     }
     else
     {
-        printf("next, go front, %s\n", programsRandomSort.front().c_str());
         return programsRandomSort.front();
     }
 }
