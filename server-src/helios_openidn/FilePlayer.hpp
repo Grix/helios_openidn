@@ -69,7 +69,7 @@ public:
     {
         std::vector<std::shared_ptr<QueuedChunk>> chunks;
         double durationMs;
-    };
+    } QueuedFrame;
 
 	bool autoplay = false;
     std::string currentProgramName = "";

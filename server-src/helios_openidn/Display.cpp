@@ -24,7 +24,7 @@ const PROGMEM uint8_t playImage[8] =
 
 Display::Display()
 {
-	// todo check if screen is available
+	printf("Creating display at i2c-1\n");
 
 	display = new GraphicsDisplay(-1, { 1, 0x3C, -1, -1, 0 });
 	display->begin();

@@ -15,7 +15,25 @@ ManagementInterface::ManagementInterface()
 
 	if (getHardwareType() == HARDWARE_ROCKS0)
 	{
-		display = new Display();
+
+		// Check if display exists on i2c-1, create display object only if so
+		int file = open("/dev/i2c-1", O_RDWR);
+		if (file >= 0) 
+		{
+			if (ioctl(file, I2C_SLAVE, 0x3C) < 0)
+			{
+				close(file);
+			}
+
+			char buf[1] = { 0 };
+			if (write(file, buf, 1) == 1) 
+			{
+				close(file);
+				display = new Display();
+			}
+			else
+				close(file);
+		}
 
 		GError* error = nullptr;
 		client = nm_client_new(nullptr, &error);

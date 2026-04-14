@@ -16,6 +16,7 @@
 #include <sys/utsname.h>
 #include <linux/input.h>
 #include <libnm/NetworkManager.h>
+#include <linux/i2c-dev.h>
 
 #define MANAGEMENT_PORT 7355
 
@@ -58,8 +59,8 @@ public:
 	void runStartup();
 
 	std::string settingIdnHostname = "HeliosPRO";
-	const char softwareVersion[10] = "1.0.1";
-	const unsigned char softwareVersionUsb = 101;
+	const char softwareVersion[10] = "1.1.0";
+	const unsigned char softwareVersionUsb = 110;
 	std::shared_ptr<IDNServer> idnServer;
 	int modePriority[OUTPUT_MODE_MAX + 1] = { 4, 3, 1, 2, 100 }; // If <=0, disable entirely
 	std::vector<std::shared_ptr<DACHWInterface>> devices;
