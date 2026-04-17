@@ -70,9 +70,7 @@ void sig_handler(int sig) {
         idnServer->stopServer();
     if (management != nullptr)
     {
-        if (management->getHardwareType() == HARDWARE_ROCKPIS)
-            system("echo 'heartbeat' > /sys/class/leds/rockpis:blue:user/trigger");
-        management->unmountUsbDrive();
+        management->stopAndClean();
     }
 }
 

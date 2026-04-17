@@ -824,17 +824,20 @@ int IDNServer::processRtConnection(ODF_ENV *env, RECV_COOKIE *cookie, IDNHDR_RT_
 
     // Prefetch channel message channelID (after packet input, header is not valid any more)
     int channelID = -1;
-    if(result == IDNVAL_RTACK_SUCCESS)
+    if (taxiBuffer->getTotalLen() > sizeof(IDNHDR_PACKET))
     {
-        IDNHDR_PACKET *recvPacketHdr = (IDNHDR_PACKET *)taxiBuffer->getPayloadPtr();
-        IDNHDR_CHANNEL_MESSAGE *channelMessageHdr = (IDNHDR_CHANNEL_MESSAGE *)&recvPacketHdr[1];
-        uint16_t contentID = btoh16(channelMessageHdr->contentID);
-        channelID = (contentID & IDNMSK_CONTENTID_CHANNELID) >> 8;
-    }
-    else
-    {
-        // Message payload error: Discard payload (but process packet for sequence checks)
-        taxiBuffer->cropPayload(sizeof(IDNHDR_PACKET));
+        if (result == IDNVAL_RTACK_SUCCESS)
+        {
+            IDNHDR_PACKET* recvPacketHdr = (IDNHDR_PACKET*)taxiBuffer->getPayloadPtr();
+            IDNHDR_CHANNEL_MESSAGE* channelMessageHdr = (IDNHDR_CHANNEL_MESSAGE*)&recvPacketHdr[1];
+            uint16_t contentID = btoh16(channelMessageHdr->contentID);
+            channelID = (contentID & IDNMSK_CONTENTID_CHANNELID) >> 8;
+        }
+        else
+        {
+            // Message payload error: Discard payload (but process packet for sequence checks)
+            taxiBuffer->cropPayload(sizeof(IDNHDR_PACKET));
+        }
     }
 
     // Update connection timeout, check/pass packet. Note: No access to the buffer hereafter !!!

@@ -562,7 +562,7 @@ void ManagementInterface::networkLoop(int sd) {
 					responseBuffer[0] = 0xE6;
 					responseBuffer[1] = 0x12;
 					responseBuffer[2] = (char)currentMode.load();
-					strncpy(responseBuffer + 10, filePlayer.currentProgramName.c_str(), 100);
+					strncpy(responseBuffer + 10, filePlayer.getCurrentProgramName().c_str(), 100);
 					sendto(sd, &responseBuffer, sizeof(responseBuffer), 0, (struct sockaddr*)&remote, len);
 
 					continue;
@@ -685,11 +685,13 @@ void ManagementInterface::emitEnterButtonPressed()
 			{
 				std::string newFile = display->MenuGetSelectedFile();
 
+				std::string _currentProgramName = filePlayer.getCurrentProgramName();
+
 #ifdef DEBUGOUTPUT
-				printf("Play file from menu %d %s\n", newFile != filePlayer.currentProgramName, newFile.c_str());
+				printf("Play file from menu %d %s\n", newFile != _currentProgramName, newFile.c_str());
 #endif
 
-				if (newFile != filePlayer.currentProgramName)
+				if (newFile != _currentProgramName)
 					filePlayer.playFile(newFile);
 				else
 					filePlayer.playButtonPress();
@@ -798,6 +800,15 @@ ConnectionInfo ManagementInterface::getNetworkConnectionInfo(const std::string& 
 	}
 
 	return info;
+}
+
+void ManagementInterface::stopAndClean()
+{
+	if (getHardwareType() == HARDWARE_ROCKPIS)
+		system("echo 'heartbeat' > /sys/class/leds/rockpis:blue:user/trigger");
+	// Todo indicate on display a reboot
+	unmountUsbDrive();
+	filePlayer.stop();
 }
 
 void ManagementInterface::unmountUsbDrive()

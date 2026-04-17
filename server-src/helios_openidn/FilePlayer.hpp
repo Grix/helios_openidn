@@ -72,7 +72,6 @@ public:
     } QueuedFrame;
 
 	bool autoplay = false;
-    std::string currentProgramName = "";
     bool handleMissingPrg = true;
     std::map<std::string, Program> programs;
     std::vector<std::string> programsAlphabeticSort;
@@ -101,6 +100,8 @@ public:
     std::string getProgramListString();
     void writeProgramList(std::string settingString);
     std::vector<std::string> getCurrentOrderedProgramList();
+    std::string getCurrentProgramName();
+    void setCurrentProgramName(std::string name);
 
 private:
 
@@ -127,6 +128,8 @@ private:
     std::mutex threadLock;
     bool hasStarted = false;
     const double minimumQueueDurationMs = 500;
+    std::mutex currentProgramNameLock;
+    std::string currentProgramName = "";
 
     unsigned long customPalette[256];
     unsigned long ildaDefaultPalette[256] =      // LFI / Aura Technologies

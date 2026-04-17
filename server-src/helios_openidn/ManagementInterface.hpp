@@ -57,6 +57,7 @@ public:
 	void relinquishOutput(int outputMode);
 	void unmountUsbDrive();
 	void runStartup();
+	void stopAndClean();
 
 	std::string settingIdnHostname = "HeliosPRO";
 	const char softwareVersion[10] = "1.1.0";

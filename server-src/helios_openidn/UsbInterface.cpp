@@ -109,8 +109,7 @@ void UsbInterface::interruptUsbReceived(size_t numBytes, unsigned char* buffer)
             // Todo write empty frame
             {
                 std::lock_guard<std::mutex> lock(threadLock);
-                while (!queue.empty())
-                    queue.pop_front();
+                queue.clear();
             }
             management->relinquishOutput(OUTPUT_MODE_USB);
         }

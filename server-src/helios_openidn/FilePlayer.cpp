@@ -38,7 +38,7 @@ void FilePlayer::startup()
 
     if (autoplay)
     {
-        playFile(currentProgramName);
+        playFile(getCurrentProgramName());
     }
 }
 
@@ -55,8 +55,7 @@ void FilePlayer::start()
 void FilePlayer::stop()
 {
 	state.store(FILEPLAYER_STATE_STOP);
-    int job = fileJob.load() + 1;
-    fileJob.store(job); // Cancels current file async loading, if any
+    fileJob.fetch_add(1); // Cancels current file async loading, if any
     management->relinquishOutput(OUTPUT_MODE_FILE);
     std::lock_guard<std::mutex> lock(threadLock);
     queue.clear();
@@ -69,20 +68,18 @@ void FilePlayer::pause()
 
 void FilePlayer::playFile(std::string programName)
 {
-    int job = fileJob.load() + 1;
-    fileJob.store(job); // Cancels current file async loading, if any
+    int job = fileJob.fetch_add(1) + 1; // Cancels current file async loading, if any
 
     if (!management->requestOutput(OUTPUT_MODE_FILE))
         return;
 
-    //if (playFileThread)
-    //    pthread_join(playFileThread, NULL);
-    //playFileThread = NULL;
+    if (playFileThread)
+        pthread_join(playFileThread, NULL);
+    playFileThread = NULL;
 
     {
         std::lock_guard<std::mutex> lock(threadLock);
-        while (!queue.empty())
-            queue.pop_front();
+        queue.clear();
     }
 
     PlayFileThreadArgs* args = new PlayFileThreadArgs();
@@ -106,14 +103,19 @@ void* playFileThreaded(void* _arg)
         std::string programName = arg->programName;
         int job = arg->job;
 
-        delete arg;
         filePlayer->playFileInnerJob(programName, job);
+        //auto time = std::chrono::steady_clock::now();
+        //while (time + std::chrono::seconds(3) > std::chrono::steady_clock::now());
+        //printf("finished delay\n");
     }
+    delete arg;
+
+    return nullptr;
 }
 
 
 
-// Threaded inner function. Should not be called directly.
+// Threaded inner function. Should not be used directly, call playFile() instead.
 // This piecewise loads the file from the disk to RAM while the file is playing, keeping track of buffer size. It cancels loading if a new file is played instead.
 int FilePlayer::playFileInnerJob(std::string programName, int job)
 {
@@ -127,7 +129,7 @@ int FilePlayer::playFileInnerJob(std::string programName, int job)
         return -1;
     }
 
-    currentProgramName = programName;
+    setCurrentProgramName(programName);
 
     Program currentProgram = programs[programName];
 
@@ -285,14 +287,14 @@ int FilePlayer::playFileInnerJob(std::string programName, int job)
                     if (recordCnt > maxPointsPerChunk)
                     {
                         if (maxPointsPerChunk == 0)
-                            return -1;
+                            continue;
 
                         pointsPerChunk = (int)ceil(recordCnt / ceil((double)recordCnt / maxPointsPerChunk));
                         if (pointsPerChunk < maxPointsPerChunk)
                             pointsPerChunk += 1;
 
                         if (pointsPerChunk == 0)
-                            return -1;
+                            continue;
                     }
 
                     chunk->buffer.reserve(pointsPerChunk);
@@ -427,13 +429,17 @@ int FilePlayer::playFileInnerJob(std::string programName, int job)
                     delay.tv_nsec = 10000000; // 10 ms
                     while (hasEnoughBufferedFileQueue() && job == fileJob.load())
                     {
-                        nanosleep(&delay, &dummy);
+                        nanosleep(&delay, &dummy); 
+                        printf(".");
                     }
 
                     std::lock_guard<std::mutex> lock(threadLock);
 
                     if (job != fileJob.load())
+                    {
+                        fclose(fpIDTF);
                         return 0;
+                    }
 
                     queue.push_back(frame);
                     for (int repetition = 1; repetition < ildaFile.parameters.numRepetitions; repetition++)
@@ -501,7 +507,6 @@ int FilePlayer::playFileInnerJob(std::string programName, int job)
     }
     while (state.load() == FILEPLAYER_STATE_PLAY && mode == FILEPLAYER_MODE_REPEAT && job == fileJob.load()); // Start over again if looping
 
-
     return 0;
 }
 
@@ -510,6 +515,8 @@ void* outputLoopThread(void* arg)
     FilePlayer* player = (FilePlayer*)arg;
 
     player->outputLoop();
+
+    return nullptr;
 }
 
 void FilePlayer::outputLoop()
@@ -546,8 +553,7 @@ void FilePlayer::outputLoop()
                 printf("Warning: Requested file player output, but was busy\n");
                 {
                     std::lock_guard<std::mutex> lock(threadLock);
-                    while (!queue.empty())
-                        queue.pop_front();
+                    queue.clear();
                 }
                 continue;
             }
@@ -557,6 +563,8 @@ void FilePlayer::outputLoop()
                 std::shared_ptr<QueuedFrame> frame;
                 {
                     std::lock_guard<std::mutex> lock(threadLock);
+                    if (queue.empty())
+                        continue;
                     frame = queue.front();
                     queue.pop_front();
                     //if (mode == FILEPLAYER_MODE_REPEAT)
@@ -619,7 +627,7 @@ void FilePlayer::playButtonPress()
     }
     else if (state.load() == FILEPLAYER_STATE_STOP)
     {
-        playFile(currentProgramName);
+        playFile(getCurrentProgramName());
     }
 }
 
@@ -635,9 +643,9 @@ void FilePlayer::upButtonPress()
 
     stop();
     if (mode == FILEPLAYER_MODE_SHUFFLE)
-        playFile(nextRandomProgram(currentProgramName));
+        playFile(nextRandomProgram(getCurrentProgramName()));
     else
-        playFile(nextAlphabeticalProgram(currentProgramName, true));
+        playFile(nextAlphabeticalProgram(getCurrentProgramName(), true));
 }
 
 void FilePlayer::downButtonPress()
@@ -647,9 +655,9 @@ void FilePlayer::downButtonPress()
 
     stop();
     if (mode == FILEPLAYER_MODE_SHUFFLE)
-        playFile(nextRandomProgram(currentProgramName)); // Todo remember last file and go back
+        playFile(nextRandomProgram(getCurrentProgramName())); // Todo remember last file and go back
     else
-        playFile(nextAlphabeticalProgram(currentProgramName, false));
+        playFile(nextAlphabeticalProgram(getCurrentProgramName(), false));
 }
 
 void FilePlayer::readSettings(mINI::INIStructure ini)
@@ -667,7 +675,7 @@ void FilePlayer::readSettings(mINI::INIStructure ini)
 
         std::string& fileplayer_startingfile = ini["file_player"]["starting_program"];
         if (!fileplayer_startingfile.empty())
-            currentProgramName = fileplayer_startingfile;
+            setCurrentProgramName(fileplayer_startingfile);
 
         std::string& fileplayer_mode = ini["file_player"]["mode"];
         if (!fileplayer_mode.empty())
@@ -1094,6 +1102,18 @@ std::vector<std::string> FilePlayer::getCurrentOrderedProgramList()
         return programsAlphabeticSort;
 }
 
+std::string FilePlayer::getCurrentProgramName()
+{
+    std::lock_guard<std::mutex> lock(threadLock);
+    return currentProgramName;
+}
+
+void FilePlayer::setCurrentProgramName(std::string name)
+{
+    std::lock_guard<std::mutex> lock(threadLock);
+    currentProgramName = name;
+}
+
 void FilePlayer::doFileEndAction(bool dontAttemptRepeat)
 {
 #ifdef DEBUGOUTPUT
@@ -1111,8 +1131,9 @@ void FilePlayer::doFileEndAction(bool dontAttemptRepeat)
         stop();
     else if (mode == FILEPLAYER_MODE_NEXT)
     {
-        std::string nextFile = nextAlphabeticalProgram(currentProgramName, false);
-        if (getFilename(nextFile) == currentProgramName)
+        std::string _currentProgramName = getCurrentProgramName();
+        std::string nextFile = nextAlphabeticalProgram(_currentProgramName, false);
+        if (getFilename(nextFile) == _currentProgramName)
         {
             if (dontAttemptRepeat)
                 stop();
@@ -1127,9 +1148,10 @@ void FilePlayer::doFileEndAction(bool dontAttemptRepeat)
     }
     else if (mode == FILEPLAYER_MODE_SHUFFLE)
     {
-        std::string nextFile = nextRandomProgram(currentProgramName);
+        std::string _currentProgramName = getCurrentProgramName();
+        std::string nextFile = nextRandomProgram(_currentProgramName);
 
-        if (getFilename(nextFile) == currentProgramName)
+        if (getFilename(nextFile) == _currentProgramName)
         {
             if (dontAttemptRepeat)
                 stop();
