@@ -18,6 +18,8 @@
 #define HELIOS_FRAMEFOOTER_SIZE 4
 #define BUF_SIZE  (HELIOS_MAXFRAMESIZE * HELIOS_BYTESPERFRAME + HELIOS_FRAMEHEADER_SIZE + HELIOS_FRAMEFOOTER_SIZE)
 
+#define READ_BUFSIZE 10
+
 #define COMMAND_RESET_MCU 5
 
 struct heliospro_buffer {
@@ -40,53 +42,27 @@ static volatile struct heliospro_buffer* newFrameBuffer;
 DECLARE_WAIT_QUEUE_HEAD(newFrameWaitQueue);
 DECLARE_WAIT_QUEUE_HEAD(statusSignalWaitQueue);
 
-//static DEFINE_MUTEX(lock);
+static DEFINE_MUTEX(lock);
 static atomic_t newFrameReady = ATOMIC_INIT(0);
 
 static int bufferstatus_irq;
 
 
-static int spi_worker(void *data)
-{
-    // Set real-time high priority (RT FIFO)
-	sched_set_fifo(current);
-
-    while (!kthread_should_stop()) 
-	{
-        // Wait until there's data or we're told to stop
-        wait_event_interruptible(newFrameWaitQueue,  atomic_read(&newFrameReady) || atomic_read(&stop) || kthread_should_stop());
-        
-        if (atomic_read(&stop) || kthread_should_stop())
-            break;
-		
-		wait_event_interruptible(statusSignalWaitQueue,  gpiod_get_value(bufferstatus_gpiod) || atomic_read(&stop) || kthread_should_stop());
-		
-		if (atomic_read(&stop) || kthread_should_stop())
-            break;
-		
-		if (!atomic_read(&newFrameReady))
-			continue;
-
-        //mutex_lock(&lock);
-		volatile struct heliospro_buffer* previousFrameBuffer = frameBuffer;
-		frameBuffer = newFrameBuffer;
-		newFrameBuffer = previousFrameBuffer;
-		atomic_set(&newFrameReady, 0);
-        //mutex_unlock(&lock);
-		wake_up_interruptible(&newFrameWaitQueue);
-		int ret = spi_write(spi, frameBuffer->data, frameBuffer->size);
-		if (ret)
-			pr_warn("Failed to write SPI message: %d\n", ret);
-
-    }
-    return 0;
-}
 
 static ssize_t reset_mcu(void)
 {
+	pr_warn("reset MCU\n");
+	
+	if (mutex_lock_interruptible(&lock))
+		return -ESHUTDOWN;
+	
 	int ret = gpiod_direction_output(mcureset_gpiod, 0);
-	if (!ret)
+	if (ret)
+	{
+		pr_err("Failed to set MCU reset gpio direction: %d\n", ret);
+		mutex_unlock(&lock);
 		return ret;
+	}
 	fsleep(50000);
 	gpiod_direction_input(mcureset_gpiod);
 	bool ok = false;
@@ -102,56 +78,117 @@ static ssize_t reset_mcu(void)
 	}
 	if (!ok)
 	{
-		pr_err("Failed to read status from MCU afte reset");
+		pr_err("Failed to read status from MCU after reset\n");
+		mutex_unlock(&lock);
 		return -ETIME;
 	}
-	else
-		return 2;
+	
+	mutex_unlock(&lock);
+	return 2;
 }
+
+
+static int spi_worker(void *data)
+{
+    // Set real-time high priority (RT FIFO)
+	sched_set_fifo(current);
+
+    while (!kthread_should_stop() && !atomic_read(&stop)) 
+	{
+        // Wait until there's data or we're told to stop
+        if (wait_event_interruptible(newFrameWaitQueue,  atomic_read(&newFrameReady) || atomic_read(&stop) || kthread_should_stop()))
+			continue;
+        
+		int ret = wait_event_interruptible_timeout(statusSignalWaitQueue,  gpiod_get_value(bufferstatus_gpiod) || atomic_read(&stop) || kthread_should_stop(), msecs_to_jiffies(2500));
+		
+		if (ret < 0) // Interrupted, condition still bad
+			continue;
+		if (!ret)
+		{
+			reset_mcu(); // Timeout, something has gone very wrong in the mcu
+			continue;
+		}
+		
+		if (atomic_read(&stop) || kthread_should_stop())
+            break;
+		
+		if (!atomic_read(&newFrameReady))
+			continue;
+
+        if (mutex_lock_interruptible(&lock))
+			continue;
+		volatile struct heliospro_buffer* previousFrameBuffer = frameBuffer;
+		frameBuffer = newFrameBuffer;
+		newFrameBuffer = previousFrameBuffer;
+		atomic_set(&newFrameReady, 0);
+        mutex_unlock(&lock);
+		wake_up_interruptible(&newFrameWaitQueue);
+		ret = spi_write(spi, frameBuffer->data, frameBuffer->size);
+		if (ret)
+			pr_warn("Failed to write SPI message: %d\n", ret);
+
+    }
+    return 0;
+}
+
 
 static ssize_t heliospro_write(struct file *file, const char __user *buf, size_t count, loff_t *ppos)
 {
 	if (count > BUF_SIZE || count < 2)
         return -EINVAL;
 	
-	if (count == 2 && buf[0] == 'C')
+	if (count == 2)
 	{
-		// Command write, do not forward to SPI
-		if (atomic_read(&stop))
-			return -ESHUTDOWN;
-		
-		if (buf[1] == COMMAND_RESET_MCU)
+		char previewBuffer[2];
+		if (copy_from_user(previewBuffer, buf, 2)) 
 		{
-			atomic_set(&newFrameReady, 0);
-			int ret = reset_mcu();
-			wake_up_interruptible(&newFrameWaitQueue);
-			return ret;
+			return -EFAULT;
 		}
-		
-		return -EBADMSG;
+	
+		if (previewBuffer[0] == 'C')
+		{
+			// Command write, do not forward to SPI
+			if (atomic_read(&stop))
+				return -ESHUTDOWN;
+			
+			if (previewBuffer[1] == COMMAND_RESET_MCU)
+			{
+				mutex_lock(&lock);
+				atomic_set(&newFrameReady, 0);
+				mutex_unlock(&lock);
+				int ret = reset_mcu();
+				wake_up_interruptible(&newFrameWaitQueue);
+				return ret;
+			}
+			
+			return -EBADMSG;
+		}
+		else 
+			return -EBADMSG;
 	}
 	
-	wait_event_interruptible(newFrameWaitQueue, !atomic_read(&newFrameReady) || atomic_read(&stop));
+	if (wait_event_interruptible(newFrameWaitQueue, !atomic_read(&newFrameReady) || atomic_read(&stop)))
+		return -ERESTARTSYS;
 	
 	if (atomic_read(&stop))
 		return -ESHUTDOWN;
 	
-	//mutex_lock(&lock);
+	if (mutex_lock_interruptible(&lock))
+		return -EFAULT;
 	
 	if (copy_from_user(newFrameBuffer->data, buf, count)) 
 	{
-		//mutex_unlock(&lock);
+		mutex_unlock(&lock);
         return -EFAULT;
     }
 	newFrameBuffer->size = count;
 	atomic_set(&newFrameReady, 1);
-	//mutex_unlock(&lock);
+	mutex_unlock(&lock);
 	wake_up_interruptible(&newFrameWaitQueue);
 	
     return count;
 }
 
-#define READ_BUFSIZE 10
 
 static ssize_t heliospro_read(struct file *file, char __user *buf, size_t count, loff_t *ppos)
 {
@@ -179,6 +216,7 @@ static ssize_t heliospro_read(struct file *file, char __user *buf, size_t count,
 
     return READ_BUFSIZE;
 }
+
 
 static const struct file_operations myspi_fileops = {
     .owner  = THIS_MODULE,
@@ -219,7 +257,7 @@ static int my_spi_probe(struct spi_device *_spi)
     }
 	
 	bufferstatus_irq = gpiod_to_irq(bufferstatus_gpiod);
-    if (bufferstatus_irq < 0) 
+    if (bufferstatus_irq <= 0) 
 	{
         pr_err("Failed to get IRQ for bufferstatus GPIO\n");
         return bufferstatus_irq;
@@ -230,6 +268,7 @@ static int my_spi_probe(struct spi_device *_spi)
     if (ret) 
 	{
         pr_err("Failed to request IRQ %d\n", bufferstatus_irq);
+		bufferstatus_irq = -1;
         return ret;
     }
 	
@@ -241,12 +280,16 @@ static int my_spi_probe(struct spi_device *_spi)
 	if (!frameBuffer1.data) 
 	{
         pr_err("Failed to alloc memory to buffer 1\n");
+		if (bufferstatus_irq > 0)
+			free_irq(bufferstatus_irq, NULL);
         return -ENOMEM;
     }
 	frameBuffer2.data = (uint8_t*)devm_kmalloc(&spi->dev, BUF_SIZE, GFP_KERNEL | GFP_DMA);
 	if (!frameBuffer2.data) 
 	{
         pr_err("Failed to alloc memory to buffer 1\n");
+		if (bufferstatus_irq > 0)
+			free_irq(bufferstatus_irq, NULL);
         return -ENOMEM;
     }
 	newFrameBuffer = &frameBuffer1;
@@ -256,17 +299,23 @@ static int my_spi_probe(struct spi_device *_spi)
     if (ret) 
 	{
         pr_err("Could not register misc device\n");
+		if (bufferstatus_irq > 0)
+			free_irq(bufferstatus_irq, NULL);
         return ret;
     }
+	
+	atomic_set(&stop, 0);
 
     spi_thread = kthread_run(spi_worker, NULL, "spi_writer_thread");
     if (IS_ERR(spi_thread)) 
 	{
         pr_err("Failed to create SPI writer thread\n");
+		if (bufferstatus_irq > 0)
+			free_irq(bufferstatus_irq, NULL);
+		atomic_set(&stop, 1);
         return PTR_ERR(spi_thread);
     }
-    return 0;
-
+	
     return 0;
 }
 
