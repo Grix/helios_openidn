@@ -18,32 +18,6 @@ HeliosProAdapter::HeliosProAdapter()
 	if (ret == -1)
 		perror("HeliosPRO: SPIdev: Can't set speed hz");*/
 
-	// Map GPIO2 registers for reading status
-	/*mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
-	if (mem_fd == -1) {
-		perror("HeliosPRO: Cannot open /dev/mem");
-		exit(1);
-	}
-
-	gpio_mem_map = mmap(0, 0x80, PROT_READ | PROT_WRITE, MAP_SHARED, mem_fd, 0xff240000);
-	if (gpio_mem_map == MAP_FAILED) {
-		perror("HeliosPRO: mmap() failed");
-		exit(1);
-	}
-	gpio = (volatile uint32_t*)gpio_mem_map;
-
-	GPIO_DIR_IN(GPIOPIN_STATUS);
-
-	// Reset MCU
-	GPIO_DIR_OUT(GPIOPIN_MCURESET);
-	GPIO_CLR(GPIOPIN_MCURESET);
-	struct timespec delay, dummy;
-	delay.tv_sec = 0;
-	delay.tv_nsec = 1000000;
-	nanosleep(&delay, &dummy);
-	GPIO_SET(GPIOPIN_MCURESET);
-	GPIO_DIR_IN(GPIOPIN_MCURESET);
-	//struct timespec delay, dummy;*/
 
 	// Check if MCU is available
 	uint8_t status[10];
@@ -61,31 +35,6 @@ HeliosProAdapter::HeliosProAdapter()
 		printf("HeliosPRO: No response from buffer MCU, is it flashed? %d", ret);
 		exit(1);
 	}
-
-	// Wait for ready signal from MCU after reset
-	/*struct timespec now, then;
-	unsigned long sdif, nsdif, tdif;
-	clock_gettime(CLOCK_MONOTONIC, &then);
-	delay.tv_sec = 0;
-	delay.tv_nsec = 5000000;
-	nanosleep(&delay, &dummy);
-	while (!GPIO_LEV(GPIOPIN_STATUS))
-	{
-
-		clock_gettime(CLOCK_MONOTONIC, &now);
-		sdif = now.tv_sec - then.tv_sec;
-		nsdif = now.tv_nsec - then.tv_nsec;
-		tdif = sdif * 1000000000 + nsdif;
-		if (tdif > 3000000000) // 3 seconds
-		{
-			perror("HeliosPRO: No response from buffer MCU, is it flashed?");
-			exit(1);
-		}
-
-		delay.tv_nsec = 500000;
-		nanosleep(&delay, &dummy);
-	}*/
-
 
 
 	//delay.tv_sec = 5;
@@ -151,19 +100,6 @@ HeliosProAdapter::HeliosProAdapter()
 
 HeliosProAdapter::~HeliosProAdapter() 
 {
-	// munmap GPIO
-	/*int ret = munmap(gpio_mem_map, 0x80);
-	if (ret == -1) {
-		perror("munmap() failed");
-		exit(1);
-	}
-
-	// close /dev/mem 
-	ret = close(mem_fd);
-	if (ret == -1) {
-		perror("Cannot close /dev/mem");
-		exit(1);
-	}*/
 }
 
 int HeliosProAdapter::writeFrame(const TimeSlice& slice, double durationUs) 

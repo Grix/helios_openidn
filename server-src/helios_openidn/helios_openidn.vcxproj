@@ -208,9 +208,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <IncludePath>$(ProjectDir)thirdparty\lcdgfx\src;$(IncludePath)</IncludePath>
+    <EnableASAN>true</EnableASAN>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <IncludePath>$(ProjectDir)thirdparty\lcdgfx\src;$(IncludePath)</IncludePath>
+    <EnableASAN>false</EnableASAN>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <Link>
@@ -247,6 +249,7 @@
     </ClCompile>
     <Link>
       <LibraryDependencies>usb-1.0;ola;olacommon;protobuf;pthread;nm;gio-2.0;gobject-2.0;glib-2.0;%(LibraryDependencies)</LibraryDependencies>
+      <AdditionalOptions>-static-libasan %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -254,6 +257,9 @@
       <CppLanguageStandard>c++17</CppLanguageStandard>
       <PreprocessorDefinitions>ODF_USE_TAXI_SOCK;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalOptions>`pkg-config --cflags libnm` %(AdditionalOptions)</AdditionalOptions>
+      <DebugInformationFormat>Minimal</DebugInformationFormat>
+      <OmitFramePointers>true</OmitFramePointers>
+      <Optimization>Full</Optimization>
     </ClCompile>
     <Link>
       <LibraryDependencies>usb-1.0;ola;olacommon;protobuf;pthread;nm;gio-2.0;gobject-2.0;glib-2.0;%(LibraryDependencies)</LibraryDependencies>

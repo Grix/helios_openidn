@@ -140,10 +140,6 @@ void HWBridge::driverLoop()
 			if (!hasUnderrun)
 				printf("Underrun\n");
 			hasUnderrun = true;
-			/*struct timespec delay, dummy; // Prevents hogging 100% CPU use when idle
-			delay.tv_sec = 0;
-			delay.tv_nsec = 500000; //0.5ms
-			nanosleep(&delay, &dummy);*/
 
 			if (driverMode == DRIVER_INACTIVE)
 			{
@@ -151,7 +147,7 @@ void HWBridge::driverLoop()
 				//device->bexResetBuffers();
 				speedFactor = -1;
 				this->accumOC = 0;
-				struct timespec delay, dummy; // Prevents hogging 100% CPU use when idle
+				struct timespec delay, dummy;
 				delay.tv_sec = 0;
 				delay.tv_nsec = 3000000; //3ms
 				nanosleep(&delay, &dummy);
@@ -161,7 +157,12 @@ void HWBridge::driverLoop()
 				hasStopped = true;
 			}
 			else
-				std::this_thread::yield();
+			{
+				struct timespec delay, dummy;
+				delay.tv_sec = 0;
+				delay.tv_nsec = 100000; //0.1 ms
+				nanosleep(&delay, &dummy);
+			}
 
 			continue;
 		}

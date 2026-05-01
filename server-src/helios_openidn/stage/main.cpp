@@ -88,6 +88,8 @@ void* driverThreadFunction(void* args) {
     sp.sched_priority = sched_get_priority_min(SCHED_RR) + (sched_get_priority_max(SCHED_RR) - sched_get_priority_min(SCHED_RR)) / 3;
     sched_setscheduler(0, SCHED_RR, &sp);
 
+    mlockall(MCL_CURRENT | MCL_FUTURE);
+
     driver->driverLoop();
 
     return nullptr;
@@ -671,6 +673,8 @@ int main(int argc, char** argv) {
     memset(&sp, 0, sizeof(sp));
     sp.sched_priority = sched_get_priority_min(SCHED_RR) + (sched_get_priority_max(SCHED_RR) - sched_get_priority_min(SCHED_RR)) / 4;
     sched_setscheduler(0, SCHED_RR, &sp);
+
+    mlockall(MCL_CURRENT | MCL_FUTURE);
 
     management->runStartup();
 

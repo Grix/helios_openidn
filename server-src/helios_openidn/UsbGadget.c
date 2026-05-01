@@ -34,6 +34,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/select.h>
+#include <sys/mman.h>
 
 #include <linux/types.h>
 #include <linux/usb/ch9.h>
@@ -938,6 +939,8 @@ void* rx_int_thread(void* arg)
     sp.sched_priority = sched_get_priority_min(SCHED_RR) + (sched_get_priority_max(SCHED_RR) - sched_get_priority_min(SCHED_RR)) / 4;
     sched_setscheduler(0, SCHED_RR, &sp);
 
+    mlockall(MCL_CURRENT | MCL_FUTURE);
+
     struct io_thread_args* thread_args = (struct io_thread_args*)arg;
     fd_set read_set;
     struct timeval timeout;
@@ -1024,6 +1027,8 @@ void* rx_bulk_thread(void* arg)
     memset(&sp, 0, sizeof(sp));
     sp.sched_priority = sched_get_priority_min(SCHED_RR) + (sched_get_priority_max(SCHED_RR) - sched_get_priority_min(SCHED_RR)) / 4;
     sched_setscheduler(0, SCHED_RR, &sp);
+
+    mlockall(MCL_CURRENT | MCL_FUTURE);
 
     struct io_thread_args* thread_args = (struct io_thread_args*)arg;
     fd_set read_set;
@@ -1125,6 +1130,8 @@ void* tx_int_thread(void* arg)
     memset(&sp, 0, sizeof(sp));
     sp.sched_priority = sched_get_priority_min(SCHED_RR) + (sched_get_priority_max(SCHED_RR) - sched_get_priority_min(SCHED_RR)) / 3;
     sched_setscheduler(0, SCHED_RR, &sp);
+
+    mlockall(MCL_CURRENT | MCL_FUTURE);
 
     struct io_thread_args* thread_args = (struct io_thread_args*)arg;
 
