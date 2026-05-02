@@ -891,6 +891,8 @@ void FilePlayer::parsePrgFile(const std::filesystem::directory_entry& fileEntry)
         }
         fileStream.close();
 
+        program.filePath = fileEntry.path();
+
         programs[programName] = program;
     }
     else

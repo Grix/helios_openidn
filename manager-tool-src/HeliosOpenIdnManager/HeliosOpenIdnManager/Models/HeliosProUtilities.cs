@@ -244,7 +244,7 @@ public class HeliosProUtilities
         {
             using var udpClient = new UdpClient();
             var data = new byte[] { 0xE5, 0x5 };
-            udpClient.Client.ReceiveTimeout = 600;
+            udpClient.Client.ReceiveTimeout = 1500;
             udpClient.Client.SendTimeout = 500;
 
             var sendAddress = new IPEndPoint(server, MANAGEMENT_PORT);
