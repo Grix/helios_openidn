@@ -945,6 +945,8 @@ void* ManagementInterface::statusInfoThreadEntry()
 	if (!display)
 		return nullptr;
 
+	std::this_thread::sleep_for(std::chrono::seconds(5)); // Let NM initialize fully
+
 	printf("Starting status info update thread in management class\n");
 
 	while (true)
