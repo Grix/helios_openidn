@@ -430,7 +430,7 @@ int FilePlayer::playFileInnerJob(std::string programName, int job)
                     while (hasEnoughBufferedFileQueue() && job == fileJob.load())
                     {
                         nanosleep(&delay, &dummy); 
-                        printf(".");
+                        //printf(".");
                     }
 
                     std::lock_guard<std::mutex> lock(threadLock);
