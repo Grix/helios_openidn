@@ -134,11 +134,29 @@ void Display::MenuGotoMain()
 
 	canvas.clear();
 	MenuUpdateHeader(false);
+	MenuUpdateMainFooter(false);
 	menu->show(canvas);
 	//display->showMenu(&menu);
 	display->drawCanvas(0, 0, canvas);
 
 	currentMenu = Menus::MainMenu;
+}
+
+void Display::MenuUpdateMainFooter(bool update)
+{
+	canvas.setBackground(0);
+	canvas.setColor(0);
+	canvas.fillRect(0, 53, 127, 63);
+	canvas.setColor(1);
+	canvas.drawLine(0, 53, 127, 53);
+	char ethInfo[64];
+	snprintf(ethInfo, 64, "%s", ipAddrEthernet.empty() ? "ETH not connected" : ipAddrEthernet.c_str());
+	canvas.printFixed(4, 56, ethInfo);
+
+	if (update)
+	{
+		display->drawCanvas(0, 0, canvas);
+	}
 }
 
 void Display::MenuGotoFilePlayer(std::vector<std::string> programs)
@@ -187,8 +205,11 @@ void Display::MenuGotoInformation()
 	snprintf(ethInfo, 64, "Eth: %s", ipAddrEthernet.empty() ? "Not connected" : ipAddrEthernet.c_str());
 	char wifiInfo[64];
 	snprintf(wifiInfo, 64, "WiFi: %s", ipAddrWifi.empty() ? "Not connected" : ipAddrWifi.c_str());
+	char versionInfo[64];
+	snprintf(versionInfo, 64, "FW version: %s", firmwareVersion.c_str());
 	canvas.printFixed(4, 24, ethInfo);
 	canvas.printFixed(4, 32, wifiInfo);
+	canvas.printFixed(4, 40, versionInfo);
 
 	display->drawCanvas(0, 0, canvas);
 
@@ -240,6 +261,8 @@ void Display::SetIpAddrEthernet(std::string _ipAddrEthernet)
 	ipAddrEthernet = _ipAddrEthernet;
 	if (currentMenu == Menus::InformationMenu)
 		MenuGotoInformation();
+	else if (currentMenu == Menus::MainMenu)
+		MenuUpdateMainFooter(true);
 }
 
 void Display::SetIpAddrWiFi(std::string _ipAddrWifi)
@@ -261,6 +284,11 @@ void Display::SetDeviceName(std::string _deviceName)
 
 	deviceName = _deviceName;
 	MenuUpdateHeader(true);
+}
+
+void Display::SetFirmwareVersion(std::string _version)
+{
+	firmwareVersion = _version;
 }
 
 void Display::SetCurrentPlayingProgram(std::string _currentPlayingProgram)

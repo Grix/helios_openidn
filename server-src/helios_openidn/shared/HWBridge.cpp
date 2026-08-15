@@ -132,11 +132,6 @@ void HWBridge::driverLoop()
 		}
 		else if(driverMode == DRIVER_WAVEMODE || driverMode == DRIVER_INACTIVE)
 		{
-			//write an empty point if there is a buffer underrun in wave mode or
-			//the driver is set to inactive
-			//printf("I am printing empty frames because I am annoying");
-			//soutputEmptyPoint();
-
 			if (!hasUnderrun)
 				printf("Underrun\n");
 			hasUnderrun = true;

@@ -30,6 +30,7 @@ public:
 	void MenuButtonDown();
 	void MenuButtonEnter();
 	void MenuGotoMain();
+	void MenuUpdateMainFooter(bool update);
 	void MenuGotoFilePlayer(std::vector<std::string> programs);
 	void MenuGotoInformation();
 	int MenuGetSelection();
@@ -39,6 +40,7 @@ public:
 	void SetIpAddrEthernet(std::string ipAddrEthernet);
 	void SetIpAddrWiFi(std::string ipAddrWifi);
 	void SetDeviceName(std::string deviceName);
+	void SetFirmwareVersion(std::string _version);
 	void SetCurrentPlayingProgram(std::string currentPlayingProgram);
 
 private:
@@ -61,6 +63,7 @@ private:
 	std::string ipAddrEthernet = "";
 	std::string ipAddrWifi = "";
 	std::string deviceName = "";
+	std::string firmwareVersion = "";
 	std::string currentPlayingProgram = "";
 	std::mutex threadLock;
 

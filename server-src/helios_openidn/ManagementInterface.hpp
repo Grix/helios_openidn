@@ -60,8 +60,8 @@ public:
 	void stopAndClean();
 
 	std::string settingIdnHostname = "HeliosPRO";
-	const char softwareVersion[10] = "1.1.0";
-	const unsigned char softwareVersionUsb = 110;
+	const char softwareVersion[10] = "1.1.1";
+	const unsigned char softwareVersionUsb = 111;
 	std::shared_ptr<IDNServer> idnServer;
 	int modePriority[OUTPUT_MODE_MAX + 1] = { 4, 3, 1, 2, 100 }; // If <=0, disable entirely
 	std::vector<std::shared_ptr<DACHWInterface>> devices;

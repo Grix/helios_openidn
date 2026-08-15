@@ -162,9 +162,9 @@ void ManagementInterface::readSettingsFile()
 					eth0_ip_addresses = eth0_ip_addresses.append("/24"); // 255.255.255.0 as default netmask
 
 				printf("eth0 %s\n", eth0_ip_addresses.c_str());
-				sprintf(command, "nmcli connection modify %s ipv4.method manual", ethernetConnectionId);
-				system(command);
 				sprintf(command, "nmcli connection modify %s ipv4.addresses \"%s\"", ethernetConnectionId, eth0_ip_addresses.c_str());
+				system(command);
+				sprintf(command, "nmcli connection modify %s ipv4.method manual", ethernetConnectionId);
 				system(command);
 			}
 			sprintf(command, "nmcli connection up %s", ethernetConnectionId);
@@ -327,6 +327,7 @@ void ManagementInterface::readSettingsFile()
 		{
 			display->FinishInitialization();
 			display->SetDeviceName(settingIdnHostname);
+			display->SetFirmwareVersion(std::string(softwareVersion));
 		}
 	}
 	else if (getHardwareType() == HARDWARE_ROCKPIS)
