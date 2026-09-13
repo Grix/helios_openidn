@@ -177,7 +177,7 @@ pthread_t threadt;
 pthread_t thread_main_ep0;
 int shouldSendTxWhenAltInterfaceChange = 0;
 
-size_t txSize = 0;
+_Atomic size_t txSize = 0;
 char txBuffer[32];
 
 int doRxIgnore = 0;  //how many bytes to ignore 
@@ -386,6 +386,7 @@ int init_usb_gadget()
     ep_descriptor_int_in.bEndpointAddress = USB_DIR_IN | 3;
     ep_descriptor_int_in.bmAttributes = USB_ENDPOINT_XFER_INT;
     ep_descriptor_int_in.wMaxPacketSize = 64;
+    ep_descriptor_int_in.bInterval = 1; // 1 ms polling in FS, 1/8 in HS
 
     ep_descriptor_int_out.bLength = USB_DT_ENDPOINT_SIZE;
     ep_descriptor_int_out.bDescriptorType = USB_DT_ENDPOINT;
@@ -649,7 +650,7 @@ void handle_setup_request(int fd, struct usb_ctrlrequest* setup)
             if (!thread_args.stop)
             {
                 thread_args.stop = 1;
-                usleep(200000); // Wait for termination
+                usleep(30000); // Wait for termination. TODO this is not good, close threads and fds properly
             }
             if (thread_args.fd_int_in <= 0)
             {
@@ -945,7 +946,7 @@ void* rx_int_thread(void* arg)
     fd_set read_set;
     struct timeval timeout;
     int ret, max_read_fd;
-    __u8 buffer[32];
+    __u8 buffer[64];
 
     max_read_fd = 0;
 
@@ -1142,9 +1143,9 @@ void* tx_int_thread(void* arg)
 
     while (!thread_args->stop && !thread_args->stopOnlyUserEndpoints)
     {
-        atomic_thread_fence(memory_order_acquire);
+        size_t txSizeLoaded = atomic_load_explicit(&txSize, memory_order_acquire);
 
-        if (txSize == 0)
+        if (txSizeLoaded == 0)
         {
             struct timespec delay, dummy; // Prevents hogging 100% CPU use
             delay.tv_sec = 0;
@@ -1185,7 +1186,7 @@ void* tx_int_thread(void* arg)
         }
         else
         {
-            ret = write(thread_args->fd_int_in, txBuffer, txSize);
+            ret = write(thread_args->fd_int_in, txBuffer, txSizeLoaded);
 
             if (verbosity > 1)
             {
@@ -1201,7 +1202,7 @@ void* tx_int_thread(void* arg)
             if (ret > 0)
             {
                 txcounter++;
-                txSize = 0;
+                atomic_store_explicit(&txSize, 0, memory_order_release);
             }
             else if (ret < 0)
             {
@@ -1211,7 +1212,7 @@ void* tx_int_thread(void* arg)
                 //usleep(1);
             }
         }
-        txSize = 0; // todo retry once if not successful
+        atomic_store_explicit(&txSize, 0, memory_order_release); // todo retry once if not successful
         shouldSendTxWhenAltInterfaceChange = 1;
 
         //usleep(100000);
@@ -1234,8 +1235,12 @@ void set_msg_received_callbacks(void (*bulk_msg_callback)(size_t, unsigned char*
 
 int send_interrupt_msg_response(size_t numBytes, unsigned char* buffer)
 {
-    if (numBytes == 0)
+    if (numBytes == 0 || numBytes > sizeof(txBuffer))
+    {
+        if (verbosity > 1)
+            printf("Invalid send_interrupt_msg_response size: %d\n", numBytes);
         return -1;
+    }
 
     int busyRetries = 1;
     while (txSize != 0) // todo make queue to not miss any transfers
@@ -1254,8 +1259,7 @@ int send_interrupt_msg_response(size_t numBytes, unsigned char* buffer)
     }
 
     memcpy(txBuffer, buffer, numBytes);
-    txSize = numBytes;
-    atomic_thread_fence(memory_order_release);
+    atomic_store_explicit(&txSize, numBytes, memory_order_release);
 
     return 0;
 }

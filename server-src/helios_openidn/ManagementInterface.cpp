@@ -35,9 +35,6 @@ ManagementInterface::ManagementInterface()
 				close(file);
 		}
 
-		GError* error = nullptr;
-		client = nm_client_new(nullptr, &error);
-
 		// TODO: this is a stupid way of doing this:
 		system("echo 'none' > /sys/class/leds/rock-s0:green:power/trigger"); // manual internal LED control, stops heartbeat blinking
 		system("echo 0 > /sys/class/leds/rock-s0:green:power/brightness"); // turn LED off
@@ -748,58 +745,97 @@ void ManagementInterface::emitDownButtonPressed()
 ConnectionInfo ManagementInterface::getNetworkConnectionInfo(const std::string& connection_name)
 {
 	ConnectionInfo info;
+
+	printf("checking %s\n", connection_name.c_str());
+
 	if (!client)
 		return info;
 
 	const GPtrArray* active_connections = nm_client_get_active_connections(client);
-	if (!active_connections) 
-	{
-		return info;
-	}
 
-	for (uint i = 0; i < active_connections->len; i++) 
+	printf("num active conns: %d\n", active_connections->len);
+
+	if (!active_connections)
+		return info;
+
+	for (guint i = 0; i < active_connections->len; i++)
 	{
-		NMActiveConnection* activeConnection = NM_ACTIVE_CONNECTION(g_ptr_array_index(active_connections, i));
+		auto* activeConnection = NM_ACTIVE_CONNECTION(g_ptr_array_index(active_connections, i));
 
 		const char* name = nm_active_connection_get_id(activeConnection);
+
+		printf("comparing %s == %s, %d\n", connection_name.c_str(), name, connection_name != name);
+
 		if (!name || connection_name != name)
-		{
 			continue;
-		}
 
-		// Found matching active connection
-		NMActiveConnectionState state = nm_active_connection_get_state(activeConnection);
-		if (state == NM_ACTIVE_CONNECTION_STATE_ACTIVATED) 
+		printf("found match\n");
+
+		// We found the connection we're interested in.
+		if (nm_active_connection_get_state(activeConnection) != NM_ACTIVE_CONNECTION_STATE_ACTIVATED)
 		{
-			const GPtrArray* devices = nm_active_connection_get_devices(activeConnection);
-			if (devices && devices->len > 0) 
-			{
-				NMDevice* dev = NM_DEVICE(g_ptr_array_index(devices, 0));
-				NMIPConfig* ip4 = nm_device_get_ip4_config(dev);
-				if (!ip4) 
-				{
-					return info; // connection inactive
-				}
-
-				const GPtrArray* addresses = nm_ip_config_get_addresses(ip4);
-				if (!addresses || addresses->len == 0) 
-				{
-					return info; // connection inactive
-				}
-
-				NMIPAddress* addr = (NMIPAddress*)g_ptr_array_index(addresses, 0);
-				const char* ip = nm_ip_address_get_address(addr);
-				if (ip) 
-				{
-					info.connected = true;
-					info.ipAddress = std::string(ip);
-				}
-			}
+			printf("connection state is not activated\n");
+			return info;
 		}
 
+		// Get the IP configuration from the active connection itself.
+		NMIPConfig* ip4 = nm_active_connection_get_ip4_config(activeConnection);
+
+		if (!ip4)
+		{
+			printf("no ipv4 config\n");
+			return info;
+		}
+
+		const GPtrArray* addresses = nm_ip_config_get_addresses(ip4);
+
+		if (!addresses || addresses->len == 0)
+		{
+			printf("no addresses\n");
+			return info;
+		}
+
+		const char* linkLocalAddress = nullptr;
+
+		// Look through all IPv4 addresses.
+		for (guint j = 0; j < addresses->len; j++)
+		{
+			NMIPAddress* addr = static_cast<NMIPAddress*>(g_ptr_array_index(addresses, j));
+
+			const char* ip = nm_ip_address_get_address(addr);
+
+			printf("checking address %s\n", ip);
+
+			if (!ip)
+				continue;
+
+			// Remember link-local, but prefer a normal IPv4 address.
+			if (g_str_has_prefix(ip, "169.254."))
+			{
+				printf("link local temp found\n");
+				linkLocalAddress = ip;
+				continue;
+			}
+
+			info.connected = true;
+			info.ipAddress = ip;
+			printf("normal found\n");
+			return info;
+		}
+
+		// No normal IPv4 address, but we have an IPv4 link-local address.
+		if (linkLocalAddress)
+		{
+			printf("link local found\n");
+			info.connected = true;
+			info.ipAddress = linkLocalAddress;
+		}
+
+		printf("return end of matched connection\n");
 		return info;
 	}
 
+	printf("return, no matching connection found\n");
 	return info;
 }
 
@@ -941,6 +977,11 @@ void* ManagementInterface::keyboardThreadEntry() {
 
 void* ManagementInterface::statusInfoThreadEntry()
 {
+	GError* error = nullptr;
+	client = nm_client_new(nullptr, &error);
+	if (error)
+		printf("libnm client creation error: %s\n", error->message);
+
 	bool hasInited = false;
 
 	if (!display)
@@ -950,17 +991,22 @@ void* ManagementInterface::statusInfoThreadEntry()
 
 	printf("Starting status info update thread in management class\n");
 
+	const std::string ethernetConnectionId = std::string("Wired connection 1");
+	const std::string wifiConnectionId = std::string("Wifi connection 1");
+	const std::string fallbackEthernetConnectionId = std::string("Wired connection fallback");
+
 	while (true)
 	{
+		g_main_context_iteration(nullptr, FALSE);
+
 		if (hasInited && currentMenu != Menus::InformationMenu)
 		{
-			std::this_thread::sleep_for(std::chrono::seconds(2));
-			continue;
+			std::this_thread::sleep_for(std::chrono::seconds(5));
 		}
 
-		const std::string ethernetConnectionId = std::string("Wired connection 1");
-		const std::string wifiConnectionId = std::string("Wifi connection 1");
-		const std::string fallbackEthernetConnectionId = std::string("Wired connection fallback");
+		NMState nmstate = nm_client_get_state(client);
+		printf("NMclient state: %d\n", nmstate);
+
 		std::string ethernetIpAddr = "";
 		std::string wifiIpAddr = "";
 
@@ -989,6 +1035,8 @@ void* ManagementInterface::statusInfoThreadEntry()
 
 		display->SetIpAddrEthernet(ethernetIpAddr);
 		display->SetIpAddrWiFi(wifiIpAddr);
+
+		printf("updated %s %s\n", ethernetIpAddr.c_str(), wifiIpAddr.c_str());
 
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
