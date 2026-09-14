@@ -746,14 +746,12 @@ ConnectionInfo ManagementInterface::getNetworkConnectionInfo(const std::string& 
 {
 	ConnectionInfo info;
 
-	printf("checking %s\n", connection_name.c_str());
+	//printf("checking %s\n", connection_name.c_str());
 
 	if (!client)
 		return info;
 
 	const GPtrArray* active_connections = nm_client_get_active_connections(client);
-
-	printf("num active conns: %d\n", active_connections->len);
 
 	if (!active_connections)
 		return info;
@@ -764,17 +762,17 @@ ConnectionInfo ManagementInterface::getNetworkConnectionInfo(const std::string& 
 
 		const char* name = nm_active_connection_get_id(activeConnection);
 
-		printf("comparing %s == %s, %d\n", connection_name.c_str(), name, connection_name != name);
+		//printf("comparing %s == %s, %d\n", connection_name.c_str(), name, connection_name != name);
 
 		if (!name || connection_name != name)
 			continue;
 
-		printf("found match\n");
+		//printf("found match\n");
 
 		// We found the connection we're interested in.
 		if (nm_active_connection_get_state(activeConnection) != NM_ACTIVE_CONNECTION_STATE_ACTIVATED)
 		{
-			printf("connection state is not activated\n");
+			//printf("connection state is not activated\n");
 			return info;
 		}
 
@@ -783,7 +781,7 @@ ConnectionInfo ManagementInterface::getNetworkConnectionInfo(const std::string& 
 
 		if (!ip4)
 		{
-			printf("no ipv4 config\n");
+			//printf("no ipv4 config\n");
 			return info;
 		}
 
@@ -791,7 +789,7 @@ ConnectionInfo ManagementInterface::getNetworkConnectionInfo(const std::string& 
 
 		if (!addresses || addresses->len == 0)
 		{
-			printf("no addresses\n");
+			//printf("no addresses\n");
 			return info;
 		}
 
@@ -804,7 +802,7 @@ ConnectionInfo ManagementInterface::getNetworkConnectionInfo(const std::string& 
 
 			const char* ip = nm_ip_address_get_address(addr);
 
-			printf("checking address %s\n", ip);
+			//printf("checking address %s\n", ip);
 
 			if (!ip)
 				continue;
@@ -812,30 +810,30 @@ ConnectionInfo ManagementInterface::getNetworkConnectionInfo(const std::string& 
 			// Remember link-local, but prefer a normal IPv4 address.
 			if (g_str_has_prefix(ip, "169.254."))
 			{
-				printf("link local temp found\n");
+				//printf("link local temp found\n");
 				linkLocalAddress = ip;
 				continue;
 			}
 
 			info.connected = true;
 			info.ipAddress = ip;
-			printf("normal found\n");
+			//printf("normal found\n");
 			return info;
 		}
 
 		// No normal IPv4 address, but we have an IPv4 link-local address.
 		if (linkLocalAddress)
 		{
-			printf("link local found\n");
+			//printf("link local found\n");
 			info.connected = true;
 			info.ipAddress = linkLocalAddress;
 		}
 
-		printf("return end of matched connection\n");
+		//printf("return end of matched connection\n");
 		return info;
 	}
 
-	printf("return, no matching connection found\n");
+	//printf("return, no matching connection found\n");
 	return info;
 }
 
@@ -1004,8 +1002,8 @@ void* ManagementInterface::statusInfoThreadEntry()
 			std::this_thread::sleep_for(std::chrono::seconds(5));
 		}
 
-		NMState nmstate = nm_client_get_state(client);
-		printf("NMclient state: %d\n", nmstate);
+		//NMState nmstate = nm_client_get_state(client);
+		//printf("NMclient state: %d\n", nmstate);
 
 		std::string ethernetIpAddr = "";
 		std::string wifiIpAddr = "";
@@ -1036,7 +1034,7 @@ void* ManagementInterface::statusInfoThreadEntry()
 		display->SetIpAddrEthernet(ethernetIpAddr);
 		display->SetIpAddrWiFi(wifiIpAddr);
 
-		printf("updated %s %s\n", ethernetIpAddr.c_str(), wifiIpAddr.c_str());
+		//printf("updated %s %s\n", ethernetIpAddr.c_str(), wifiIpAddr.c_str());
 
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}
