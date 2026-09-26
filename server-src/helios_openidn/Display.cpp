@@ -202,9 +202,17 @@ void Display::MenuGotoInformation()
 	MenuUpdateHeader(false);
 
 	char ethInfo[64];
-	snprintf(ethInfo, 64, "Eth: %s", ipAddrEthernet.empty() ? "Not connected" : ipAddrEthernet.c_str());
+	if (ipAddrEthernet.empty())
+		snprintf(ethInfo, 64, "Eth: Not connected");
+	else
+		snprintf(ethInfo, 64, "Eth: %s (/%d)", ipAddrEthernet.c_str(), ipAddrEthernetSubnetCidr);
+
 	char wifiInfo[64];
-	snprintf(wifiInfo, 64, "WiFi: %s", ipAddrWifi.empty() ? "Not connected" : ipAddrWifi.c_str());
+	if (ipAddrWifi.empty())
+		snprintf(wifiInfo, 64, "WiFi: Not connected");
+	else
+		snprintf(wifiInfo, 64, "WiFi: %s (/%d)", ipAddrWifi.c_str(), ipAddrWifiSubnetCidr);
+
 	char versionInfo[64];
 	snprintf(versionInfo, 64, "FW version: %s", firmwareVersion.c_str());
 	canvas.printFixed(4, 24, ethInfo);
@@ -253,24 +261,26 @@ void Display::SetMode(int _mode)
 	MenuUpdateHeader(true);
 }
 
-void Display::SetIpAddrEthernet(std::string _ipAddrEthernet)
+void Display::SetIpAddrEthernet(std::string _ipAddrEthernet, int _subnetCidr)
 {
-	if (_ipAddrEthernet == ipAddrEthernet)
+	if (_ipAddrEthernet == ipAddrEthernet && _subnetCidr == ipAddrEthernetSubnetCidr)
 		return;
 
 	ipAddrEthernet = _ipAddrEthernet;
+	ipAddrEthernetSubnetCidr = _subnetCidr;
 	if (currentMenu == Menus::InformationMenu)
 		MenuGotoInformation();
 	else if (currentMenu == Menus::MainMenu)
 		MenuUpdateMainFooter(true);
 }
 
-void Display::SetIpAddrWiFi(std::string _ipAddrWifi)
+void Display::SetIpAddrWiFi(std::string _ipAddrWifi, int _subnetCidr)
 {
-	if (_ipAddrWifi == ipAddrWifi)
+	if (_ipAddrWifi == ipAddrWifi && _subnetCidr == ipAddrWifiSubnetCidr)
 		return;
 
 	ipAddrWifi = _ipAddrWifi;
+	ipAddrWifiSubnetCidr = _subnetCidr;
 	if (currentMenu == Menus::InformationMenu)
 		MenuGotoInformation();
 }

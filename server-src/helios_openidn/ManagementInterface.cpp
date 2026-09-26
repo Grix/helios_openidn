@@ -2,6 +2,7 @@
 #include "FilePlayer.hpp"
 
 FilePlayer filePlayer;
+OlaDmxInterface olaInterface;
 
 #define UDP_MAXBUF 8192
 
@@ -35,13 +36,12 @@ ManagementInterface::ManagementInterface()
 				close(file);
 		}
 
-		// TODO: this is a stupid way of doing this:
-		system("echo 'none' > /sys/class/leds/rock-s0:green:power/trigger"); // manual internal LED control, stops heartbeat blinking
-		system("echo 0 > /sys/class/leds/rock-s0:green:power/brightness"); // turn LED off
+		writeTo("/sys/class/leds/rock-s0:green:power/trigger", "none"); // manual internal LED control, stops heartbeat blinking
+		writeTo("/sys/class/leds/rock-s0:green:power/brightness", "0"); // turn LED off
 
-		system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness"); // turn LED off.
-		system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness"); // turn LED off
-		system("echo 0 > /sys/class/leds/rock-s0:orange:user5/brightness"); // turn LED off
+		writeTo("/sys/class/leds/rock-s0:green:user3/brightness", "0"); // turn LED off.
+		writeTo("/sys/class/leds/rock-s0:red:user4/brightness", "0"); // turn LED off
+		writeTo("/sys/class/leds/rock-s0:orange:user5/brightness", "0"); // turn LED off
 
 		if (pthread_create(&keyboardThread, NULL, &keyboardThreadFunction, this) != 0) {
 			printf("WARNING: failed to create keyboard thread, buttons will not work\n");
@@ -52,8 +52,8 @@ ManagementInterface::ManagementInterface()
 	}
 	else if (getHardwareType() == HARDWARE_ROCKPIS)
 	{
-		system("echo 'none' > /sys/class/leds/rockpis:blue:user/trigger"); // manual blue LED control, stops heartbeat blinking
-		system("echo 0 > /sys/class/leds/rockpis:blue:user/brightness"); // turn LED off
+		writeTo("/sys/class/leds/rockpis:blue:user/brightness", "none"); // manual blue LED control, stops heartbeat blinking
+		writeTo("/sys/class/leds/rockpis:blue:user/trigger", "0"); // turn LED off
 	}
 }
 
@@ -82,11 +82,11 @@ void ManagementInterface::readAndStoreUsbFiles()
 	}
 
 	printf("New settings file found! Replacing previous settings...\n");
-	//sprintf(command, "cp %s %s", newSettingsPath.c_str(), (newSettingsPath + "_backup").c_str());
-	//system(command);
-	sprintf(command, "cp %s %s", newSettingsPath.c_str(), settingsPath.c_str());
-	system(command);
 
+	std::error_code ec;
+	std::filesystem::copy_file(newSettingsPath, settingsPath, std::filesystem::copy_options::overwrite_existing, ec);
+	if (ec)
+		std::fprintf(stderr, "error copy settings file: %s\n", ec.message().c_str());
 
 	printf("Finished checking new USB settings.\n");
 }
@@ -94,6 +94,7 @@ void ManagementInterface::readAndStoreUsbFiles()
 void ManagementInterface::runStartup()
 {
 	filePlayer.startup();
+	olaInterface.SetDmxAddress(40, 10);
 }
 
 /// <summary>
@@ -308,6 +309,7 @@ void ManagementInterface::readSettingsFile()
 	}
 
 	filePlayer.readSettings(ini);
+	olaInterface.readSettings(ini);
 
 	if (shouldRewrite)
 	{
@@ -319,7 +321,7 @@ void ManagementInterface::readSettingsFile()
 
 	if (getHardwareType() == HARDWARE_ROCKS0)
 	{
-		system("echo 1 > /sys/class/leds/rock-s0:orange:user5/brightness");
+		writeTo("/sys/class/leds/rock-s0:orange:user5/brightness", "1");
 		if (display)
 		{
 			display->FinishInitialization();
@@ -328,7 +330,7 @@ void ManagementInterface::readSettingsFile()
 		}
 	}
 	else if (getHardwareType() == HARDWARE_ROCKPIS)
-		system("echo 1 > /sys/class/leds/rockpis:blue:user/brightness");
+		writeTo("/sys/class/leds/rockpis:blue:user/brightness", "1");
 }
 
 void ManagementInterface::networkLoop(int sd) {
@@ -627,10 +629,22 @@ void ManagementInterface::mountUsbDrive()
 	// there isn't a way to reduce the timeout as far as I see. It's better to copy all files locally anyway to prevent issues with plugging out the drive
 	// when files are being played etc.
 
-	char command[256];
-	const char* rootPassword = "pen_pineapple"; // Todo support custom password for user, for systems that need to be secure.
-	sprintf(command, "echo \"%s\" | sudo -S mount /dev/sda1 %s -o uid=1000,gid=1000", rootPassword, usbDrivePath.c_str());
-	system(command);
+	const char* FSTypes[5] = { "vfat", "fuse", "ntfs", "ext4", "btrfs" };
+	bool success = false;
+	for (int i = 0; i < 5; i++)
+	{
+		if (mount("/dev/sda1", usbDrivePath.c_str(), FSTypes[i], MS_NOATIME, "uid=1000,gid=1000") != 0)
+		{
+			success = true;
+			break;
+		}
+	}
+	if (!success)
+	{
+		printf("Didn't find a USB drive\n");
+		return;
+	}
+
 	usleep(500000);
 
 	try
@@ -644,6 +658,16 @@ void ManagementInterface::mountUsbDrive()
 	{
 		unmountUsbDrive();
 		return;
+	}
+}
+
+void ManagementInterface::unmountUsbDrive()
+{
+	usbDriveMounted = false;
+
+	if (umount(usbDrivePath.c_str()) != 0) 
+	{
+		printf("Failed to unmount USB drive\n");
 	}
 }
 
@@ -817,6 +841,7 @@ ConnectionInfo ManagementInterface::getNetworkConnectionInfo(const std::string& 
 
 			info.connected = true;
 			info.ipAddress = ip;
+			info.ipSubnetCidr = nm_ip_address_get_prefix(addr);
 			//printf("normal found\n");
 			return info;
 		}
@@ -827,6 +852,7 @@ ConnectionInfo ManagementInterface::getNetworkConnectionInfo(const std::string& 
 			//printf("link local found\n");
 			info.connected = true;
 			info.ipAddress = linkLocalAddress;
+			info.ipSubnetCidr = 16;
 		}
 
 		//printf("return end of matched connection\n");
@@ -840,27 +866,19 @@ ConnectionInfo ManagementInterface::getNetworkConnectionInfo(const std::string& 
 void ManagementInterface::stopAndClean()
 {
 	if (getHardwareType() == HARDWARE_ROCKPIS)
-		system("echo 'heartbeat' > /sys/class/leds/rockpis:blue:user/trigger");
+		writeTo("/sys/class/leds/rockpis:blue:user/trigger", "heartbeat");
 	// Todo indicate on display a reboot
 	unmountUsbDrive();
 	filePlayer.stop();
 }
 
-void ManagementInterface::unmountUsbDrive()
-{
-	usbDriveMounted = false;
-	char command[256];
-	const char* rootPassword = "pen_pineapple"; // Todo support custom password for user, for systems that need to be secure.
-	sprintf(command, "echo \"%s\" | sudo -S umount %s", rootPassword, usbDrivePath.c_str());
-	system(command);
-}
-
-int ManagementInterface::writeTo(char* file, char* data, size_t numBytes)
+int ManagementInterface::writeTo(const char* file, char* data)
 {
 	int fd = open(file, O_WRONLY);
 	if (fd < 0)
 		return -1;
 
+	size_t numBytes = strlen(data) + 1;
 	ssize_t written = write(fd, data, numBytes);
 	if (written == numBytes)
 	{
@@ -870,6 +888,7 @@ int ManagementInterface::writeTo(char* file, char* data, size_t numBytes)
 	else
 	{
 		close(fd);
+		perror("writeTo");
 		return -1;
 	}
 }
@@ -1031,8 +1050,8 @@ void* ManagementInterface::statusInfoThreadEntry()
 			hasInited = true;
 		}
 
-		display->SetIpAddrEthernet(ethernetIpAddr);
-		display->SetIpAddrWiFi(wifiIpAddr);
+		display->SetIpAddrEthernet(ethernetIpAddr, ethernetConnectionInfo.ipSubnetCidr);
+		display->SetIpAddrWiFi(wifiIpAddr, wifiConnectionInfo.ipSubnetCidr);
 
 		//printf("updated %s %s\n", ethernetIpAddr.c_str(), wifiIpAddr.c_str());
 
@@ -1107,28 +1126,28 @@ bool ManagementInterface::requestOutput(int outputMode)
 	{
 		if (outputMode == OUTPUT_MODE_IDN)
 		{
-			system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
-			system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness");
+			writeTo("/sys/class/leds/rock-s0:green:user3/brightness", "1");
+			writeTo("/sys/class/leds/rock-s0:red:user4/brightness", "0");
 		}
 		else if (outputMode == OUTPUT_MODE_USB)
 		{
-			system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness");
-			system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
+			writeTo("/sys/class/leds/rock-s0:green:user3/brightness", "0");
+			writeTo("/sys/class/leds/rock-s0:red:user4/brightness", "1");
 		}
 		else if (outputMode == OUTPUT_MODE_FILE)
 		{
-			system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
-			system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
+			writeTo("/sys/class/leds/rock-s0:green:user3/brightness", "1");
+			writeTo("/sys/class/leds/rock-s0:red:user4/brightness", "1");
 		}
 		else if (outputMode == OUTPUT_MODE_DMX)
 		{
-			system("echo 1 > /sys/class/leds/rock-s0:green:user3/brightness");
-			system("echo 1 > /sys/class/leds/rock-s0:red:user4/brightness");
+			writeTo("/sys/class/leds/rock-s0:green:user3/brightness", "1");
+			writeTo("/sys/class/leds/rock-s0:red:user4/brightness", "1");
 		}
 		else if (outputMode == OUTPUT_MODE_FORCESTOP)
 		{
-			system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness");
-			system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness");
+			writeTo("/sys/class/leds/rock-s0:green:user3/brightness", "0");
+			writeTo("/sys/class/leds/rock-s0:red:user4/brightness", "0");
 		}
 	}
 
@@ -1148,8 +1167,13 @@ void ManagementInterface::relinquishOutput(int outputMode)
 		return;
 
 	printf("Stopping output in mode %d\n", _currentMode);
-	system("echo 0 > /sys/class/leds/rock-s0:green:user3/brightness");
-	system("echo 0 > /sys/class/leds/rock-s0:red:user4/brightness");
+
+	if (getHardwareType() == HARDWARE_ROCKS0)
+	{
+		writeTo("/sys/class/leds/rock-s0:green:user3/brightness", "0");
+		writeTo("/sys/class/leds/rock-s0:red:user4/brightness", "0");
+	}
+
 	currentMode.store(-1);
 
 	if (display)

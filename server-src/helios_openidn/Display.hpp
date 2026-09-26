@@ -37,8 +37,8 @@ public:
 	std::string MenuGetSelectedFile();
 
 	void SetMode(int mode);
-	void SetIpAddrEthernet(std::string ipAddrEthernet);
-	void SetIpAddrWiFi(std::string ipAddrWifi);
+	void SetIpAddrEthernet(std::string ipAddrEthernet, int _subnetCidr);
+	void SetIpAddrWiFi(std::string ipAddrWifi, int _subnetCidr);
 	void SetDeviceName(std::string deviceName);
 	void SetFirmwareVersion(std::string _version);
 	void SetCurrentPlayingProgram(std::string currentPlayingProgram);
@@ -61,7 +61,9 @@ private:
 
 	int mode = -1;
 	std::string ipAddrEthernet = "";
+	int ipAddrEthernetSubnetCidr = 0;
 	std::string ipAddrWifi = "";
+	int ipAddrWifiSubnetCidr = 0;
 	std::string deviceName = "";
 	std::string firmwareVersion = "";
 	std::string currentPlayingProgram = "";

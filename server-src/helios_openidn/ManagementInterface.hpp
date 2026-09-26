@@ -17,6 +17,7 @@
 #include <linux/input.h>
 #include <libnm/NetworkManager.h>
 #include <linux/i2c-dev.h>
+#include <sys/mount.h>
 
 #define MANAGEMENT_PORT 7355
 
@@ -34,6 +35,7 @@
 typedef struct ConnectionInfo {
 	bool connected = false;
 	std::string ipAddress;
+	int ipSubnetCidr = 24;
 }ConnectionInfo;
 
 void* keyboardThreadFunction(void* args);
@@ -86,7 +88,7 @@ private:
 	void emitDownButtonPressed();
 	ConnectionInfo getNetworkConnectionInfo(const std::string& connectionName);
 
-	int writeTo(char* file, char* data, size_t numBytes);
+	int writeTo(const char* file, char* data);
 
 	const std::string newSettingsPath = "/media/usbdrive/settings.ini";
 	const std::string settingsPath = "/home/laser/openidn/settings.ini";
