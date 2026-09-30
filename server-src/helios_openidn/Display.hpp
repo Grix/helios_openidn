@@ -11,6 +11,8 @@
 #define OUTPUT_MODE_FILE 2
 #define OUTPUT_MODE_DMX 3
 
+#define NUM_MENU_ITEMS_INFORMATION 7
+
 enum Menus 
 {
 	MainMenu,
@@ -41,7 +43,10 @@ public:
 	void SetIpAddrWiFi(std::string ipAddrWifi, int _subnetCidr);
 	void SetDeviceName(std::string deviceName);
 	void SetFirmwareVersion(std::string _version);
+	void SetDmxAddress(int _dmxChannel, int _dmxUniverse);
 	void SetCurrentPlayingProgram(std::string currentPlayingProgram);
+
+
 
 private:
 
@@ -54,7 +59,6 @@ private:
 	std::unique_ptr<LcdGfxMenu> menu;
 	Menus currentMenu = Menus::MainMenu;
 	std::vector<const char*> menuItemsFilePlayerVector;
-	//SAppMenu menu;
 
 	uint8_t canvasData[128 * (64 / 8)];
 	NanoCanvas1 canvas;
@@ -64,10 +68,39 @@ private:
 	int ipAddrEthernetSubnetCidr = 0;
 	std::string ipAddrWifi = "";
 	int ipAddrWifiSubnetCidr = 0;
+	int dmxUniverse = 1;
+	int dmxChannel = 0;
+	char ipAddrEthernetString[32] = "";
+	char ipAddrWifiString[32] = "";
+	char firmwareVersionString[24] = "";
+	char dmxUniverseString[24] = "";
+	char dmxChannelString[24] = "";
 	std::string deviceName = "";
 	std::string firmwareVersion = "";
 	std::string currentPlayingProgram = "";
 	std::mutex threadLock;
+	int staticMenuPosition = 0;
+
+	const char* menuItemsMain[2] =
+	{
+		"File Player",
+		"Information",
+	};
+
+	const char* menuItemsInformation[NUM_MENU_ITEMS_INFORMATION]
+	{
+		"Ethernet:",
+		ipAddrEthernetString,
+		"Wi-Fi:",
+		ipAddrWifiString,
+		dmxChannelString,
+		dmxUniverseString,
+		firmwareVersionString
+	};
+
+	const char* noFilesFoundText = "No files found";
+
+	void DrawScrollIndicator();
 
 };
 

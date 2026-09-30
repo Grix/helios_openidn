@@ -94,7 +94,7 @@ void ManagementInterface::readAndStoreUsbFiles()
 void ManagementInterface::runStartup()
 {
 	filePlayer.startup();
-	olaInterface.SetDmxAddress(40, 10);
+	olaInterface.run();
 }
 
 /// <summary>
@@ -309,6 +309,7 @@ void ManagementInterface::readSettingsFile()
 	}
 
 	filePlayer.readSettings(ini);
+	olaInterface.setName(settingIdnHostname);
 	olaInterface.readSettings(ini);
 
 	if (shouldRewrite)
@@ -327,6 +328,7 @@ void ManagementInterface::readSettingsFile()
 			display->FinishInitialization();
 			display->SetDeviceName(settingIdnHostname);
 			display->SetFirmwareVersion(std::string(softwareVersion));
+			display->SetDmxAddress(olaInterface.getChannelOffset(), olaInterface.getUniverse());
 		}
 	}
 	else if (getHardwareType() == HARDWARE_ROCKPIS)
@@ -870,9 +872,10 @@ void ManagementInterface::stopAndClean()
 	// Todo indicate on display a reboot
 	unmountUsbDrive();
 	filePlayer.stop();
+	olaInterface.close();
 }
 
-int ManagementInterface::writeTo(const char* file, char* data)
+int ManagementInterface::writeTo(const char* file, const char* data)
 {
 	int fd = open(file, O_WRONLY);
 	if (fd < 0)
@@ -1054,6 +1057,8 @@ void* ManagementInterface::statusInfoThreadEntry()
 		display->SetIpAddrWiFi(wifiIpAddr, wifiConnectionInfo.ipSubnetCidr);
 
 		//printf("updated %s %s\n", ethernetIpAddr.c_str(), wifiIpAddr.c_str());
+
+		display->SetDmxAddress(olaInterface.getChannelOffset(), olaInterface.getUniverse());
 
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 	}

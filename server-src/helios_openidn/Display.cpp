@@ -2,13 +2,6 @@
 
 //const char* menuItems[1000];
 
-const char* menuItemsMain[2] =
-{
-	"File Player",
-	"Information",
-};
-
-const char* noFilesFoundText = "No files found";
 
 const PROGMEM uint8_t playImage[8] =
 {
@@ -19,6 +12,18 @@ const PROGMEM uint8_t playImage[8] =
 	0b00000000,
 	0b00000000,
 	0b00000000,
+	0b00000000
+};
+
+const PROGMEM uint8_t scrollImage[8] =
+{
+	0b00000000,
+	0b00000000,
+	0b00100100,
+	0b01100110,
+	0b11100111,
+	0b01100110,
+	0b00100100,
 	0b00000000
 };
 
@@ -97,26 +102,42 @@ void Display::MenuUpdateHeader(bool update)
 
 void Display::MenuButtonUp()
 {
+	if (currentMenu == Menus::InformationMenu)
+	{
+		staticMenuPosition--;
+		if (staticMenuPosition < 0)
+			staticMenuPosition = NUM_MENU_ITEMS_INFORMATION - 3;
+
+		MenuGotoInformation();
+		return;
+	}
+
 	if (menu)
 	{
 		menu->up();
 		menu->show(canvas);
 		display->drawCanvas(0, 0, canvas);
 	}
-	//display->menuUp(&menu);
-	//display->updateMenu(&menu);
 }
 
 void Display::MenuButtonDown()
 {
+	if (currentMenu == Menus::InformationMenu)
+	{
+		staticMenuPosition++;
+		if (staticMenuPosition > NUM_MENU_ITEMS_INFORMATION - 3)
+			staticMenuPosition = 0;
+		
+		MenuGotoInformation();
+		return;
+	}
+
 	if (menu)
 	{
 		menu->down();
 		menu->show(canvas);
 		display->drawCanvas(0, 0, canvas);
 	}
-	//display->menuDown(&menu);
-	//display->updateMenu(&menu);
 }
 
 void Display::MenuButtonEnter()
@@ -198,30 +219,42 @@ void Display::MenuGotoInformation()
 {
 	std::lock_guard<std::mutex> lock(threadLock);
 
+	if (currentMenu != Menus::InformationMenu)
+		staticMenuPosition = 0;
+
 	canvas.clear();
 	MenuUpdateHeader(false);
-
-	char ethInfo[64];
+	
 	if (ipAddrEthernet.empty())
-		snprintf(ethInfo, 64, "Eth: Not connected");
+		snprintf(ipAddrEthernetString, 64, "Not connected");
 	else
-		snprintf(ethInfo, 64, "Eth: %s (/%d)", ipAddrEthernet.c_str(), ipAddrEthernetSubnetCidr);
+		snprintf(ipAddrEthernetString, 64, "%s/%d", ipAddrEthernet.c_str(), ipAddrEthernetSubnetCidr);
 
-	char wifiInfo[64];
 	if (ipAddrWifi.empty())
-		snprintf(wifiInfo, 64, "WiFi: Not connected");
+		snprintf(ipAddrWifiString, 64, "Not connected");
 	else
-		snprintf(wifiInfo, 64, "WiFi: %s (/%d)", ipAddrWifi.c_str(), ipAddrWifiSubnetCidr);
+		snprintf(ipAddrWifiString, 64, "%s/%d", ipAddrWifi.c_str(), ipAddrWifiSubnetCidr);
 
-	char versionInfo[64];
-	snprintf(versionInfo, 64, "FW version: %s", firmwareVersion.c_str());
-	canvas.printFixed(4, 24, ethInfo);
-	canvas.printFixed(4, 32, wifiInfo);
-	canvas.printFixed(4, 40, versionInfo);
+	snprintf(dmxUniverseString, 64, "DMX universe: %d", dmxUniverse);
+	snprintf(dmxChannelString, 64, "DMX address: %d", dmxChannel);
+
+	snprintf(firmwareVersionString, 64, "FW version: %s", firmwareVersion.c_str());
+
+	int posX = 16;
+	for (int i = staticMenuPosition; i < NUM_MENU_ITEMS_INFORMATION; i++)
+	{
+		canvas.printFixed(4, posX, menuItemsInformation[i]);
+		posX += 8;
+		if (i == 1 || i == 3 || i == 5)
+			posX += 4;
+	}
+
+	DrawScrollIndicator();
+
+	//menu = std::make_unique<LcdGfxMenu>(menuItemsInformation, NUM_MENU_ITEMS_INFORMATION, (NanoRect) { { 0, 8 }, { 0,0 } });
+	//menu->show(canvas);
 
 	display->drawCanvas(0, 0, canvas);
-
-	menu = NULL;
 
 	currentMenu = Menus::InformationMenu;
 }
@@ -301,12 +334,28 @@ void Display::SetFirmwareVersion(std::string _version)
 	firmwareVersion = _version;
 }
 
+void Display::SetDmxAddress(int _dmxChannel, int _dmxUniverse)
+{
+	if (dmxChannel == _dmxChannel && dmxUniverse == _dmxUniverse)
+		return;
+
+	dmxChannel = _dmxChannel;
+	dmxUniverse = _dmxUniverse;
+	if (currentMenu == Menus::InformationMenu)
+		MenuGotoInformation();
+}
+
 void Display::SetCurrentPlayingProgram(std::string _currentPlayingProgram)
 {
 	if (_currentPlayingProgram == currentPlayingProgram)
 		return;
 
 	currentPlayingProgram = _currentPlayingProgram;
+}
+
+void Display::DrawScrollIndicator()
+{
+	canvas.drawBitmap1(canvas.width() - 8, canvas.height() - 8, 8, 8, scrollImage);
 }
 
 

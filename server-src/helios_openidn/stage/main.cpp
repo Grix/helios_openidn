@@ -62,7 +62,8 @@ inline void debug_printf(bool critical, const char* fmt, ...) {
 }
 
 // Signal handler function for SIGINT: Cancel and join all driver threads.
-void sig_handler(int sig) {
+void sig_handler(int sig) 
+{
     char message[256]; // A buffer to hold the message with the count
     snprintf(message, sizeof(message), "\nCaught SIGINT (Ctrl+C). Exiting gracefully.\n");
     write(STDOUT_FILENO, message, strlen(message));

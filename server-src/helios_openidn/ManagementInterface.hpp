@@ -62,8 +62,8 @@ public:
 	void stopAndClean();
 
 	std::string settingIdnHostname = "HeliosPRO";
-	const char softwareVersion[10] = "1.1.1";
-	const unsigned char softwareVersionUsb = 111;
+	const char softwareVersion[10] = "1.1.2";
+	const unsigned char softwareVersionUsb = 112;
 	std::shared_ptr<IDNServer> idnServer;
 	int modePriority[OUTPUT_MODE_MAX + 1] = { 4, 3, 1, 2, 100 }; // If <=0, disable entirely
 	std::vector<std::shared_ptr<DACHWInterface>> devices;
@@ -87,8 +87,7 @@ private:
 	void emitUpButtonPressed();
 	void emitDownButtonPressed();
 	ConnectionInfo getNetworkConnectionInfo(const std::string& connectionName);
-
-	int writeTo(const char* file, char* data);
+	int writeTo(const char* file, const char* data);
 
 	const std::string newSettingsPath = "/media/usbdrive/settings.ini";
 	const std::string settingsPath = "/home/laser/openidn/settings.ini";
