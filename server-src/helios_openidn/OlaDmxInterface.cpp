@@ -1,5 +1,7 @@
 #include "OlaDmxInterface.hpp"
 
+extern EffectFilter effectFilter;
+
 OlaDmxInterface::OlaDmxInterface()
 	: wrapper(false)
 {

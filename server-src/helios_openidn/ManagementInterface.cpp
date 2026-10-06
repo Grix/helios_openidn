@@ -3,6 +3,7 @@
 
 FilePlayer filePlayer;
 OlaDmxInterface olaInterface;
+EffectFilter effectFilter;
 
 #define UDP_MAXBUF 8192
 

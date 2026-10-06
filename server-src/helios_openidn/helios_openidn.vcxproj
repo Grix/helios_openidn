@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="Display.cpp" />
     <ClCompile Include="dummy\DummyAdapter.cpp" />
+    <ClCompile Include="EffectFilter.cpp" />
     <ClCompile Include="FilePlayer.cpp" />
     <ClCompile Include="hardware\HeliosPro\HeliosProAdapter.cpp" />
     <ClCompile Include="hardware\Helios\HeliosAdapter.cpp" />
@@ -76,6 +77,7 @@
   <ItemGroup>
     <ClInclude Include="Display.hpp" />
     <ClInclude Include="dummy\DummyAdapter.hpp" />
+    <ClInclude Include="EffectFilter.h" />
     <ClInclude Include="FilePlayer.hpp" />
     <ClInclude Include="hardware\HeliosPro\HeliosProAdapter.hpp" />
     <ClInclude Include="hardware\Helios\HeliosAdapter.hpp" />

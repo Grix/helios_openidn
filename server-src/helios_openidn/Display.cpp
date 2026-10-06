@@ -170,9 +170,13 @@ void Display::MenuUpdateMainFooter(bool update)
 	canvas.fillRect(0, 53, 127, 63);
 	canvas.setColor(1);
 	canvas.drawLine(0, 53, 127, 53);
-	char ethInfo[64];
-	snprintf(ethInfo, 64, "%s", ipAddrEthernet.empty() ? "ETH not connected" : ipAddrEthernet.c_str());
-	canvas.printFixed(4, 56, ethInfo);
+
+	if (ipAddrEthernet.empty())
+		snprintf(ipAddrEthernetString, 31, "ETH not connected");
+	else
+		snprintf(ipAddrEthernetString, 31, "%s  /%d", ipAddrEthernet.c_str(), ipAddrEthernetSubnetCidr);
+
+	canvas.printFixed(4, 56, ipAddrEthernetString);
 
 	if (update)
 	{
@@ -228,12 +232,12 @@ void Display::MenuGotoInformation()
 	if (ipAddrEthernet.empty())
 		snprintf(ipAddrEthernetString, 64, "Not connected");
 	else
-		snprintf(ipAddrEthernetString, 64, "%s/%d", ipAddrEthernet.c_str(), ipAddrEthernetSubnetCidr);
+		snprintf(ipAddrEthernetString, 64, "%s /%d", ipAddrEthernet.c_str(), ipAddrEthernetSubnetCidr);
 
 	if (ipAddrWifi.empty())
 		snprintf(ipAddrWifiString, 64, "Not connected");
 	else
-		snprintf(ipAddrWifiString, 64, "%s/%d", ipAddrWifi.c_str(), ipAddrWifiSubnetCidr);
+		snprintf(ipAddrWifiString, 64, "%s /%d", ipAddrWifi.c_str(), ipAddrWifiSubnetCidr);
 
 	snprintf(dmxUniverseString, 64, "DMX universe: %d", dmxUniverse);
 	snprintf(dmxChannelString, 64, "DMX address: %d", dmxChannel);

@@ -19,6 +19,7 @@
 #include <filesystem>
 #include <atomic>
 #include <random>
+#include "EffectFilter.h"
 
 #define FILEPLAYER_MODE_REPEAT 0
 #define FILEPLAYER_MODE_ONCE 1

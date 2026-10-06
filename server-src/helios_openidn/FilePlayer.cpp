@@ -6,6 +6,7 @@
 #include "ManagementInterface.hpp"
 
 extern ManagementInterface* management;
+extern EffectFilter effectFilter;
 
 typedef struct PlayFileThreadArgs {
     FilePlayer* filePlayer;

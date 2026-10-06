@@ -98,6 +98,7 @@
     <ClCompile Include="server\IDNService.cpp" />
     <ClCompile Include="server\IDNSession.cpp" />
     <ClCompile Include="Display.cpp" />
+    <ClCompile Include="EffectFilter.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="thirdparty\lcdgfx\src\lcdgfx.h">
@@ -285,6 +286,7 @@
     <ClInclude Include="server\LLNode.hpp" />
     <ClInclude Include="server\PEVFlags.h" />
     <ClInclude Include="Display.hpp" />
+    <ClInclude Include="EffectFilter.h" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="thirdparty">
